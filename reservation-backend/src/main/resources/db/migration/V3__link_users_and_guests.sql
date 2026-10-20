@@ -1,0 +1,4 @@
+ALTER TABLE users ADD COLUMN guest_id BIGINT UNIQUE;
+
+ALTER TABLE users ADD CONSTRAINT fk_users_guest
+    FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE SET NULL;
