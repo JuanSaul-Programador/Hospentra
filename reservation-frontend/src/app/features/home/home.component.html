@@ -1,0 +1,307 @@
+<div class="home-root">
+  <section class="hero-section">
+    <div class="hero-bg-overlay"></div>
+    <div class="hero-container">
+      <div class="prestige-badges">
+        <div class="badge-item gold">
+          <span class="material-symbols-outlined badge-icon filled">hotel_class</span>
+          <span class="badge-text">Certificado 5 Diamantes</span>
+        </div>
+        <div class="badge-item glass">
+          <span class="material-symbols-outlined badge-icon">room_service</span>
+          <span class="badge-text">Servicio de Concierge 24/7</span>
+        </div>
+      </div>
+
+      <h1 class="hero-title">
+        El Arte del <span class="gold-text">Descanso</span> Exclusivo
+      </h1>
+
+      <p class="hero-subtitle">
+        Descubre nuestra selección curada de suites boutique y santuarios privados, diseñados para una estadía inolvidable con atención personalizada.
+      </p>
+
+      <div class="search-capsule">
+        <div class="search-field">
+          <div class="field-icon-wrapper">
+            <span class="material-symbols-outlined">calendar_today</span>
+          </div>
+          <div class="field-content">
+            <label for="check-in-input" class="field-label">Llegada</label>
+            <input
+              id="check-in-input"
+              type="date"
+              [min]="minDate"
+              [ngModel]="searchCheckIn()"
+              (ngModelChange)="searchCheckIn.set($event)"
+              class="field-input"
+            />
+          </div>
+        </div>
+
+        <div class="field-divider"></div>
+
+        <div class="search-field">
+          <div class="field-icon-wrapper">
+            <span class="material-symbols-outlined">event_available</span>
+          </div>
+          <div class="field-content">
+            <label for="check-out-input" class="field-label">Salida</label>
+            <input
+              id="check-out-input"
+              type="date"
+              [min]="searchCheckIn()"
+              [ngModel]="searchCheckOut()"
+              (ngModelChange)="searchCheckOut.set($event)"
+              class="field-input"
+            />
+          </div>
+        </div>
+
+        <div class="field-divider"></div>
+
+        <div class="search-field">
+          <div class="field-icon-wrapper">
+            <span class="material-symbols-outlined">group</span>
+          </div>
+          <div class="field-content">
+            <label for="guests-select" class="field-label">Huéspedes</label>
+            <select
+              id="guests-select"
+              [ngModel]="searchGuests()"
+              (ngModelChange)="searchGuests.set($event)"
+              class="field-select"
+            >
+              <option [ngValue]="1">1 Huésped</option>
+              <option [ngValue]="2">2 Huéspedes</option>
+              <option [ngValue]="3">3 Huéspedes</option>
+              <option [ngValue]="4">4 Huéspedes</option>
+              <option [ngValue]="6">6 Huéspedes</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary search-cta-btn" (click)="loadRooms()">
+          <span>Consultar Disponibilidad</span>
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </button>
+      </div>
+
+      <div class="assurance-ribbon">
+        <div class="assurance-item">
+          <span class="material-symbols-outlined">verified</span>
+          <span>Garantía de mejor tarifa directa</span>
+        </div>
+        <span class="ribbon-dot">•</span>
+        <div class="assurance-item">
+          <span class="material-symbols-outlined">event_repeat</span>
+          <span>Cancelación gratuita hasta 48h antes</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="catalogo" class="catalog-section">
+    <div class="catalog-container">
+      <div class="catalog-header">
+        <div class="filters-scroll">
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="selectedCategory() === 'all'"
+            (click)="onFilterChange('all')"
+          >
+            Todas las Habitaciones
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="selectedCategory() === 'suite'"
+            (click)="onFilterChange('suite')"
+          >
+            Suites Vista al Mar
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="selectedCategory() === 'penthouse'"
+            (click)="onFilterChange('penthouse')"
+          >
+            Penthouse Exclusivo
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="selectedCategory() === 'villa'"
+            (click)="onFilterChange('villa')"
+          >
+            Villas Privadas
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="selectedCategory() === 'deluxe'"
+            (click)="onFilterChange('deluxe')"
+          >
+            Habitaciones Deluxe
+          </button>
+        </div>
+
+        <div class="sort-wrapper">
+          <span class="material-symbols-outlined sort-icon">tune</span>
+          <label for="sort-select" class="sort-label">Ordenar:</label>
+          <select id="sort-select" class="sort-select" (change)="onSortChange($event)">
+            <option value="featured">Recomendados</option>
+            <option value="price-asc">Precio: menor a mayor</option>
+            <option value="price-desc">Precio: mayor a menor</option>
+            <option value="capacity">Capacidad máxima</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="catalog-meta-bar">
+        <p class="count-text">
+          Mostrando <strong class="bold-count">{{ filteredRooms().length }} residencias exclusivas</strong> disponibles
+        </p>
+        <div class="live-indicator">
+          <span class="pulsing-dot"></span>
+          <span>Disponibilidad en Tiempo Real</span>
+        </div>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Consultando disponibilidad de suites...</p>
+        </div>
+      } @else {
+        <div class="rooms-grid">
+          @for (room of filteredRooms(); track room.id) {
+            <article class="room-card">
+              <div class="room-card-media">
+                <img
+                  [src]="getRoomImage(room)"
+                  [alt]="room.roomType.name"
+                  class="room-card-image"
+                  loading="lazy"
+                />
+                <span class="room-badge">
+                  {{ getCategoryBadge(room.roomType.name) }}
+                </span>
+                <div class="room-rating-chip">
+                  <span class="material-symbols-outlined star-icon">star</span>
+                  <span class="rating-val">4.96</span>
+                  <span class="reviews-count">(98)</span>
+                </div>
+              </div>
+
+              <div class="room-card-body">
+                <div class="room-specs">
+                  <span>Hasta {{ room.roomType.capacity }} huéspedes</span>
+                  <span class="spec-dot">•</span>
+                  <span>Habitación {{ room.roomNumber }}</span>
+                </div>
+
+                <h3 class="room-title">{{ room.roomType.name }}</h3>
+
+                <p class="room-description">
+                  {{ room.roomType.description || 'Disfruta de una estancia de lujo con acabados de primera clase y amenidades exclusivas.' }}
+                </p>
+
+                <div class="amenities-grid">
+                  <div class="amenity-item">
+                    <span class="material-symbols-outlined">panorama</span>
+                    <span>Vista panorámica</span>
+                  </div>
+                  <div class="amenity-item">
+                    <span class="material-symbols-outlined">hot_tub</span>
+                    <span>Tina hidromasaje</span>
+                  </div>
+                  <div class="amenity-item">
+                    <span class="material-symbols-outlined">deck</span>
+                    <span>Terraza privada</span>
+                  </div>
+                  <div class="amenity-item">
+                    <span class="material-symbols-outlined">restaurant</span>
+                    <span>Desayuno gourmet</span>
+                  </div>
+                </div>
+
+                <div class="room-card-footer">
+                  <div class="pricing-block">
+                    <span class="pricing-label">Tarifa por noche</span>
+                    <div class="pricing-val">
+                      <span class="amount">${{ room.roomType.pricePerNight | number:'1.2-2' }}</span>
+                      <span class="night-label">/ noche</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn btn-primary book-btn"
+                    (click)="onBook(room)"
+                  >
+                    Reservar ahora
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section id="servicios" class="experience-section">
+    <div class="experience-container">
+      <div class="section-badge">Estándar Hospentra</div>
+      <h2 class="experience-title">Servicios de Hospitalidad de Autor</h2>
+      <p class="experience-subtitle">
+        Cada momento de su estancia está concebido para superar las más altas expectativas de confort, privacidad y bienestar.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">room_service</span>
+          </div>
+          <h3 class="feature-name">Concierge Dedicado 24/7</h3>
+          <p class="feature-desc">Atención a medida para reservas privadas, itinerarios a medida y asistencia permanente.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">restaurant</span>
+          </div>
+          <h3 class="feature-name">Alta Gastronomía</h3>
+          <p class="feature-desc">Chefs galardonados en servicio a la habitación y maridajes curados por sommeliers.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">spa</span>
+          </div>
+          <h3 class="feature-name">Wellness & Spa Privado</h3>
+          <p class="feature-desc">Tratamientos termales personalizados y rituales holísticos en la intimidad de su suite.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">shield</span>
+          </div>
+          <h3 class="feature-name">Privacidad & Seguridad</h3>
+          <p class="feature-desc">Acceso blindado, discretas instalaciones y protocolos internacionales de bioseguridad.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  @if (isAuthModalOpen()) {
+    <app-auth-modal
+      [selectedRoom]="selectedRoomForBooking()"
+      [roomImage]="selectedRoomImage()"
+      (closeModal)="closeAuthModal()"
+      (loginSuccess)="onLoginSuccess()"
+    />
+  }
+</div>

@@ -1,0 +1,489 @@
+<div class="my-res-root">
+  <div class="my-res-container">
+    <section class="member-header-section">
+      <nav class="breadcrumb-nav" aria-label="Ruta de navegación">
+        <a routerLink="/" class="breadcrumb-link">Inicio</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-link">Mi Cuenta</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Mis Reservas</span>
+      </nav>
+
+      <div class="header-main-row">
+        <div class="header-titles">
+          <span class="prestige-tag">Portal del Huésped • Hospentra Collection</span>
+          <h1 class="portal-title">Mis Reservas & Itinerarios</h1>
+          <p class="portal-desc">
+            Gestione sus próximas estancias boutique, solicitudes de concierge y consulte su historial de reservas con atención personalizada.
+          </p>
+        </div>
+
+        <button type="button" class="btn btn-outline concierge-quick-btn" (click)="openConcierge()">
+          <span class="material-symbols-outlined">support_agent</span>
+          <span>Mayordomo Personal</span>
+        </button>
+      </div>
+
+      <div class="member-capsule">
+        <div class="member-profile">
+          <div class="avatar-ring">
+            <div class="avatar-text">
+              {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || 'H' }}
+            </div>
+            <span class="verified-icon">
+              <span class="material-symbols-outlined">verified</span>
+            </span>
+          </div>
+          <div class="profile-info">
+            <div class="name-row">
+              <span class="user-fullname">{{ authService.currentUser()?.username }}</span>
+              <span class="elite-badge">{{ authService.currentUser()?.role || 'CLIENTE' }}</span>
+            </div>
+            <span class="member-subtitle">{{ authService.currentUser()?.email }} • Cuenta Verificada</span>
+          </div>
+        </div>
+
+        <div class="member-stats">
+          <div class="stat-box points">
+            <span class="material-symbols-outlined stat-icon gold">book_online</span>
+            <div class="stat-content">
+              <span class="stat-label">Total Reservas</span>
+              <span class="stat-value">{{ reservations().length }} <span class="stat-unit">estancias</span></span>
+            </div>
+          </div>
+
+          <div class="stat-box perk">
+            <span class="material-symbols-outlined stat-icon">calendar_month</span>
+            <div class="stat-content">
+              <span class="stat-label">Próximas Llegadas</span>
+              <span class="stat-value perk-text">{{ upcomingReservations().length }} programadas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs-bar-section">
+      <div class="tabs-group">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'upcoming'"
+          (click)="switchTab('upcoming')"
+        >
+          <span>Próximas Estancias</span>
+          <span class="tab-counter">{{ upcomingReservations().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'history'"
+          (click)="switchTab('history')"
+        >
+          <span>Historial de Estancias</span>
+          <span class="tab-counter">{{ historyReservations().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'canceled'"
+          (click)="switchTab('canceled')"
+        >
+          <span>Canceladas</span>
+          <span class="tab-counter">{{ canceledReservations().length }}</span>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-outline print-btn" (click)="printHistory()">
+        <span class="material-symbols-outlined">picture_as_pdf</span>
+        <span>Imprimir Historial</span>
+      </button>
+    </section>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando itinerarios de autor...</p>
+      </div>
+    } @else {
+      @if (activeTab() === 'upcoming') {
+        <div class="reservations-list">
+          @if (upcomingReservations().length === 0) {
+            <div class="empty-state-card">
+              <span class="material-symbols-outlined empty-icon">luggage</span>
+              <h3 class="empty-title">No tiene reservas próximas</h3>
+              <p class="empty-desc">Explore nuestra colección privada de suites y planifique su próxima estancia inolvidable.</p>
+              <a routerLink="/" class="btn btn-primary">Explorar Catálogo de Suites</a>
+            </div>
+          } @else {
+            @for (res of upcomingReservations(); track res.id) {
+              <article class="reservation-card">
+                <div class="card-status-bar">
+                  <div class="status-tags">
+                    <span class="status-pill confirmed">
+                      <span class="status-dot"></span>
+                      {{ getStatusLabel(res.status) }}
+                    </span>
+                    <span class="prestige-tag-pill">
+                      <span class="material-symbols-outlined">workspace_premium</span>
+                      Reserva Directa
+                    </span>
+                  </div>
+
+                  <div class="code-box">
+                    <span class="code-label">Localizador:</span>
+                    <span class="code-val">HOSP-{{ res.id }}-2026</span>
+                    <button
+                      type="button"
+                      class="copy-btn"
+                      (click)="copyBookingCode('HOSP-' + res.id + '-2026', res.id)"
+                      title="Copiar código"
+                    >
+                      <span class="material-symbols-outlined">
+                        {{ copiedCodeId() === res.id ? 'check' : 'content_copy' }}
+                      </span>
+                      @if (copiedCodeId() === res.id) {
+                        <span class="copied-tooltip">Copiado</span>
+                      }
+                    </button>
+                  </div>
+                </div>
+
+                <div class="card-body-grid">
+                  <div class="card-media-col">
+                    <div class="media-frame">
+                      <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="media-img" />
+                      <div class="media-badges">
+                        <span class="room-num-badge">Habitación {{ res.room.roomNumber }}</span>
+                        <span class="rating-badge">
+                          <span class="material-symbols-outlined star-icon">star</span>
+                          4.98
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card-details-col">
+                    <div class="suite-header">
+                      <span class="suite-category">Suite Boutique</span>
+                      <h3 class="suite-title">{{ res.room.roomType.name }}</h3>
+                      <p class="suite-location">
+                        <span class="material-symbols-outlined">location_on</span>
+                        Riviera Maya • Hospentra Sanctuary Retreat
+                      </p>
+                    </div>
+
+                    <div class="dates-summary-box">
+                      <div class="date-chip">
+                        <span class="chip-label">Llegada</span>
+                        <strong class="chip-val">{{ res.checkInDate }}</strong>
+                        <span class="chip-sub">Check-in desde 15:00</span>
+                      </div>
+                      <div class="nights-pill">
+                        <span class="material-symbols-outlined">nights_stay</span>
+                        <span>{{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches</span>
+                      </div>
+                      <div class="date-chip">
+                        <span class="chip-label">Salida</span>
+                        <strong class="chip-val">{{ res.checkOutDate }}</strong>
+                        <span class="chip-sub">Check-out 12:00 hrs</span>
+                      </div>
+                    </div>
+
+                    <div class="specs-pills">
+                      <span class="spec-item">
+                        <span class="material-symbols-outlined">hotel</span>
+                        Cama King Size
+                      </span>
+                      <span class="spec-item">
+                        <span class="material-symbols-outlined">group</span>
+                        {{ res.room.roomType.capacity }} Huéspedes
+                      </span>
+                      <span class="spec-item">
+                        <span class="material-symbols-outlined">aspect_ratio</span>
+                        75 m²
+                      </span>
+                      <span class="spec-item">
+                        <span class="material-symbols-outlined">hot_tub</span>
+                        Tina Hidromasaje
+                      </span>
+                    </div>
+
+                    <div class="concierge-preferences">
+                      <span class="material-symbols-outlined pref-icon">room_service</span>
+                      <div class="pref-text">
+                        <strong>Preferencias Confirmadas:</strong>
+                        <span>Habitación en piso alto • Almohadas hipoalergénicas • Check-in prioritario</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card-actions-col">
+                    <div class="pricing-card">
+                      <span class="pricing-label">Total Estadía ({{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches)</span>
+                      <div class="pricing-row">
+                        <span class="pricing-amount">${{ res.totalPrice | number:'1.2-2' }}</span>
+                        <span class="pricing-currency">USD</span>
+                      </div>
+                      <p class="pricing-notice">Impuestos incluidos. Liquidación al registro en destino.</p>
+                    </div>
+
+                    <div class="actions-stack">
+                      <button type="button" class="btn btn-primary w-full" (click)="openVoucher(res)">
+                        <span class="material-symbols-outlined">qr_code_2</span>
+                        <span>Ver Voucher Digital</span>
+                      </button>
+
+                      <button type="button" class="btn btn-outline w-full" (click)="openConcierge()">
+                        <span class="material-symbols-outlined">concierge</span>
+                        <span>Petición al Concierge</span>
+                      </button>
+
+                      <div class="cancel-link-row">
+                        <button type="button" class="cancel-link" (click)="openCancelDialog(res)">
+                          Cancelar Reserva
+                        </button>
+                        <span class="cancel-guarantee">Cancelación flexible 48h</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            }
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'history') {
+        <div class="reservations-list">
+          @if (historyReservations().length === 0) {
+            <div class="empty-state-card">
+              <span class="material-symbols-outlined empty-icon">history_edu</span>
+              <h3 class="empty-title">Aún no tiene estancias pasadas</h3>
+              <p class="empty-desc">Todas las experiencias y estancias completadas se guardarán en este historial permanente.</p>
+            </div>
+          } @else {
+            @for (res of historyReservations(); track res.id) {
+              <article class="history-card">
+                <div class="history-media">
+                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img" />
+                </div>
+                <div class="history-content">
+                  <div class="history-header">
+                    <span class="status-pill completed">✓ Estancia Completada</span>
+                    <span class="history-code">Cód: HOSP-{{ res.id }}-2026</span>
+                  </div>
+                  <h4 class="history-suite-name">{{ res.room.roomType.name }}</h4>
+                  <p class="history-dates">
+                    {{ res.checkInDate }} al {{ res.checkOutDate }} ({{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches) • Riviera Maya
+                  </p>
+                  <div class="history-financials">
+                    <span>Total liquidado: <strong>${{ res.totalPrice | number:'1.2-2' }} USD</strong></span>
+                    <span class="gold-eval">★ Calificación: 5.0 Excelente</span>
+                  </div>
+                </div>
+                <div class="history-actions">
+                  <a routerLink="/" class="btn btn-primary">Volver a Reservar</a>
+                  <button type="button" class="btn btn-outline" (click)="openVoucher(res)">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                    <span>Descargar Voucher</span>
+                  </button>
+                </div>
+              </article>
+            }
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'canceled') {
+        <div class="reservations-list">
+          @if (canceledReservations().length === 0) {
+            <div class="empty-state-card">
+              <span class="material-symbols-outlined empty-icon">event_busy</span>
+              <h3 class="empty-title">No tiene estancias canceladas</h3>
+              <p class="empty-desc">Todas sus solicitudes programadas permanecen activas o han sido disfrutadas conforme a los itinerarios de autor.</p>
+            </div>
+          } @else {
+            @for (res of canceledReservations(); track res.id) {
+              <article class="history-card canceled">
+                <div class="history-media">
+                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img grayscale" />
+                </div>
+                <div class="history-content">
+                  <div class="history-header">
+                    <span class="status-pill canceled-pill">Reserva Cancelada</span>
+                    <span class="history-code">Cód: HOSP-{{ res.id }}-2026</span>
+                  </div>
+                  <h4 class="history-suite-name">{{ res.room.roomType.name }}</h4>
+                  <p class="history-dates">{{ res.checkInDate }} al {{ res.checkOutDate }}</p>
+                  <p class="cancel-note">Cancelación procesada sin recargos conforme a la política flexible.</p>
+                </div>
+                <div class="history-actions">
+                  <a routerLink="/" class="btn btn-outline">Reservar en Nuevas Fechas</a>
+                </div>
+              </article>
+            }
+          }
+        </div>
+      }
+    }
+
+    <section class="support-banner">
+      <div class="support-content">
+        <div class="support-title-row">
+          <span class="material-symbols-outlined banner-icon">concierge</span>
+          <span class="support-label">Atención Privada & Mayordomía 24/7</span>
+        </div>
+        <h3 class="support-headline">¿Requiere coordinar un traslado privado o petición especial?</h3>
+        <p class="support-desc">
+          Nuestro equipo de concierge está a su disposición en todo momento para vuelos chárter, helicóptero, reservas gastronómicas de autor y experiencias privadas.
+        </p>
+      </div>
+      <div class="support-actions">
+        <button type="button" class="btn btn-secondary" (click)="openConcierge()">
+          <span class="material-symbols-outlined">call</span>
+          <span>Llamar a Recepción</span>
+        </button>
+        <button type="button" class="btn btn-outline-white" (click)="openConcierge()">
+          <span class="material-symbols-outlined">chat</span>
+          <span>WhatsApp Concierge</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  @if (isVoucherModalOpen() && selectedVoucherReservation()) {
+    <div class="modal-backdrop" (click)="closeVoucher()">
+      <div class="voucher-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeVoucher()" aria-label="Cerrar voucher">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="voucher-header">
+          <div class="voucher-brand">
+            <span class="material-symbols-outlined brand-star">hotel_class</span>
+            <span class="brand-title">Hospentra Itinerario Oficial</span>
+          </div>
+          <span class="voucher-badge">VOUCHER DIGITAL CONFIRMADO</span>
+        </div>
+
+        <div class="voucher-code-strip">
+          <span class="strip-label">Código de Confirmación:</span>
+          <span class="strip-code">HOSP-{{ selectedVoucherReservation()?.id }}-2026</span>
+        </div>
+
+        <div class="voucher-body">
+          <div class="voucher-field">
+            <span class="field-title">Titular de la Reserva</span>
+            <strong class="field-val">{{ authService.currentUser()?.username }}</strong>
+            <span class="field-sub">{{ authService.currentUser()?.email }}</span>
+          </div>
+
+          <div class="voucher-field">
+            <span class="field-title">Suite Reservada</span>
+            <strong class="field-val">{{ selectedVoucherReservation()?.room?.roomType?.name }}</strong>
+            <span class="field-sub">Habitación {{ selectedVoucherReservation()?.room?.roomNumber }} • 5 Diamantes</span>
+          </div>
+
+          <div class="voucher-dates-row">
+            <div class="v-date">
+              <span class="field-title">Check-in</span>
+              <strong class="field-val">{{ selectedVoucherReservation()?.checkInDate }}</strong>
+              <span class="field-sub">15:00 hrs</span>
+            </div>
+            <div class="v-date">
+              <span class="field-title">Check-out</span>
+              <strong class="field-val">{{ selectedVoucherReservation()?.checkOutDate }}</strong>
+              <span class="field-sub">12:00 hrs</span>
+            </div>
+          </div>
+
+          <div class="voucher-price-row">
+            <span>Total a Liquidar al Ingreso:</span>
+            <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
+          </div>
+
+          <div class="barcode-simulator">
+            <div class="barcode-lines"></div>
+            <span class="barcode-number">*HOSP-{{ selectedVoucherReservation()?.id }}-2026*</span>
+          </div>
+        </div>
+
+        <div class="voucher-actions-row">
+          <button type="button" class="btn btn-outline voucher-print-btn" (click)="printVoucher()">
+            <span class="material-symbols-outlined">picture_as_pdf</span>
+            <span>Imprimir / Guardar PDF</span>
+          </button>
+          <button type="button" class="btn btn-primary" (click)="closeVoucher()">
+            Cerrar Voucher
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isCancelModalOpen() && reservationToCancel()) {
+    <div class="modal-backdrop" (click)="closeCancelDialog()">
+      <div class="cancel-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <div class="cancel-warn-icon">
+          <span class="material-symbols-outlined">warning</span>
+        </div>
+        <h3 class="cancel-dialog-title">¿Desea cancelar esta reserva?</h3>
+        <p class="cancel-dialog-desc">
+          Está a punto de cancelar su estancia en <strong>{{ reservationToCancel()?.room?.roomType?.name }}</strong> para las fechas <strong>{{ reservationToCancel()?.checkInDate }}</strong> al <strong>{{ reservationToCancel()?.checkOutDate }}</strong>.
+        </p>
+        <p class="cancel-policy-notice">
+          Cancelación flexible garantizada: No se aplicará ninguna penalización ni cobro a su cuenta.
+        </p>
+
+        <div class="dialog-actions-row">
+          <button type="button" class="btn btn-outline" (click)="closeCancelDialog()" [disabled]="isCancelling()">
+            Mantener mi Reserva
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="isCancelling()">
+            {{ isCancelling() ? 'Cancelando...' : 'Confirmar Cancelación' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isConciergeModalOpen()) {
+    <div class="modal-backdrop" (click)="closeConcierge()">
+      <div class="concierge-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeConcierge()" aria-label="Cerrar concierge">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="concierge-icon-circle">
+          <span class="material-symbols-outlined">concierge</span>
+        </div>
+        <h3 class="concierge-title">Mayordomía & Asistencia 24/7</h3>
+        <p class="concierge-desc">
+          Su concierge personal asignado está listo para coordinar cada detalle de su próxima visita.
+        </p>
+
+        <div class="concierge-contacts-box">
+          <div class="contact-card">
+            <span class="material-symbols-outlined">call</span>
+            <div>
+              <strong>Recepción Sanctuary</strong>
+              <p>+51 1 800 4677</p>
+            </div>
+          </div>
+          <div class="contact-card">
+            <span class="material-symbols-outlined">chat</span>
+            <div>
+              <strong>WhatsApp VIP</strong>
+              <p>+51 987 654 321</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary w-full" (click)="closeConcierge()">
+          Entendido
+        </button>
+      </div>
+    </div>
+  }
+</div>

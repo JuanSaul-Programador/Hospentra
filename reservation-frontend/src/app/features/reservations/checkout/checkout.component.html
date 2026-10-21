@@ -1,0 +1,416 @@
+<div class="checkout-root">
+  <section class="stepper-section">
+    <div class="stepper-container">
+      <nav class="breadcrumb-nav" aria-label="Ruta de navegación">
+        <a routerLink="/" class="breadcrumb-link">Catálogo</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">{{ room()?.roomType?.name || 'Suite Boutique' }}</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-highlight">Confirmación de Reserva</span>
+      </nav>
+
+      <div class="stepper-steps">
+        <div class="step-item completed">
+          <span class="step-circle">
+            <span class="material-symbols-outlined check-icon">check</span>
+          </span>
+          <span class="step-label">Selección</span>
+        </div>
+        <div class="step-line active"></div>
+        <div class="step-item active">
+          <span class="step-circle">2</span>
+          <span class="step-label">Datos y Estadía</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <span class="step-circle">3</span>
+          <span class="step-label">Confirmación</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="checkout-main">
+    <div class="checkout-container">
+      <div class="checkout-grid">
+        <div class="checkout-form-col">
+          <div class="section-heading">
+            <span class="prestige-tag">Reserva Directa Exclusiva</span>
+            <h1 class="heading-title">Detalles de su Estadía</h1>
+            <p class="heading-desc">Verifique la información antes de formalizar su reserva y acceder a los beneficios de bienvenida.</p>
+          </div>
+
+          @if (errorMessage()) {
+            <div class="error-banner">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ errorMessage() }}</span>
+            </div>
+          }
+
+          <section class="card-module">
+            <div class="module-header">
+              <div class="module-title-group">
+                <span class="material-symbols-outlined module-icon">calendar_month</span>
+                <h2 class="module-title">Fechas y Ocupantes</h2>
+              </div>
+            </div>
+
+            <div class="dates-dual-box">
+              <div class="date-subcard">
+                <div class="date-header">
+                  <span class="material-symbols-outlined">calendar_today</span>
+                  <span class="date-label">Llegada</span>
+                </div>
+                <input
+                  type="date"
+                  [min]="minCheckInDate()"
+                  [ngModel]="checkInDate()"
+                  (ngModelChange)="onCheckInChange($event)"
+                  class="date-input"
+                />
+                <span class="date-meta">
+                  <span class="material-symbols-outlined icon-small">schedule</span>
+                  A partir de las 15:00 hrs
+                </span>
+              </div>
+
+              <div class="nights-floating-pill">
+                <span class="material-symbols-outlined">nights_stay</span>
+                <span>{{ nightsCount() }} Noches</span>
+              </div>
+
+              <div class="date-subcard">
+                <div class="date-header">
+                  <span class="material-symbols-outlined">event_available</span>
+                  <span class="date-label">Salida</span>
+                </div>
+                <input
+                  type="date"
+                  [min]="minCheckOutDate()"
+                  [ngModel]="checkOutDate()"
+                  (ngModelChange)="checkOutDate.set($event)"
+                  class="date-input"
+                />
+                <span class="date-meta">
+                  <span class="material-symbols-outlined icon-small">schedule</span>
+                  Hasta las 12:00 hrs
+                </span>
+              </div>
+            </div>
+
+            <div class="occupants-bar">
+              <div class="occupants-info">
+                <span class="material-symbols-outlined occupants-icon">group</span>
+                <div>
+                  <p class="occupants-title">{{ guestsCount() }} Huéspedes adultos • 1 Cama King Size</p>
+                  <p class="occupants-subtitle">Capacidad óptima y confort garantizado</p>
+                </div>
+              </div>
+              <div class="occupants-actions">
+                <select [ngModel]="guestsCount()" (ngModelChange)="guestsCount.set(+$event)" class="guests-select">
+                  <option [ngValue]="1">1 Huésped</option>
+                  <option [ngValue]="2">2 Huéspedes</option>
+                  <option [ngValue]="3">3 Huéspedes</option>
+                  <option [ngValue]="4">4 Huéspedes</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="card-module">
+            <div class="module-header">
+              <div class="module-title-group">
+                <span class="material-symbols-outlined module-icon">badge</span>
+                <h2 class="module-title">Información del Titular</h2>
+              </div>
+              <span class="elite-pill">
+                <span class="material-symbols-outlined icon-small">verified</span>
+                Huésped Registrado
+              </span>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label class="field-label">Nombre Completo</label>
+                <div class="input-with-badge">
+                  <input
+                    type="text"
+                    [ngModel]="guestName()"
+                    (ngModelChange)="guestName.set($event)"
+                    class="form-input"
+                  />
+                  <span class="verified-badge">
+                    <span class="material-symbols-outlined icon-small">verified</span>
+                    Verificado
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label">Correo Electrónico</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined field-icon">alternate_email</span>
+                  <input
+                    type="email"
+                    [ngModel]="guestEmail()"
+                    (ngModelChange)="guestEmail.set($event)"
+                    class="form-input with-icon"
+                  />
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label">Teléfono Móvil (Perú +51) *</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined field-icon">call</span>
+                  <input
+                    type="tel"
+                    maxlength="9"
+                    [ngModel]="guestPhone()"
+                    (ngModelChange)="guestPhone.set($event)"
+                    placeholder="987654321"
+                    class="form-input with-icon"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="rewards-banner">
+              <span class="material-symbols-outlined banner-icon">verified_user</span>
+              <div class="banner-text">
+                <p class="banner-title">Garantía de Reserva Directa</p>
+                <p class="banner-desc">
+                  Sus datos de contacto se utilizarán exclusivamente para la emisión del voucher oficial de la suite y la coordinación del check-in.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card-module">
+            <div class="module-header">
+              <div class="module-title-group">
+                <span class="material-symbols-outlined module-icon">room_service</span>
+                <div>
+                  <h2 class="module-title">Peticiones al Concierge</h2>
+                  <p class="module-subtitle">Nuestro equipo preparará su suite a la medida de sus preferencias.</p>
+                </div>
+              </div>
+            </div>
+
+            <textarea
+              [(ngModel)]="specialRequests"
+              rows="3"
+              class="notes-textarea"
+              placeholder="Indique requerimientos específicos: hora estimada de llegada, piso alto, almohadas hipoalergénicas, champagne de bienvenida..."
+            ></textarea>
+
+            <div class="quick-tags-wrapper">
+              <span class="tags-label">Sugerencias habituales:</span>
+              <div class="tags-container">
+                <button type="button" class="tag-btn" (click)="addSuggestionTag('Check-in temprano (+13:00)')">
+                  <span class="material-symbols-outlined">add</span> Check-in temprano (+13:00)
+                </button>
+                <button type="button" class="tag-btn" (click)="addSuggestionTag('Almohadas de plumas de ganso')">
+                  <span class="material-symbols-outlined">add</span> Almohadas de plumas
+                </button>
+                <button type="button" class="tag-btn" (click)="addSuggestionTag('Cuna para bebé')">
+                  <span class="material-symbols-outlined">add</span> Cuna para bebé
+                </button>
+                <button type="button" class="tag-btn" (click)="addSuggestionTag('Habitación en piso alto')">
+                  <span class="material-symbols-outlined">add</span> Piso alto
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="guarantees-module">
+            <h3 class="guarantees-title">Garantías Hospentra & Políticas Claras</h3>
+            <div class="guarantees-list">
+              <div class="guarantee-item">
+                <div class="guarantee-icon">
+                  <span class="material-symbols-outlined">verified_user</span>
+                </div>
+                <div>
+                  <h4 class="guarantee-name">Cancelación Flexible sin Penalización</h4>
+                  <p class="guarantee-text">Cancelación gratuita hasta 48 horas antes de la llegada. Sin cargos imprevistos ni penalidades.</p>
+                </div>
+              </div>
+
+              <div class="guarantee-item">
+                <div class="guarantee-icon">
+                  <span class="material-symbols-outlined">nest_clock_farsight_analog</span>
+                </div>
+                <div>
+                  <h4 class="guarantee-name">Horarios Oficiales & Late Check-Out</h4>
+                  <p class="guarantee-text">Check-in regular 15:00 hrs | Check-out 12:00 hrs. Como Huésped Hospentra dispone de prioridad de salida extendida sujeta a disponibilidad.</p>
+                </div>
+              </div>
+
+              <div class="guarantee-item">
+                <div class="guarantee-icon">
+                  <span class="material-symbols-outlined">workspace_premium</span>
+                </div>
+                <div>
+                  <h4 class="guarantee-name">Garantía de Mejor Tarifa Directa</h4>
+                  <p class="guarantee-text">Sin intermediarios ni comisiones sorpresa. Reserva directa garantizada con atención personalizada.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="checkout-summary-col">
+          <div class="summary-card">
+            <div class="summary-accent-bar"></div>
+
+            <div class="summary-media">
+              <img [src]="getRoomImageUrl()" [alt]="room()?.roomType?.name" class="summary-image" />
+              <div class="media-overlay"></div>
+              <div class="media-badges">
+                <span class="suite-badge">Habitación {{ room()?.roomNumber || '101' }}</span>
+                <span class="prestige-chip">
+                  <span class="material-symbols-outlined icon-small">diamond</span>
+                  5 Diamantes
+                </span>
+              </div>
+              <div class="rating-strip">
+                <span class="material-symbols-outlined star-icon">star</span>
+                <span class="rating-val">4.98</span>
+                <span class="reviews-count">(124 reseñas)</span>
+              </div>
+            </div>
+
+            <div class="summary-body">
+              <div class="summary-headline">
+                <h3 class="suite-title">{{ room()?.roomType?.name || 'Suite Royal Vista al Mar' }}</h3>
+                <p class="suite-location">
+                  <span class="material-symbols-outlined icon-small">location_on</span>
+                  Riviera Maya, México • Retiro Boutique
+                </p>
+              </div>
+
+              <div class="suite-features-grid">
+                <div class="feature-chip">
+                  <span class="material-symbols-outlined">aspect_ratio</span>
+                  <span>75 m² de superficie</span>
+                </div>
+                <div class="feature-chip">
+                  <span class="material-symbols-outlined">waves</span>
+                  <span>Vista Frontal al Mar</span>
+                </div>
+                <div class="feature-chip">
+                  <span class="material-symbols-outlined">hot_tub</span>
+                  <span>Tina Hidromasaje</span>
+                </div>
+                <div class="feature-chip">
+                  <span class="material-symbols-outlined">restaurant</span>
+                  <span>Desayuno Incluido</span>
+                </div>
+              </div>
+
+              <div class="breakdown-block">
+                <span class="breakdown-title">Desglose de Tarifa</span>
+                <div class="breakdown-row">
+                  <span>Tarifa base ({{ nightsCount() }} noches × ${{ room()?.roomType?.pricePerNight || 380 | number:'1.2-2' }})</span>
+                  <span class="value">${{ baseRateTotal() | number:'1.2-2' }}</span>
+                </div>
+                <div class="breakdown-row">
+                  <span>Cargo por servicio boutique & concierge (10%)</span>
+                  <span class="value">${{ serviceFee() | number:'1.2-2' }}</span>
+                </div>
+                <div class="breakdown-row">
+                  <span>Impuestos hoteleros y locales (16%)</span>
+                  <span class="value">${{ taxes() | number:'1.2-2' }}</span>
+                </div>
+                <div class="breakdown-discount">
+                  <span class="discount-text">
+                    <span class="material-symbols-outlined icon-small">celebration</span>
+                    Beneficio de Bienvenida
+                  </span>
+                  <span>Incluido</span>
+                </div>
+
+                <div class="total-row">
+                  <div>
+                    <span class="total-label">Total a Pagar</span>
+                    <span class="total-sub">IVA e impuestos directos incluidos</span>
+                  </div>
+                  <div class="total-price-box">
+                    <span class="total-amount">${{ grandTotal() | number:'1.2-2' }}</span>
+                    <span class="total-currency">USD</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-primary w-full confirm-btn"
+                [disabled]="isSubmitting()"
+                (click)="confirmBooking()"
+              >
+                @if (isSubmitting()) {
+                  <span>Procesando reserva...</span>
+                } @else {
+                  <span>Confirmar Reserva</span>
+                  <span class="material-symbols-outlined">arrow_forward</span>
+                }
+              </button>
+
+              <div class="guarantee-notice">
+                <span class="material-symbols-outlined">shield</span>
+                <p><strong>Sin cargo inmediato:</strong> Pago garantizado al hacer check-in en recepción.</p>
+              </div>
+
+              <div class="trust-signatures">
+                <div class="security-text">
+                  <span class="material-symbols-outlined icon-small">lock</span>
+                  <span>Garantía con cifrado bancario SSL 256-Bit</span>
+                </div>
+                <div class="payment-cards">
+                  <span class="payment-card">VISA</span>
+                  <span class="payment-card">MASTERCARD</span>
+                  <span class="payment-card">AMEX</span>
+                  <span class="payment-card">APPLE PAY</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  @if (isSuccessModalOpen()) {
+    <div class="success-backdrop">
+      <div class="success-dialog" role="dialog" aria-modal="true">
+        <div class="success-icon-badge">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <span class="prestige-tag">Solicitud Formalizada</span>
+        <h3 class="success-title">¡Reserva Confirmada!</h3>
+        <p class="success-desc">
+          Su clave de confirmación es <strong class="code-highlight">HOSP-{{ confirmedReservation()?.id }}-2025</strong>. Hemos vinculado esta estancia a su cuenta de huésped.
+        </p>
+
+        <div class="receipt-box">
+          <div class="receipt-row">
+            <span class="receipt-label">Suite:</span>
+            <span class="receipt-val">{{ room()?.roomType?.name }}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Estadía:</span>
+            <span class="receipt-val">{{ checkInDate() }} al {{ checkOutDate() }} ({{ nightsCount() }} noches)</span>
+          </div>
+          <div class="receipt-row total">
+            <span class="receipt-label">Total a liquidar en destino:</span>
+            <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary w-full" (click)="closeSuccessModal()">
+          Aceptar y Ver Mis Reservas
+        </button>
+      </div>
+    </div>
+  }
+</div>

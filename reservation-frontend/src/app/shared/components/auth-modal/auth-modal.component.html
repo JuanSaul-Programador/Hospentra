@@ -1,0 +1,105 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-accent-bar"></div>
+
+    <button type="button" class="close-btn" (click)="closeModal.emit()" aria-label="Cerrar modal">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+
+    <div class="modal-header">
+      <div class="lock-badge-outer">
+        <div class="lock-badge-inner">
+          <span class="material-symbols-outlined">lock_open</span>
+        </div>
+      </div>
+      <span class="prestige-label">Acceso Preferencial</span>
+      <h3 class="modal-title">Inicia Sesión para Continuar tu Reserva</h3>
+      <p class="modal-subtitle">
+        Para garantizar tu estancia exclusiva y asegurar los beneficios de huésped de Hospentra, accede a tu cuenta personal.
+      </p>
+    </div>
+
+    @if (selectedRoom) {
+      <div class="room-preview-box">
+        <div class="room-thumb-wrapper">
+          <img [src]="roomImage" [alt]="selectedRoom.roomType.name" class="room-thumb-img" />
+        </div>
+        <div class="room-preview-details">
+          <div class="room-preview-headline">
+            <h4 class="room-name">{{ selectedRoom.roomType.name }}</h4>
+            <div class="room-price">
+              <span class="amount">${{ selectedRoom.roomType.pricePerNight | number:'1.2-2' }}</span>
+              <span class="unit">/noche</span>
+            </div>
+          </div>
+          <p class="room-meta">
+            <span class="material-symbols-outlined icon-small">group</span>
+            Hasta {{ selectedRoom.roomType.capacity }} Huéspedes • Hab. {{ selectedRoom.roomNumber }}
+          </p>
+          <div class="flex-perk">
+            <span class="dot"></span>
+            Cancelación flexible disponible
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="error-alert">
+        <span class="material-symbols-outlined error-icon">error</span>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-group">
+        <label for="modal-username" class="form-label">Usuario</label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">person</span>
+          <input
+            id="modal-username"
+            type="text"
+            formControlName="username"
+            placeholder="Tu nombre de usuario"
+            class="form-input"
+            [class.invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="modal-password" class="form-label">Contraseña</label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">lock</span>
+          <input
+            id="modal-password"
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            class="form-input"
+            [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full submit-btn" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+          <span>Iniciando sesión...</span>
+        } @else {
+          <span>Iniciar Sesión y Continuar</span>
+          <span class="material-symbols-outlined">arrow_forward</span>
+        }
+      </button>
+
+      <button type="button" class="btn btn-outline w-full register-btn" (click)="goToRegister()">
+        <span>Crear una cuenta nueva</span>
+        <span class="guest-badge">(Huésped)</span>
+      </button>
+    </form>
+
+    <div class="modal-footer-notice">
+      <span class="material-symbols-outlined shield-icon">verified_user</span>
+      <p>Tu selección se guardará automáticamente al iniciar sesión • Sin cargos inmediatos</p>
+    </div>
+  </div>
+</div>

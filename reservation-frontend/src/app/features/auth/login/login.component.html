@@ -1,0 +1,83 @@
+<div class="auth-page-root">
+  <div class="auth-page-bg"></div>
+
+  <div class="auth-page-container">
+    <div class="auth-card">
+      <div class="card-accent-bar"></div>
+
+      <div class="auth-header">
+        <a routerLink="/" class="brand-link">
+          <span class="material-symbols-outlined brand-icon">hotel_class</span>
+          <span class="brand-name">Hospentra</span>
+        </a>
+        <h2 class="auth-title">Bienvenido de Vuelta</h2>
+        <p class="auth-subtitle">Accede a tu cuenta para gestionar tus reservas y beneficios boutique.</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-alert">
+          <span class="material-symbols-outlined error-icon">error</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+        <div class="form-group">
+          <label for="username" class="form-label">Nombre de Usuario</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">person</span>
+            <input
+              id="username"
+              type="text"
+              formControlName="username"
+              placeholder="Ingresa tu usuario"
+              class="form-input"
+              [class.invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+            />
+          </div>
+          @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
+            <span class="field-error">El usuario es requerido.</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Contraseña</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              placeholder="••••••••"
+              class="form-input"
+              [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            />
+          </div>
+          @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+            <span class="field-error">La contraseña es requerida.</span>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary submit-btn" [disabled]="isSubmitting()">
+          @if (isSubmitting()) {
+            <span>Iniciando sesión...</span>
+          } @else {
+            <span>Ingresar</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          }
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <p class="footer-prompt">
+          ¿Aún no tienes cuenta?
+          <a routerLink="/register" class="register-link">Regístrate como Huésped</a>
+        </p>
+        <a routerLink="/" class="back-home-link">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span>Volver al catálogo principal</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

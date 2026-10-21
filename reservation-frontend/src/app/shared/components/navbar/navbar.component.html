@@ -1,0 +1,101 @@
+<header class="navbar-header">
+  <div class="navbar-container">
+    <a routerLink="/" class="navbar-brand" (click)="closeMenus()">
+      <span class="material-symbols-outlined brand-icon">hotel_class</span>
+      <span class="brand-text">Hospentra</span>
+    </a>
+
+    <nav class="navbar-nav desktop-only">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">Inicio</a>
+      <a href="#catalogo" class="nav-link">Habitaciones</a>
+      <a href="#servicios" class="nav-link">Servicios</a>
+      <a href="#contacto" class="nav-link">Contacto</a>
+    </nav>
+
+    <div class="navbar-actions desktop-only">
+      @if (!authService.isAuthenticated()) {
+        <a routerLink="/login" class="btn btn-ghost">Iniciar Sesión</a>
+        <a routerLink="/register" class="btn btn-secondary">Registrarse</a>
+      } @else {
+        <div class="user-chip-container">
+          <button class="user-chip" (click)="toggleUserMenu()" type="button">
+            <div class="user-avatar">
+              {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() }}
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ authService.currentUser()?.username }}</span>
+              <span class="user-badge">{{ getRoleLabel(authService.userRole()) }}</span>
+            </div>
+            <span class="material-symbols-outlined arrow-icon" [class.rotated]="isUserMenuOpen()">expand_more</span>
+          </button>
+
+          @if (isUserMenuOpen()) {
+            <div class="dropdown-menu">
+              <div class="dropdown-header">
+                <p class="dropdown-email">{{ authService.currentUser()?.email }}</p>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a routerLink="/my-reservations" class="dropdown-item" (click)="closeMenus()">
+                <span class="material-symbols-outlined">luggage</span>
+                Mis Reservas
+              </a>
+              @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
+                <a routerLink="/admin/dashboard" class="dropdown-item" (click)="closeMenus()">
+                  <span class="material-symbols-outlined">admin_panel_settings</span>
+                  Panel de Gestión
+                </a>
+              }
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item logout" (click)="logout()" type="button">
+                <span class="material-symbols-outlined">logout</span>
+                Cerrar Sesión
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <button class="hamburger-btn mobile-only" (click)="toggleMobileMenu()" type="button" aria-label="Menú">
+      <span class="material-symbols-outlined">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
+    </button>
+  </div>
+
+  @if (isMobileMenuOpen()) {
+    <div class="mobile-drawer">
+      <nav class="mobile-nav">
+        <a routerLink="/" class="mobile-nav-link" (click)="closeMenus()">Inicio</a>
+        <a href="#catalogo" class="mobile-nav-link" (click)="closeMenus()">Habitaciones</a>
+        <a href="#servicios" class="mobile-nav-link" (click)="closeMenus()">Servicios</a>
+        <a href="#contacto" class="mobile-nav-link" (click)="closeMenus()">Contacto</a>
+        @if (authService.isAuthenticated()) {
+          <a routerLink="/my-reservations" class="mobile-nav-link" (click)="closeMenus()">
+            <span class="material-symbols-outlined">luggage</span>
+            Mis Reservas
+          </a>
+          @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
+            <a routerLink="/admin/dashboard" class="mobile-nav-link" (click)="closeMenus()">
+              <span class="material-symbols-outlined">admin_panel_settings</span>
+              Panel de Gestión
+            </a>
+          }
+        }
+      </nav>
+      <div class="mobile-actions">
+        @if (!authService.isAuthenticated()) {
+          <a routerLink="/login" class="btn btn-ghost w-full" (click)="closeMenus()">Iniciar Sesión</a>
+          <a routerLink="/register" class="btn btn-secondary w-full" (click)="closeMenus()">Registrarse</a>
+        } @else {
+          <div class="mobile-user-info">
+            <p class="mobile-user-name">{{ authService.currentUser()?.username }}</p>
+            <span class="user-badge">{{ getRoleLabel(authService.userRole()) }}</span>
+          </div>
+          <button class="btn btn-outline w-full" (click)="logout()" type="button">
+            <span class="material-symbols-outlined">logout</span>
+            Cerrar Sesión
+          </button>
+        }
+      </div>
+    </div>
+  }
+</header>

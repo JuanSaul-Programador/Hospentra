@@ -1,0 +1,119 @@
+<div class="admin-login-root">
+  <div class="admin-login-backdrop">
+    <div class="ambient-glow"></div>
+  </div>
+
+  <div class="admin-login-container">
+    <div class="brand-header">
+      <div class="shield-badge">
+        <span class="material-symbols-outlined shield-icon">admin_panel_settings</span>
+      </div>
+      <span class="corp-tag">Hospentra PMS • Intranet de Personal</span>
+      <h1 class="corp-title">Portal de Recepción & Administración</h1>
+      <p class="corp-subtitle">
+        Acceso restringido para el control de inventario de suites, registro de check-in y gestión de huéspedes.
+      </p>
+    </div>
+
+    <div class="login-card">
+      <div class="card-accent-bar"></div>
+
+      <div class="card-inner">
+        @if (errorMessage()) {
+          <div class="alert-error" role="alert">
+            <span class="material-symbols-outlined alert-icon">error</span>
+            <div class="alert-content">
+              <strong>Error de acceso</strong>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          </div>
+        }
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          <div class="form-group">
+            <label for="username" class="form-label">
+              <span>Usuario Corporativo</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input
+                id="username"
+                type="text"
+                formControlName="username"
+                placeholder="admin"
+                class="form-input"
+                [class.is-invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+                autocomplete="username"
+              />
+            </div>
+            @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
+              <span class="error-text">Ingrese su nombre de usuario de personal.</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">
+              <span>Contraseña de Seguridad</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">lock</span>
+              <input
+                id="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="••••••••"
+                class="form-input"
+                [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="pwd-toggle-btn"
+                (click)="togglePasswordVisibility()"
+                aria-label="Alternar visibilidad de contraseña"
+              >
+                <span class="material-symbols-outlined">
+                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+            @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+              <span class="error-text">Ingrese su contraseña institucional (mínimo 6 caracteres).</span>
+            }
+          </div>
+
+          <div class="security-notice">
+            <span class="material-symbols-outlined lock-icon">verified_user</span>
+            <span>Conexión protegida por cifrado y token JWT de alta seguridad.</span>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-corp-submit"
+            [disabled]="isLoading()"
+          >
+            @if (isLoading()) {
+              <span class="spinner"></span>
+              <span>Validando credenciales...</span>
+            } @else {
+              <span class="material-symbols-outlined">login</span>
+              <span>Ingresar al Sistema de Gestión</span>
+            }
+          </button>
+        </form>
+
+        <div class="portal-footer">
+          <a routerLink="/" class="back-link">
+            <span class="material-symbols-outlined">arrow_back</span>
+            <span>Regresar al portal de huéspedes</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="credentials-hint">
+      <span class="material-symbols-outlined hint-icon">info</span>
+      <p>Credenciales de desarrollo: Usuario <strong>admin</strong> | Clave <strong>admin123</strong></p>
+    </div>
+  </div>
+</div>

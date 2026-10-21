@@ -1,0 +1,161 @@
+<div class="auth-page-root">
+  <div class="auth-page-bg"></div>
+
+  <div class="auth-page-container">
+    <div class="auth-card">
+      <div class="card-accent-bar"></div>
+
+      <div class="auth-header">
+        <a routerLink="/" class="brand-link">
+          <span class="material-symbols-outlined brand-icon">hotel_class</span>
+          <span class="brand-name">Hospentra</span>
+        </a>
+        <h2 class="auth-title">Crear Cuenta de Huésped</h2>
+        <p class="auth-subtitle">Únete a nuestra membresía exclusiva para reservar de forma directa y ágil.</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-alert">
+          <span class="material-symbols-outlined error-icon">error</span>
+          <div class="error-content">
+            <span>{{ errorMessage() }}</span>
+            <a routerLink="/login" class="error-login-link">Iniciar Sesión</a>
+          </div>
+        </div>
+      }
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName" class="form-label">Nombre</label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input
+                id="firstName"
+                type="text"
+                formControlName="firstName"
+                placeholder="Juan"
+                class="form-input"
+                [class.invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
+              />
+            </div>
+            @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
+              <span class="field-error">Nombre requerido.</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="lastName" class="form-label">Apellido</label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input
+                id="lastName"
+                type="text"
+                formControlName="lastName"
+                placeholder="Pérez"
+                class="form-input"
+                [class.invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
+              />
+            </div>
+            @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
+              <span class="field-error">Apellido requerido.</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-username" class="form-label">Nombre de Usuario</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">person</span>
+            <input
+              id="reg-username"
+              type="text"
+              formControlName="username"
+              placeholder="juanperez"
+              class="form-input"
+              [class.invalid]="registerForm.get('username')?.invalid && registerForm.get('username')?.touched"
+            />
+          </div>
+          @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
+            <span class="field-error">Mínimo 3 caracteres.</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email" class="form-label">Correo Electrónico</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input
+              id="reg-email"
+              type="email"
+              formControlName="email"
+              placeholder="juan@ejemplo.com"
+              class="form-input"
+              [class.invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+            />
+          </div>
+          @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+            <span class="field-error">Ingrese un correo válido.</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="reg-phone" class="form-label">Teléfono Móvil (Perú +51) *</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">call</span>
+            <input
+              id="reg-phone"
+              type="tel"
+              maxlength="9"
+              formControlName="phone"
+              placeholder="987654321"
+              class="form-input"
+              [class.invalid]="registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched"
+            />
+          </div>
+          @if (registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched) {
+            <span class="field-error">El teléfono es obligatorio (9 dígitos comenzando con 9).</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password" class="form-label">Contraseña</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <input
+              id="reg-password"
+              type="password"
+              formControlName="password"
+              placeholder="Mínimo 6 caracteres"
+              class="form-input"
+              [class.invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+            />
+          </div>
+          @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+            <span class="field-error">La contraseña debe tener al menos 6 caracteres.</span>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary submit-btn" [disabled]="isSubmitting()">
+          @if (isSubmitting()) {
+            <span>Creando cuenta...</span>
+          } @else {
+            <span>Registrarme como Huésped</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          }
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <p class="footer-prompt">
+          ¿Ya tienes una cuenta?
+          <a routerLink="/login" class="login-link">Inicia Sesión aquí</a>
+        </p>
+        <a routerLink="/" class="back-home-link">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span>Volver al catálogo principal</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
