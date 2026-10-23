@@ -73,6 +73,15 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
+    public RoomResponse updateStatus(Long id, RoomStatus status) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        room.setStatus(status);
+        return roomMapper.toResponse(roomRepository.save(room));
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id) {
         if (!roomRepository.existsById(id)) {
             throw new ResourceNotFoundException("Room not found with id: " + id);

@@ -91,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/room-types/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/room-types/**").hasRole("ADMIN")
 
+                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/*/status").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
@@ -98,6 +99,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/guests/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/confirm").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/check-in").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/complete").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/reservations/**").authenticated()
 

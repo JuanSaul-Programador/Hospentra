@@ -18,5 +18,7 @@ public interface RoomService {
 
     RoomResponse update(Long id, RoomRequest request);
 
+    RoomResponse updateStatus(Long id, RoomStatus status);
+
     void delete(Long id);
 }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -79,7 +80,7 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("Room " + room.getRoomNumber() + " is currently under maintenance");
         }
 
-        List<ReservationStatus> activeStatuses = List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED);
+        List<ReservationStatus> activeStatuses = List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN);
         boolean hasOverlap = reservationRepository.existsOverlappingReservation(
                 room.getId(), request.checkInDate(), request.checkOutDate(), activeStatuses);
 
@@ -133,6 +134,28 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     @Transactional
+    public ReservationResponse checkIn(Long id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getStatus() != ReservationStatus.CONFIRMED && reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new IllegalArgumentException("Only PENDING or CONFIRMED reservations can be checked in");
+        }
+
+        reservation.setStatus(ReservationStatus.CHECKED_IN);
+        if (reservation.getPaymentMethod() == PaymentMethod.PAY_AT_CHECKIN) {
+            reservation.setPaymentStatus(PaymentStatus.PAID);
+        }
+
+        Room room = reservation.getRoom();
+        room.setStatus(RoomStatus.OCCUPIED);
+        roomRepository.save(room);
+
+        return reservationMapper.toResponse(reservationRepository.save(reservation));
+    }
+
+    @Override
+    @Transactional
     public ReservationResponse cancel(Long id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
@@ -145,7 +168,21 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("This reservation is already cancelled");
         }
 
+        if (reservation.getStatus() == ReservationStatus.CHECKED_IN) {
+            Room room = reservation.getRoom();
+            room.setStatus(RoomStatus.AVAILABLE);
+            roomRepository.save(room);
+        }
+
         reservation.setStatus(ReservationStatus.CANCELLED);
+        if (reservation.getPaymentMethod() == PaymentMethod.CREDIT_CARD) {
+            long hoursUntilCheckIn = ChronoUnit.HOURS.between(LocalDateTime.now(), reservation.getCheckInDate().atTime(15, 0));
+            if (hoursUntilCheckIn >= 48) {
+                reservation.setPaymentStatus(PaymentStatus.REFUNDED);
+            } else {
+                reservation.setPaymentStatus(PaymentStatus.PARTIALLY_REFUNDED);
+            }
+        }
         return reservationMapper.toResponse(reservationRepository.save(reservation));
     }
 
@@ -155,15 +192,16 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
-        if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
-            throw new IllegalArgumentException("Only CONFIRMED reservations can be completed");
-        }
-
-        if (LocalDate.now().isBefore(reservation.getCheckInDate())) {
-            throw new IllegalArgumentException("Cannot complete a reservation before its check-in date");
+        if (reservation.getStatus() != ReservationStatus.CHECKED_IN && reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Only CHECKED_IN or CONFIRMED reservations can be completed");
         }
 
         reservation.setStatus(ReservationStatus.COMPLETED);
+
+        Room room = reservation.getRoom();
+        room.setStatus(RoomStatus.MAINTENANCE);
+        roomRepository.save(room);
+
         return reservationMapper.toResponse(reservationRepository.save(reservation));
     }
 }

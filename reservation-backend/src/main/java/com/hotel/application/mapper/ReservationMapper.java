@@ -1,6 +1,8 @@
 package com.hotel.application.mapper;
 
 import com.hotel.domain.model.Guest;
+import com.hotel.domain.model.PaymentMethod;
+import com.hotel.domain.model.PaymentStatus;
 import com.hotel.domain.model.Reservation;
 import com.hotel.domain.model.ReservationStatus;
 import com.hotel.domain.model.Room;
@@ -27,11 +29,17 @@ public class ReservationMapper {
                 reservation.getCheckOutDate(),
                 reservation.getStatus(),
                 reservation.getTotalPrice(),
-                reservation.getCreatedAt()
+                reservation.getCreatedAt(),
+                reservation.getPaymentMethod(),
+                reservation.getPaymentStatus(),
+                reservation.getCardLast4()
         );
     }
 
     public Reservation toEntity(ReservationRequest request, Guest guest, Room room, BigDecimal totalPrice) {
+        PaymentMethod method = request.paymentMethod() != null ? request.paymentMethod() : PaymentMethod.PAY_AT_CHECKIN;
+        PaymentStatus status = method == PaymentMethod.CREDIT_CARD ? PaymentStatus.PAID : PaymentStatus.PENDING;
+
         return Reservation.builder()
                 .guest(guest)
                 .room(room)
@@ -39,6 +47,9 @@ public class ReservationMapper {
                 .checkOutDate(request.checkOutDate())
                 .status(ReservationStatus.PENDING)
                 .totalPrice(totalPrice)
+                .paymentMethod(method)
+                .paymentStatus(status)
+                .cardLast4(request.cardLast4())
                 .build();
     }
 }

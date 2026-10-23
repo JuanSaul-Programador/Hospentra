@@ -20,6 +20,8 @@ public interface ReservationService {
 
     ReservationResponse confirm(Long id);
 
+    ReservationResponse checkIn(Long id);
+
     ReservationResponse cancel(Long id);
 
     ReservationResponse complete(Long id);

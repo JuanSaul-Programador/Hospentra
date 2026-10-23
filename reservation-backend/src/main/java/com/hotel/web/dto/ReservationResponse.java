@@ -1,5 +1,7 @@
 package com.hotel.web.dto;
 
+import com.hotel.domain.model.PaymentMethod;
+import com.hotel.domain.model.PaymentStatus;
 import com.hotel.domain.model.ReservationStatus;
 
 import java.math.BigDecimal;
@@ -14,5 +16,8 @@ public record ReservationResponse(
         LocalDate checkOutDate,
         ReservationStatus status,
         BigDecimal totalPrice,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        PaymentMethod paymentMethod,
+        PaymentStatus paymentStatus,
+        String cardLast4
 ) {}
