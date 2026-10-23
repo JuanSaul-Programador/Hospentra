@@ -1,6 +1,10 @@
 import { Room } from './room.model';
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CANCELLED' | 'COMPLETED';
+
+export type PaymentMethod = 'CREDIT_CARD' | 'PAY_AT_CHECKIN';
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
 
 export interface Guest {
   id: number;
@@ -19,6 +23,13 @@ export interface Reservation {
   status: ReservationStatus;
   totalPrice: number;
   createdAt: string;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  cardLast4?: string;
+  cardBrand?: string;
+  authCode?: string;
+  refundAmount?: number;
+  penaltyAmount?: number;
 }
 
 export interface ReservationRequest {
@@ -26,4 +37,9 @@ export interface ReservationRequest {
   checkInDate: string;
   checkOutDate: string;
   guestId?: number;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  cardLast4?: string;
+  cardBrand?: string;
+  authCode?: string;
 }

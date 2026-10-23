@@ -33,7 +33,12 @@ export class LoginComponent {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
-    this.authService.login(this.loginForm.value).subscribe({
+    const credentials = {
+      username: (this.loginForm.value.username || '').trim(),
+      password: this.loginForm.value.password || ''
+    };
+
+    this.authService.login(credentials).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.router.navigate(['/']);

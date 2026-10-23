@@ -19,7 +19,7 @@
         <div class="step-line active"></div>
         <div class="step-item active">
           <span class="step-circle">2</span>
-          <span class="step-label">Datos y Estadía</span>
+          <span class="step-label">Datos y Pago</span>
         </div>
         <div class="step-line"></div>
         <div class="step-item">
@@ -36,8 +36,8 @@
         <div class="checkout-form-col">
           <div class="section-heading">
             <span class="prestige-tag">Reserva Directa Exclusiva</span>
-            <h1 class="heading-title">Detalles de su Estadía</h1>
-            <p class="heading-desc">Verifique la información antes de formalizar su reserva y acceder a los beneficios de bienvenida.</p>
+            <h1 class="heading-title">Formalización de su Estadía</h1>
+            <p class="heading-desc">Verifique los detalles de su suite y elija su modalidad de pago preferida con garantía Hospentra.</p>
           </div>
 
           @if (errorMessage()) {
@@ -174,16 +174,216 @@
                 </div>
               </div>
             </div>
+          </section>
 
-            <div class="rewards-banner">
-              <span class="material-symbols-outlined banner-icon">verified_user</span>
-              <div class="banner-text">
-                <p class="banner-title">Garantía de Reserva Directa</p>
-                <p class="banner-desc">
-                  Sus datos de contacto se utilizarán exclusivamente para la emisión del voucher oficial de la suite y la coordinación del check-in.
-                </p>
+          <section class="card-module payment-method-module">
+            <div class="module-header">
+              <div class="module-title-group">
+                <span class="material-symbols-outlined module-icon">payments</span>
+                <div>
+                  <h2 class="module-title">Pasarela de Pago Dual</h2>
+                  <p class="module-subtitle">Seleccione cómo desea garantizar su reserva.</p>
+                </div>
+              </div>
+              <div class="security-badge-pill">
+                <span class="material-symbols-outlined icon-small">lock</span>
+                Cifrado SSL 256-Bit
               </div>
             </div>
+
+            <div class="payment-tabs-grid">
+              <div
+                class="payment-tab-card"
+                [class.selected]="paymentMethod() === 'CREDIT_CARD'"
+                (click)="setPaymentMethod('CREDIT_CARD')"
+                role="button"
+                tabindex="0"
+              >
+                <div class="tab-radio">
+                  <span class="radio-dot" [class.active]="paymentMethod() === 'CREDIT_CARD'"></span>
+                </div>
+                <div class="tab-content">
+                  <div class="tab-header-line">
+                    <span class="material-symbols-outlined tab-icon">credit_card</span>
+                    <strong class="tab-title">Pago Online Inmediato</strong>
+                    <span class="tab-badge gold">Recomendado</span>
+                  </div>
+                  <p class="tab-description">
+                    Tarjeta de Crédito o Débito (Visa, Mastercard, Amex). Su voucher se emitirá sellado con <strong>PAGADA EN LÍNEA</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="payment-tab-card"
+                [class.selected]="paymentMethod() === 'PAY_AT_CHECKIN'"
+                (click)="setPaymentMethod('PAY_AT_CHECKIN')"
+                role="button"
+                tabindex="0"
+              >
+                <div class="tab-radio">
+                  <span class="radio-dot" [class.active]="paymentMethod() === 'PAY_AT_CHECKIN'"></span>
+                </div>
+                <div class="tab-content">
+                  <div class="tab-header-line">
+                    <span class="material-symbols-outlined tab-icon">storefront</span>
+                    <strong class="tab-title">Pago en Recepción</strong>
+                    <span class="tab-badge green">Sin Cargo Hoy</span>
+                  </div>
+                  <p class="tab-description">
+                    Garantice su suite ahora sin desembolso previo. Liquidación íntegra al registrarse en el hotel con sello <strong>LIQUIDACIÓN AL CHECK-IN</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            @if (paymentMethod() === 'CREDIT_CARD') {
+              <div class="credit-card-panel">
+                <div class="card-preview-wrapper">
+                  <div class="luxury-credit-card" [class]="'brand-' + detectedCardBrand().toLowerCase()">
+                    <div class="card-top-row">
+                      <div class="monogram-lockup">
+                        <span class="material-symbols-outlined crest-icon">hotel_class</span>
+                        <span class="monogram-text">HOSPENTRA</span>
+                      </div>
+                      <div class="network-logo-box">
+                        @if (detectedCardBrand() === 'VISA') {
+                          <span class="visa-text">VISA</span>
+                        } @else if (detectedCardBrand() === 'MASTERCARD') {
+                          <div class="mc-circles">
+                            <span class="c-red"></span>
+                            <span class="c-yellow"></span>
+                          </div>
+                        } @else if (detectedCardBrand() === 'AMEX') {
+                          <span class="amex-text">AMEX</span>
+                        } @else {
+                          <span class="material-symbols-outlined generic-card-icon">credit_card</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="card-chip-row">
+                      <div class="gold-chip">
+                        <div class="chip-grid"></div>
+                      </div>
+                      <span class="material-symbols-outlined nfc-wave">contactless</span>
+                    </div>
+
+                    <div class="card-number-row">
+                      <span class="card-digits">{{ maskedCardNumber() }}</span>
+                    </div>
+
+                    <div class="card-footer-row">
+                      <div class="cardholder-col">
+                        <span class="field-meta">TITULAR DE LA SUITE</span>
+                        <span class="field-data">{{ displayCardHolder() }}</span>
+                      </div>
+                      <div class="expiry-col">
+                        <span class="field-meta">VENCE</span>
+                        <span class="field-data">{{ displayExpiry() }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card-inputs-grid">
+                  <div class="form-field full-width">
+                    <label class="field-label">Número de Tarjeta (Visa / Mastercard / Amex) *</label>
+                    <div class="input-with-icon">
+                      <span class="material-symbols-outlined field-icon">credit_card</span>
+                      <input
+                        type="text"
+                        maxlength="19"
+                        placeholder="4242 4242 4242 4242"
+                        [ngModel]="cardNumber()"
+                        (ngModelChange)="onCardNumberInput($event)"
+                        class="form-input with-icon"
+                      />
+                      <span class="card-detected-tag" [class]="detectedCardBrand().toLowerCase()">
+                        {{ detectedCardBrand() }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="form-field full-width">
+                    <label class="field-label">Nombre del Titular (tal como figura en el plástico) *</label>
+                    <div class="input-with-icon">
+                      <span class="material-symbols-outlined field-icon">person</span>
+                      <input
+                        type="text"
+                        placeholder="JUAN PEREZ"
+                        [ngModel]="cardHolder()"
+                        (ngModelChange)="cardHolder.set($event)"
+                        class="form-input with-icon uppercase-text"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-field">
+                    <label class="field-label">Fecha de Expiración (MM/AA) *</label>
+                    <div class="input-with-icon">
+                      <span class="material-symbols-outlined field-icon">calendar_month</span>
+                      <input
+                        type="text"
+                        maxlength="5"
+                        placeholder="12/28"
+                        [ngModel]="cardExpiry()"
+                        (ngModelChange)="onExpiryInput($event)"
+                        class="form-input with-icon"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-field">
+                    <label class="field-label">Código de Seguridad CVV *</label>
+                    <div class="input-with-icon">
+                      <span class="material-symbols-outlined field-icon">vpn_key</span>
+                      <input
+                        type="password"
+                        maxlength="4"
+                        placeholder="888"
+                        [ngModel]="cardCvv()"
+                        (ngModelChange)="onCvvInput($event)"
+                        class="form-input with-icon"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="security-reassurance">
+                  <span class="material-symbols-outlined icon-small">lock</span>
+                  <span>Cifrado bancario SSL 256-Bit. Autorización simulada en tiempo real. Hospentra no almacena códigos CVV.</span>
+                </div>
+              </div>
+            } @else {
+              <div class="checkin-instruction-panel">
+                <div class="instruction-box">
+                  <div class="instruction-icon-circle">
+                    <span class="material-symbols-outlined">verified</span>
+                  </div>
+                  <div class="instruction-content">
+                    <h4 class="instruction-title">Garantía Inmediata sin Cargo Previo</h4>
+                    <p class="instruction-desc">
+                      Su suite queda bloqueada y asegurada en el sistema. El importe total de <strong>${{ grandTotal() | number:'1.2-2' }} USD</strong> será liquidado al momento de su check-in en la recepción del hotel en efectivo o con su tarjeta preferida.
+                    </p>
+                    <div class="perks-list">
+                      <div class="perk-row">
+                        <span class="material-symbols-outlined perk-check">check_circle</span>
+                        <span>Confirmación inmediata sin cobro en cuenta bancaria</span>
+                      </div>
+                      <div class="perk-row">
+                        <span class="material-symbols-outlined perk-check">check_circle</span>
+                        <span>Voucher emitido con sello oficial "LIQUIDACIÓN AL CHECK-IN"</span>
+                      </div>
+                      <div class="perk-row">
+                        <span class="material-symbols-outlined perk-check">check_circle</span>
+                        <span>Cancelación flexible hasta 48 horas antes de la llegada</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
           </section>
 
           <section class="card-module">
@@ -231,8 +431,8 @@
                   <span class="material-symbols-outlined">verified_user</span>
                 </div>
                 <div>
-                  <h4 class="guarantee-name">Cancelación Flexible sin Penalización</h4>
-                  <p class="guarantee-text">Cancelación gratuita hasta 48 horas antes de la llegada. Sin cargos imprevistos ni penalidades.</p>
+                  <h4 class="guarantee-name">Cancelación Flexible & Reembolsos</h4>
+                  <p class="guarantee-text">Cancelación con más de 48h: 100% de reembolso a su tarjeta. Con menos de 48h: se retiene la primera noche por política boutique y se reembolsa el saldo.</p>
                 </div>
               </div>
 
@@ -242,7 +442,7 @@
                 </div>
                 <div>
                   <h4 class="guarantee-name">Horarios Oficiales & Late Check-Out</h4>
-                  <p class="guarantee-text">Check-in regular 15:00 hrs | Check-out 12:00 hrs. Como Huésped Hospentra dispone de prioridad de salida extendida sujeta a disponibilidad.</p>
+                  <p class="guarantee-text">Check-in regular 15:00 hrs | Check-out 12:00 hrs. Salida extendida sujeta a disponibilidad sin costo adicional.</p>
                 </div>
               </div>
 
@@ -332,8 +532,8 @@
 
                 <div class="total-row">
                   <div>
-                    <span class="total-label">Total a Pagar</span>
-                    <span class="total-sub">IVA e impuestos directos incluidos</span>
+                    <span class="total-label">Total Estancia</span>
+                    <span class="total-sub">Impuestos y cargos incluidos</span>
                   </div>
                   <div class="total-price-box">
                     <span class="total-amount">${{ grandTotal() | number:'1.2-2' }}</span>
@@ -348,17 +548,32 @@
                 [disabled]="isSubmitting()"
                 (click)="confirmBooking()"
               >
-                @if (isSubmitting()) {
+                @if (isAuthorizing()) {
+                  <span class="material-symbols-outlined rotating">progress_activity</span>
+                  <span>{{ authStepMessage() }}</span>
+                } @else if (isSubmitting()) {
+                  <span class="material-symbols-outlined rotating">progress_activity</span>
                   <span>Procesando reserva...</span>
+                } @else if (paymentMethod() === 'CREDIT_CARD') {
+                  <span class="material-symbols-outlined">credit_card</span>
+                  <span>Pagar y Confirmar (${{ grandTotal() | number:'1.2-2' }} USD)</span>
                 } @else {
-                  <span>Confirmar Reserva</span>
-                  <span class="material-symbols-outlined">arrow_forward</span>
+                  <span class="material-symbols-outlined">hotel</span>
+                  <span>Confirmar (Pagar en Recepción)</span>
                 }
               </button>
 
               <div class="guarantee-notice">
-                <span class="material-symbols-outlined">shield</span>
-                <p><strong>Sin cargo inmediato:</strong> Pago garantizado al hacer check-in en recepción.</p>
+                <span class="material-symbols-outlined">
+                  {{ paymentMethod() === 'CREDIT_CARD' ? 'lock' : 'storefront' }}
+                </span>
+                <p>
+                  @if (paymentMethod() === 'CREDIT_CARD') {
+                    <strong>Pago en línea inmediato:</strong> Transacción autorizada mediante pasarela bancaria segura con cifrado SSL 256-Bit.
+                  } @else {
+                    <strong>Sin cargo hoy:</strong> Pago liquidado en destino al momento de realizar el check-in.
+                  }
+                </p>
               </div>
 
               <div class="trust-signatures">
@@ -370,7 +585,7 @@
                   <span class="payment-card">VISA</span>
                   <span class="payment-card">MASTERCARD</span>
                   <span class="payment-card">AMEX</span>
-                  <span class="payment-card">APPLE PAY</span>
+                  <span class="payment-card">RECEPCIÓN</span>
                 </div>
               </div>
             </div>
@@ -383,28 +598,71 @@
   @if (isSuccessModalOpen()) {
     <div class="success-backdrop">
       <div class="success-dialog" role="dialog" aria-modal="true">
-        <div class="success-icon-badge">
-          <span class="material-symbols-outlined">check_circle</span>
+        <div class="success-icon-badge" [class.online]="confirmedReservation()?.paymentMethod === 'CREDIT_CARD'">
+          <span class="material-symbols-outlined">
+            {{ confirmedReservation()?.paymentMethod === 'CREDIT_CARD' ? 'verified' : 'task_alt' }}
+          </span>
         </div>
-        <span class="prestige-tag">Solicitud Formalizada</span>
-        <h3 class="success-title">¡Reserva Confirmada!</h3>
+
+        <div class="voucher-stamp-wrapper">
+          @if (confirmedReservation()?.paymentMethod === 'CREDIT_CARD') {
+            <div class="voucher-stamp paid-online">
+              <span class="stamp-icon material-symbols-outlined">check_circle</span>
+              <span class="stamp-title">PAGADA EN LÍNEA</span>
+              <span class="stamp-sub">COMPROBANTE LIQUIDADO</span>
+            </div>
+          } @else {
+            <div class="voucher-stamp pay-checkin">
+              <span class="stamp-icon material-symbols-outlined">storefront</span>
+              <span class="stamp-title">LIQUIDACIÓN AL CHECK-IN</span>
+              <span class="stamp-sub">COBRO EN FRONT DESK</span>
+            </div>
+          }
+        </div>
+
+        <h3 class="success-title">¡Reserva Formalizada con Éxito!</h3>
         <p class="success-desc">
-          Su clave de confirmación es <strong class="code-highlight">HOSP-{{ confirmedReservation()?.id }}-2025</strong>. Hemos vinculado esta estancia a su cuenta de huésped.
+          Su código de reserva oficial es <strong class="code-highlight">HOSP-{{ confirmedReservation()?.id }}-2026</strong>. Su itinerario ha sido vinculado a su cuenta de huésped.
         </p>
 
         <div class="receipt-box">
           <div class="receipt-row">
-            <span class="receipt-label">Suite:</span>
+            <span class="receipt-label">Suite Reservada:</span>
             <span class="receipt-val">{{ room()?.roomType?.name }}</span>
           </div>
           <div class="receipt-row">
-            <span class="receipt-label">Estadía:</span>
+            <span class="receipt-label">Fechas de Estadía:</span>
             <span class="receipt-val">{{ checkInDate() }} al {{ checkOutDate() }} ({{ nightsCount() }} noches)</span>
           </div>
-          <div class="receipt-row total">
-            <span class="receipt-label">Total a liquidar en destino:</span>
-            <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
+          <div class="receipt-row">
+            <span class="receipt-label">Modalidad de Pago:</span>
+            <span class="receipt-val highlight">
+              {{ confirmedReservation()?.paymentMethod === 'CREDIT_CARD' ? 'Tarjeta de Crédito Online' : 'Liquidación en Recepción al Check-in' }}
+            </span>
           </div>
+          @if (confirmedReservation()?.paymentMethod === 'CREDIT_CARD') {
+            <div class="receipt-row">
+              <span class="receipt-label">Tarjeta / Autorización:</span>
+              <span class="receipt-val">{{ confirmedReservation()?.cardBrand }} •••• {{ confirmedReservation()?.cardLast4 }} ({{ confirmedReservation()?.authCode }})</span>
+            </div>
+            <div class="receipt-row total">
+              <span class="receipt-label">Monto cobrado hoy:</span>
+              <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
+            </div>
+            <div class="receipt-row sub-zero">
+              <span class="receipt-label">Saldo pendiente al check-in:</span>
+              <span class="receipt-val text-green">$0.00 USD (Liquidado)</span>
+            </div>
+          } @else {
+            <div class="receipt-row">
+              <span class="receipt-label">Monto cobrado hoy:</span>
+              <span class="receipt-val highlight">$0.00 USD</span>
+            </div>
+            <div class="receipt-row total">
+              <span class="receipt-label">Total a liquidar en recepción:</span>
+              <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
+            </div>
+          }
         </div>
 
         <button type="button" class="btn btn-primary w-full" (click)="closeSuccessModal()">

@@ -1,119 +1,108 @@
-<div class="admin-login-root">
-  <div class="admin-login-backdrop">
-    <div class="ambient-glow"></div>
-  </div>
+<div class="admin-login-wrapper">
+  <div class="ambient-glow"></div>
 
-  <div class="admin-login-container">
-    <div class="brand-header">
-      <div class="shield-badge">
-        <span class="material-symbols-outlined shield-icon">admin_panel_settings</span>
+  <div class="admin-login-card">
+    <div class="card-gold-accent"></div>
+
+    <div class="card-header">
+      <div class="brand-monogram">
+        <span class="material-symbols-outlined monogram-icon">hotel_class</span>
       </div>
-      <span class="corp-tag">Hospentra PMS • Intranet de Personal</span>
-      <h1 class="corp-title">Portal de Recepción & Administración</h1>
-      <p class="corp-subtitle">
-        Acceso restringido para el control de inventario de suites, registro de check-in y gestión de huéspedes.
-      </p>
+      <div class="header-titles">
+        <span class="prestige-tag">Hospentra Sanctuary Retreat</span>
+        <h1 class="portal-heading">Panel de Recepción & Gestión</h1>
+        <p class="portal-subheading">
+          Acceso exclusivo para el personal autorizado de recepción y administración.
+        </p>
+      </div>
     </div>
 
-    <div class="login-card">
-      <div class="card-accent-bar"></div>
-
-      <div class="card-inner">
-        @if (errorMessage()) {
-          <div class="alert-error" role="alert">
-            <span class="material-symbols-outlined alert-icon">error</span>
-            <div class="alert-content">
-              <strong>Error de acceso</strong>
-              <p>{{ errorMessage() }}</p>
-            </div>
-          </div>
-        }
-
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-          <div class="form-group">
-            <label for="username" class="form-label">
-              <span>Usuario Corporativo</span>
-            </label>
-            <div class="input-wrapper">
-              <span class="material-symbols-outlined input-icon">badge</span>
-              <input
-                id="username"
-                type="text"
-                formControlName="username"
-                placeholder="admin"
-                class="form-input"
-                [class.is-invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
-                autocomplete="username"
-              />
-            </div>
-            @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
-              <span class="error-text">Ingrese su nombre de usuario de personal.</span>
-            }
-          </div>
-
-          <div class="form-group">
-            <label for="password" class="form-label">
-              <span>Contraseña de Seguridad</span>
-            </label>
-            <div class="input-wrapper">
-              <span class="material-symbols-outlined input-icon">lock</span>
-              <input
-                id="password"
-                [type]="showPassword() ? 'text' : 'password'"
-                formControlName="password"
-                placeholder="••••••••"
-                class="form-input"
-                [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-                autocomplete="current-password"
-              />
-              <button
-                type="button"
-                class="pwd-toggle-btn"
-                (click)="togglePasswordVisibility()"
-                aria-label="Alternar visibilidad de contraseña"
-              >
-                <span class="material-symbols-outlined">
-                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
-                </span>
-              </button>
-            </div>
-            @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-              <span class="error-text">Ingrese su contraseña institucional (mínimo 6 caracteres).</span>
-            }
-          </div>
-
-          <div class="security-notice">
-            <span class="material-symbols-outlined lock-icon">verified_user</span>
-            <span>Conexión protegida por cifrado y token JWT de alta seguridad.</span>
-          </div>
-
-          <button
-            type="submit"
-            class="btn-corp-submit"
-            [disabled]="isLoading()"
-          >
-            @if (isLoading()) {
-              <span class="spinner"></span>
-              <span>Validando credenciales...</span>
-            } @else {
-              <span class="material-symbols-outlined">login</span>
-              <span>Ingresar al Sistema de Gestión</span>
-            }
-          </button>
-        </form>
-
-        <div class="portal-footer">
-          <a routerLink="/" class="back-link">
-            <span class="material-symbols-outlined">arrow_back</span>
-            <span>Regresar al portal de huéspedes</span>
-          </a>
+    @if (errorMessage()) {
+      <div class="alert-banner" role="alert">
+        <span class="material-symbols-outlined alert-icon">error</span>
+        <div class="alert-text">
+          <strong>Error de acceso</strong>
+          <p>{{ errorMessage() }}</p>
         </div>
       </div>
-    </div>
+    }
 
-    <div class="credentials-hint">
-      <span class="material-symbols-outlined hint-icon">info</span>
-      <p>Credenciales de desarrollo: Usuario <strong>admin</strong> | Clave <strong>admin123</strong></p>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="username" class="field-label">Usuario Corporativo</label>
+        <div class="input-container">
+          <span class="material-symbols-outlined input-icon">badge</span>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="admin o usuario de recepción"
+            class="form-input"
+            [class.is-invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+            autocomplete="username"
+          />
+        </div>
+        @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
+          <span class="error-hint">Ingrese su nombre de usuario de personal.</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <div class="label-row">
+          <label for="password" class="field-label">Contraseña de Seguridad</label>
+        </div>
+        <div class="input-container">
+          <span class="material-symbols-outlined input-icon">lock</span>
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="••••••••"
+            class="form-input with-toggle"
+            [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="visibility-toggle-btn"
+            (click)="togglePasswordVisibility()"
+            aria-label="Alternar visibilidad"
+          >
+            <span class="material-symbols-outlined">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <span class="error-hint">Ingrese su contraseña institucional (mínimo 6 caracteres).</span>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="btn-login-submit"
+        [disabled]="isLoading()"
+      >
+        @if (isLoading()) {
+          <span class="btn-spinner"></span>
+          <span>Iniciando sesión...</span>
+        } @else {
+          <span class="material-symbols-outlined">login</span>
+          <span>Ingresar al Panel de Gestión</span>
+        }
+      </button>
+    </form>
+
+    <div class="card-footer">
+      <a routerLink="/" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        <span>Volver al sitio web de huéspedes</span>
+      </a>
     </div>
+  </div>
+
+  <div class="dev-hint-box">
+    <span class="material-symbols-outlined hint-icon">info</span>
+    <p>Acceso administrativo: Usuario <strong>admin</strong> | Clave <strong>admin123</strong></p>
   </div>
 </div>

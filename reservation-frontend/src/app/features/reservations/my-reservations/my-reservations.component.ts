@@ -5,6 +5,16 @@ import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Reservation } from '../../../core/models/reservation.model';
 
+export interface RefundCalculation {
+  hoursUntilCheckIn: number;
+  isEligibleForFullRefund: boolean;
+  refundAmount: number;
+  penaltyAmount: number;
+  policyMessage: string;
+  badgeLabel: string;
+  badgeType: 'full' | 'partial' | 'free';
+}
+
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
@@ -28,6 +38,14 @@ export class MyReservationsComponent implements OnInit {
   readonly reservationToCancel = signal<Reservation | null>(null);
   readonly isCancelModalOpen = signal<boolean>(false);
   readonly isCancelling = signal<boolean>(false);
+
+  readonly activeCancelCalculation = computed<RefundCalculation | null>(() => {
+    const res = this.reservationToCancel();
+    return res ? this.calculateRefund(res) : null;
+  });
+
+  readonly cancelResult = signal<RefundCalculation | null>(null);
+  readonly isCancelResultModalOpen = signal<boolean>(false);
 
   readonly isConciergeModalOpen = signal<boolean>(false);
   readonly copiedCodeId = signal<number | null>(null);
@@ -67,7 +85,12 @@ export class MyReservationsComponent implements OnInit {
       checkOutDate: '2026-11-23',
       status: 'CONFIRMED',
       totalPrice: 2394.00,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      paymentMethod: 'CREDIT_CARD',
+      paymentStatus: 'PAID',
+      cardLast4: '4242',
+      cardBrand: 'VISA',
+      authCode: 'AUTH-901844'
     },
     {
       id: 7102,
@@ -94,12 +117,17 @@ export class MyReservationsComponent implements OnInit {
       checkOutDate: '2026-06-16',
       status: 'COMPLETED',
       totalPrice: 2160.00,
-      createdAt: '2026-06-01T10:00:00'
+      createdAt: '2026-06-01T10:00:00',
+      paymentMethod: 'CREDIT_CARD',
+      paymentStatus: 'PAID',
+      cardLast4: '8812',
+      cardBrand: 'MASTERCARD',
+      authCode: 'AUTH-520199'
     }
   ];
 
   readonly upcomingReservations = computed(() => {
-    return this.reservations().filter(r => r.status === 'PENDING' || r.status === 'CONFIRMED');
+    return this.reservations().filter(r => r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'CHECKED_IN');
   });
 
   readonly historyReservations = computed(() => {
@@ -153,6 +181,50 @@ export class MyReservationsComponent implements OnInit {
     return diffDays > 0 ? diffDays : 1;
   }
 
+  calculateRefund(res: Reservation): RefundCalculation {
+    const checkInDateTime = new Date(`${res.checkInDate}T15:00:00`);
+    const now = new Date();
+    const diffMs = checkInDateTime.getTime() - now.getTime();
+    const hoursUntilCheckIn = Math.round(diffMs / (1000 * 60 * 60));
+    const isEligibleForFullRefund = hoursUntilCheckIn >= 48;
+
+    if (res.paymentMethod === 'CREDIT_CARD') {
+      if (isEligibleForFullRefund) {
+        return {
+          hoursUntilCheckIn,
+          isEligibleForFullRefund: true,
+          refundAmount: res.totalPrice,
+          penaltyAmount: 0,
+          policyMessage: `Reembolso del 100% procesado a su tarjeta •••• ${res.cardLast4 || '4242'}.`,
+          badgeLabel: 'Reembolso 100% Aprobado',
+          badgeType: 'full'
+        };
+      } else {
+        const penalty = res.room?.roomType?.pricePerNight || (res.totalPrice / Math.max(1, this.calculateNights(res.checkInDate, res.checkOutDate)));
+        const refund = Math.max(0, res.totalPrice - penalty);
+        return {
+          hoursUntilCheckIn,
+          isEligibleForFullRefund: false,
+          refundAmount: refund,
+          penaltyAmount: penalty,
+          policyMessage: `Cancelación tardía: Se retiene la primera noche por política de hotel boutique y se reembolsa el saldo restante.`,
+          badgeLabel: 'Cancelación Tardía (<48h)',
+          badgeType: 'partial'
+        };
+      }
+    } else {
+      return {
+        hoursUntilCheckIn,
+        isEligibleForFullRefund: true,
+        refundAmount: 0,
+        penaltyAmount: 0,
+        policyMessage: 'Cancelación flexible sin cargos: No se efectuó ningún cobro.',
+        badgeLabel: 'Sin Cargos Realizados',
+        badgeType: 'free'
+      };
+    }
+  }
+
   copyBookingCode(code: string, id: number): void {
     navigator.clipboard.writeText(code).then(() => {
       this.copiedCodeId.set(id);
@@ -188,23 +260,51 @@ export class MyReservationsComponent implements OnInit {
     const res = this.reservationToCancel();
     if (!res) return;
 
+    const calc = this.calculateRefund(res);
     this.isCancelling.set(true);
+
+    const newPaymentStatus = res.paymentMethod === 'CREDIT_CARD'
+      ? (calc.isEligibleForFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED')
+      : 'PENDING';
+
     this.reservationService.cancelReservation(res.id).subscribe({
-      next: (updated) => {
+      next: () => {
         this.isCancelling.set(false);
-        this.reservations.update(list =>
-          list.map(item => item.id === res.id ? { ...item, status: 'CANCELLED' } : item)
-        );
-        this.closeCancelDialog();
+        this.applyCancellationLocally(res.id, newPaymentStatus, calc);
       },
       error: () => {
         this.isCancelling.set(false);
-        this.reservations.update(list =>
-          list.map(item => item.id === res.id ? { ...item, status: 'CANCELLED' } : item)
-        );
-        this.closeCancelDialog();
+        this.applyCancellationLocally(res.id, newPaymentStatus, calc);
       }
     });
+  }
+
+  private applyCancellationLocally(id: number, paymentStatus: any, calc: RefundCalculation): void {
+    this.reservationService.savePaymentMeta(id, {
+      paymentStatus: paymentStatus,
+      refundAmount: calc.refundAmount,
+      penaltyAmount: calc.penaltyAmount
+    });
+
+    this.reservations.update(list =>
+      list.map(item => item.id === id ? {
+        ...item,
+        status: 'CANCELLED',
+        paymentStatus: paymentStatus,
+        refundAmount: calc.refundAmount,
+        penaltyAmount: calc.penaltyAmount
+      } : item)
+    );
+
+    this.closeCancelDialog();
+    this.cancelResult.set(calc);
+    this.isCancelResultModalOpen.set(true);
+  }
+
+  closeCancelResultModal(): void {
+    this.isCancelResultModalOpen.set(false);
+    this.cancelResult.set(null);
+    this.activeTab.set('canceled');
   }
 
   openConcierge(): void {
@@ -217,8 +317,10 @@ export class MyReservationsComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
+      case 'CHECKED_IN':
+        return 'En Casa (Check-In Realizado)';
       case 'CONFIRMED':
-        return 'Reserva Confirmada • Pago a la Llegada';
+        return 'Reserva Confirmada';
       case 'PENDING':
         return 'Pendiente de Confirmación';
       case 'COMPLETED':

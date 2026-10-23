@@ -124,6 +124,19 @@
                       <span class="status-dot"></span>
                       {{ getStatusLabel(res.status) }}
                     </span>
+
+                    @if (res.paymentMethod === 'CREDIT_CARD') {
+                      <span class="payment-method-pill online">
+                        <span class="material-symbols-outlined icon-mini">credit_card</span>
+                        Pagada en Línea (•••• {{ res.cardLast4 || '4242' }})
+                      </span>
+                    } @else {
+                      <span class="payment-method-pill checkin">
+                        <span class="material-symbols-outlined icon-mini">storefront</span>
+                        Liquidación al Check-in
+                      </span>
+                    }
+
                     <span class="prestige-tag-pill">
                       <span class="material-symbols-outlined">workspace_premium</span>
                       Reserva Directa
@@ -212,8 +225,8 @@
                     <div class="concierge-preferences">
                       <span class="material-symbols-outlined pref-icon">room_service</span>
                       <div class="pref-text">
-                        <strong>Preferencias Confirmadas:</strong>
-                        <span>Habitación en piso alto • Almohadas hipoalergénicas • Check-in prioritario</span>
+                        <strong>Garantía de Estadía Hospentra:</strong>
+                        <span>Atención de concierge personalizada • Desayuno gourmet incluido • Salida extendida prioritaria</span>
                       </div>
                     </div>
                   </div>
@@ -225,7 +238,13 @@
                         <span class="pricing-amount">${{ res.totalPrice | number:'1.2-2' }}</span>
                         <span class="pricing-currency">USD</span>
                       </div>
-                      <p class="pricing-notice">Impuestos incluidos. Liquidación al registro en destino.</p>
+                      <p class="pricing-notice">
+                        @if (res.paymentMethod === 'CREDIT_CARD') {
+                          Cobrado con tarjeta online. Saldo al check-in: $0.00 USD.
+                        } @else {
+                          Impuestos incluidos. A liquidar al registro en destino.
+                        }
+                      </p>
                     </div>
 
                     <div class="actions-stack">
@@ -243,7 +262,7 @@
                         <button type="button" class="cancel-link" (click)="openCancelDialog(res)">
                           Cancelar Reserva
                         </button>
-                        <span class="cancel-guarantee">Cancelación flexible 48h</span>
+                        <span class="cancel-guarantee">Política flexible 48h</span>
                       </div>
                     </div>
                   </div>
@@ -316,7 +335,36 @@
                   </div>
                   <h4 class="history-suite-name">{{ res.room.roomType.name }}</h4>
                   <p class="history-dates">{{ res.checkInDate }} al {{ res.checkOutDate }}</p>
-                  <p class="cancel-note">Cancelación procesada sin recargos conforme a la política flexible.</p>
+
+                  <div class="refund-resolution-box">
+                    @if (res.paymentMethod === 'CREDIT_CARD') {
+                      @if (res.paymentStatus === 'PARTIALLY_REFUNDED') {
+                        <div class="refund-tag-line partial">
+                          <span class="material-symbols-outlined">warning</span>
+                          <div>
+                            <strong>Cancelación tardía (<48h)</strong>
+                            <p>Se retiene la primera noche (${{ res.penaltyAmount || 380 | number:'1.2-2' }} USD) por política boutique y se reembolsa el saldo restante (${{ res.refundAmount || 0 | number:'1.2-2' }} USD) a su tarjeta •••• {{ res.cardLast4 || '4242' }}.</p>
+                          </div>
+                        </div>
+                      } @else {
+                        <div class="refund-tag-line full">
+                          <span class="material-symbols-outlined">verified</span>
+                          <div>
+                            <strong>Reembolso del 100% procesado</strong>
+                            <p>Monto de ${{ res.totalPrice | number:'1.2-2' }} USD abonado a su tarjeta •••• {{ res.cardLast4 || '4242' }}.</p>
+                          </div>
+                        </div>
+                      }
+                    } @else {
+                      <div class="refund-tag-line free">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <div>
+                          <strong>Cancelación flexible sin cargos</strong>
+                          <p>Reserva registrada para liquidación al check-in. No se efectuó ningún cobro.</p>
+                        </div>
+                      </div>
+                    }
+                  </div>
                 </div>
                 <div class="history-actions">
                   <a routerLink="/" class="btn btn-outline">Reservar en Nuevas Fechas</a>
@@ -364,7 +412,29 @@
             <span class="material-symbols-outlined brand-star">hotel_class</span>
             <span class="brand-title">Hospentra Itinerario Oficial</span>
           </div>
-          <span class="voucher-badge">VOUCHER DIGITAL CONFIRMADO</span>
+          <span class="voucher-badge">VOUCHER DIGITAL OFICIAL</span>
+        </div>
+
+        <div class="voucher-seal-wrapper">
+          @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
+            <div class="voucher-seal paid-online">
+              <span class="material-symbols-outlined seal-icon">verified</span>
+              <div class="seal-text-group">
+                <span class="seal-main">PAGADA EN LÍNEA</span>
+                <span class="seal-sub">COMPROBANTE LIQUIDADO</span>
+                <span class="seal-auth">AUTH: {{ selectedVoucherReservation()?.authCode || 'AUTH-901844' }}</span>
+              </div>
+            </div>
+          } @else {
+            <div class="voucher-seal pay-checkin">
+              <span class="material-symbols-outlined seal-icon">storefront</span>
+              <div class="seal-text-group">
+                <span class="seal-main">LIQUIDACIÓN AL CHECK-IN</span>
+                <span class="seal-sub">PAGO PRESENCIAL EN DESTINO</span>
+                <span class="seal-auth">COBRO EN FRONT DESK</span>
+              </div>
+            </div>
+          }
         </div>
 
         <div class="voucher-code-strip">
@@ -382,7 +452,7 @@
           <div class="voucher-field">
             <span class="field-title">Suite Reservada</span>
             <strong class="field-val">{{ selectedVoucherReservation()?.room?.roomType?.name }}</strong>
-            <span class="field-sub">Habitación {{ selectedVoucherReservation()?.room?.roomNumber }} • 5 Diamantes</span>
+            <span class="field-sub">Habitación {{ selectedVoucherReservation()?.room?.roomNumber }} • Categoría Boutique 5 Diamantes</span>
           </div>
 
           <div class="voucher-dates-row">
@@ -398,10 +468,32 @@
             </div>
           </div>
 
-          <div class="voucher-price-row">
-            <span>Total a Liquidar al Ingreso:</span>
-            <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
+          <div class="voucher-field">
+            <span class="field-title">Modalidad de Pago Registrada</span>
+            @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
+              <strong class="field-val">Tarjeta de Crédito Online ({{ selectedVoucherReservation()?.cardBrand || 'VISA' }} •••• {{ selectedVoucherReservation()?.cardLast4 || '4242' }})</strong>
+              <span class="field-sub text-emerald">Transacción autorizada y liquidada vía pasarela SSL 256-Bit</span>
+            } @else {
+              <strong class="field-val">Liquidación Directa en Recepción</strong>
+              <span class="field-sub text-amber">Pago presencial al momento del check-in (efectivo o tarjeta)</span>
+            }
           </div>
+
+          @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
+            <div class="voucher-price-row paid">
+              <span>Total Pagado en Línea:</span>
+              <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="voucher-balance-line">
+              <span>Saldo pendiente de liquidar al check-in:</span>
+              <strong class="balance-zero">$0.00 USD (Liquidado)</strong>
+            </div>
+          } @else {
+            <div class="voucher-price-row">
+              <span>Total a Liquidar en Recepción:</span>
+              <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
+            </div>
+          }
 
           <div class="barcode-simulator">
             <div class="barcode-lines"></div>
@@ -426,24 +518,110 @@
     <div class="modal-backdrop" (click)="closeCancelDialog()">
       <div class="cancel-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
         <div class="cancel-warn-icon">
-          <span class="material-symbols-outlined">warning</span>
+          <span class="material-symbols-outlined">event_busy</span>
         </div>
         <h3 class="cancel-dialog-title">¿Desea cancelar esta reserva?</h3>
         <p class="cancel-dialog-desc">
-          Está a punto de cancelar su estancia en <strong>{{ reservationToCancel()?.room?.roomType?.name }}</strong> para las fechas <strong>{{ reservationToCancel()?.checkInDate }}</strong> al <strong>{{ reservationToCancel()?.checkOutDate }}</strong>.
+          Suite: <strong>{{ reservationToCancel()?.room?.roomType?.name }}</strong><br />
+          Fechas: <strong>{{ reservationToCancel()?.checkInDate }}</strong> al <strong>{{ reservationToCancel()?.checkOutDate }}</strong>
         </p>
-        <p class="cancel-policy-notice">
-          Cancelación flexible garantizada: No se aplicará ninguna penalización ni cobro a su cuenta.
-        </p>
+
+        <div class="refund-policy-box">
+          <div class="countdown-badge">
+            <span class="material-symbols-outlined icon-small">schedule</span>
+            <span>Tiempo restante hasta check-in: {{ activeCancelCalculation()?.hoursUntilCheckIn }} horas</span>
+          </div>
+
+          @if (reservationToCancel()?.paymentMethod === 'CREDIT_CARD') {
+            @if (activeCancelCalculation()?.isEligibleForFullRefund) {
+              <div class="refund-calc-card full">
+                <div class="calc-headline">
+                  <span class="material-symbols-outlined icon-success">verified</span>
+                  <strong>Reembolso del 100% procesado a su tarjeta •••• {{ reservationToCancel()?.cardLast4 || '4242' }}</strong>
+                </div>
+                <p class="calc-desc">
+                  Su cancelación se realiza con más de 48 horas de anticipación. Se devolverá la totalidad del importe abonado (<strong>${{ reservationToCancel()?.totalPrice | number:'1.2-2' }} USD</strong>).
+                </p>
+              </div>
+            } @else {
+              <div class="refund-calc-card partial">
+                <div class="calc-headline">
+                  <span class="material-symbols-outlined icon-warn">warning</span>
+                  <strong>Cancelación tardía: Se retiene la primera noche por política de hotel boutique y se reembolsa el saldo restante</strong>
+                </div>
+                <div class="calc-breakdown-table">
+                  <div class="table-row">
+                    <span>Retención 1ª noche (Penalización):</span>
+                    <strong class="retention-val">-${{ activeCancelCalculation()?.penaltyAmount | number:'1.2-2' }} USD</strong>
+                  </div>
+                  <div class="table-row refund">
+                    <span>Monto a reembolsar a su tarjeta:</span>
+                    <strong class="refund-val">+${{ activeCancelCalculation()?.refundAmount | number:'1.2-2' }} USD</strong>
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="refund-calc-card free">
+              <div class="calc-headline">
+                <span class="material-symbols-outlined icon-success">task_alt</span>
+                <strong>Cancelación flexible sin cargos: No se efectuó ningún cobro</strong>
+              </div>
+              <p class="calc-desc">
+                Su reserva fue solicitada bajo la modalidad de liquidación en recepción. Su habitación se liberará de inmediato sin penalización económica.
+              </p>
+            </div>
+          }
+        </div>
 
         <div class="dialog-actions-row">
           <button type="button" class="btn btn-outline" (click)="closeCancelDialog()" [disabled]="isCancelling()">
             Mantener mi Reserva
           </button>
           <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="isCancelling()">
-            {{ isCancelling() ? 'Cancelando...' : 'Confirmar Cancelación' }}
+            {{ isCancelling() ? 'Procesando cancelación...' : 'Confirmar Cancelación' }}
           </button>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (isCancelResultModalOpen() && cancelResult()) {
+    <div class="modal-backdrop" (click)="closeCancelResultModal()">
+      <div class="cancel-result-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <div class="result-icon-badge" [class.partial]="cancelResult()?.badgeType === 'partial'">
+          <span class="material-symbols-outlined">
+            {{ cancelResult()?.badgeType === 'partial' ? 'receipt_long' : 'check_circle' }}
+          </span>
+        </div>
+
+        <span class="prestige-tag">Comprobante de Cancelación</span>
+        <h3 class="result-title">Reserva Cancelada con Éxito</h3>
+
+        <div class="result-statement-card" [class]="cancelResult()?.badgeType">
+          <p class="statement-msg">{{ cancelResult()?.policyMessage }}</p>
+          @if (cancelResult()?.badgeType === 'full') {
+            <div class="statement-amount-box">
+              <span class="lbl">Reembolso Total Emitido:</span>
+              <strong class="val">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
+            </div>
+          } @else if (cancelResult()?.badgeType === 'partial') {
+            <div class="statement-breakdown-box">
+              <div class="row">
+                <span>Retención 1ª noche:</span>
+                <strong class="text-amber">${{ cancelResult()?.penaltyAmount | number:'1.2-2' }} USD</strong>
+              </div>
+              <div class="row">
+                <span>Reembolso devuelto a tarjeta:</span>
+                <strong class="text-green">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
+              </div>
+            </div>
+          }
+        </div>
+
+        <button type="button" class="btn btn-primary w-full" (click)="closeCancelResultModal()">
+          Entendido y Ver Canceladas
+        </button>
       </div>
     </div>
   }

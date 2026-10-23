@@ -6,25 +6,25 @@
           <span class="material-symbols-outlined crest-icon">hotel_class</span>
         </div>
         <div class="brand-text">
-          <span class="brand-sub">PMS • Intranet Corporativa</span>
+          <span class="brand-sub">PMS • Intranet de Recepción & Administración</span>
           <h2 class="brand-name">Hospentra Control Center</h2>
         </div>
       </div>
 
       <div class="header-staff-actions">
-        <a routerLink="/" class="guest-portal-link" target="_blank" title="Abrir sitio web de huéspedes">
+        <a routerLink="/" class="guest-portal-link" target="_blank" title="Abrir catálogo público de huéspedes">
           <span class="material-symbols-outlined">open_in_new</span>
           <span>Ver Portal Huéspedes</span>
         </a>
 
         <div class="staff-chip">
-          <div class="staff-avatar">
-            {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || 'A' }}
+          <div class="staff-avatar" [class.avatar-admin]="isAdmin()" [class.avatar-receptionist]="isReceptionist()">
+            {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || (isAdmin() ? 'A' : 'R') }}
           </div>
           <div class="staff-meta">
             <span class="staff-name">{{ authService.currentUser()?.username }}</span>
-            <span class="staff-role-badge">
-              {{ authService.userRole() === 'ROLE_ADMIN' ? 'Administrador' : 'Recepcionista' }}
+            <span class="staff-role-badge" [class.badge-admin]="isAdmin()" [class.badge-receptionist]="isReceptionist()">
+              {{ isAdmin() ? 'Administrador General' : 'Recepcionista Front Desk' }}
             </span>
           </div>
         </div>
@@ -35,6 +35,32 @@
         </button>
       </div>
     </div>
+
+    @if (isAdmin()) {
+      <div class="corp-header-subnav">
+        <div class="subnav-container">
+          <button
+            type="button"
+            class="subnav-btn"
+            [class.active]="activeSection() === 'OPERATIONS'"
+            (click)="switchSection('OPERATIONS')"
+          >
+            <span class="material-symbols-outlined">concierge</span>
+            <span>Operaciones Front Desk & Room Rack</span>
+          </button>
+          <button
+            type="button"
+            class="subnav-btn"
+            [class.active]="activeSection() === 'STAFF'"
+            (click)="switchSection('STAFF')"
+          >
+            <span class="material-symbols-outlined">badge</span>
+            <span>Gestión de Personal & Recepcionistas</span>
+            <span class="subnav-badge">{{ staffMetrics().receptionists }} recepcionista(s)</span>
+          </button>
+        </div>
+      </div>
+    }
   </header>
 
   <main class="dashboard-main">
@@ -53,315 +79,842 @@
         </div>
       }
 
-      <section class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-label">Ocupación Hoy</span>
-            <div class="kpi-icon-wrap gold">
-              <span class="material-symbols-outlined">hotel</span>
+      @if (activeSection() === 'OPERATIONS') {
+        <section class="kpi-grid" [class.admin-grid]="isAdmin()">
+          <div class="kpi-card" (click)="statusFilter.set('TODAY_ARRIVALS')" role="button" tabindex="0">
+            <div class="kpi-header">
+              <span class="kpi-label">Llegadas de Hoy (Check-In)</span>
+              <div class="kpi-icon-wrap emerald">
+                <span class="material-symbols-outlined">login</span>
+              </div>
             </div>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-value">{{ metrics().occupancyRate }}%</span>
-            <span class="kpi-subtext">{{ metrics().occupiedCount }} de {{ metrics().totalRoomsCount }} suites ocupadas</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-label">Check-Ins de Hoy</span>
-            <div class="kpi-icon-wrap emerald">
-              <span class="material-symbols-outlined">login</span>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ metrics().checkInsToday }}</span>
+              <span class="kpi-subtext">Huéspedes por ingresar (desde 15:00)</span>
             </div>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-value">{{ metrics().checkInsToday }}</span>
-            <span class="kpi-subtext">Llegadas programadas (15:00 hrs)</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-label">Check-Outs de Hoy</span>
-            <div class="kpi-icon-wrap blue">
-              <span class="material-symbols-outlined">logout</span>
-            </div>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-value">{{ metrics().checkOutsToday }}</span>
-            <span class="kpi-subtext">Salidas al mediodía (12:00 hrs)</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-label">Ingresos en Cartera</span>
-            <div class="kpi-icon-wrap purple">
-              <span class="material-symbols-outlined">payments</span>
-            </div>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-value">${{ metrics().totalRevenue | number:'1.2-2' }}</span>
-            <span class="kpi-subtext">USD acumulados en reservas activas</span>
-          </div>
-        </div>
-
-        <div class="kpi-card inventory-card">
-          <div class="kpi-header">
-            <span class="kpi-label">Inventario de Suites</span>
-            <div class="kpi-icon-wrap amber">
-              <span class="material-symbols-outlined">meeting_room</span>
-            </div>
-          </div>
-          <div class="inventory-status-row">
-            <div class="inv-chip available">
-              <span class="dot"></span>
-              <strong>{{ metrics().availableCount }}</strong> Libres
-            </div>
-            <div class="inv-chip occupied">
-              <span class="dot"></span>
-              <strong>{{ metrics().occupiedCount }}</strong> Ocupadas
-            </div>
-            <div class="inv-chip maintenance">
-              <span class="dot"></span>
-              <strong>{{ metrics().maintenanceCount }}</strong> Limpieza
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="operations-panel">
-        <div class="panel-header-row">
-          <div class="panel-title-group">
-            <span class="panel-pretitle">Gestión de Reservaciones</span>
-            <h3 class="panel-title">Listado de Operaciones & Huéspedes</h3>
           </div>
 
-          <button type="button" class="btn-refresh" (click)="loadData()" [disabled]="isLoading()">
-            <span class="material-symbols-outlined" [class.spinning]="isLoading()">sync</span>
-            <span>Actualizar</span>
-          </button>
-        </div>
+          <div class="kpi-card" (click)="statusFilter.set('IN_HOUSE')" role="button" tabindex="0">
+            <div class="kpi-header">
+              <span class="kpi-label">Huéspedes En Casa</span>
+              <div class="kpi-icon-wrap gold">
+                <span class="material-symbols-outlined">hotel</span>
+              </div>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ metrics().inHouseCount }}</span>
+              <span class="kpi-subtext">Estancias activas en suites</span>
+            </div>
+          </div>
 
-        <div class="controls-bar">
-          <div class="search-input-wrap">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input
-              type="text"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-              placeholder="Buscar por código HOSP-..., huésped, teléfono o suite..."
-              class="search-input"
-            />
-            @if (searchQuery()) {
-              <button type="button" class="clear-search-btn" (click)="searchQuery.set('')">
-                <span class="material-symbols-outlined">close</span>
-              </button>
+          <div class="kpi-card" (click)="statusFilter.set('TODAY_DEPARTURES')" role="button" tabindex="0">
+            <div class="kpi-header">
+              <span class="kpi-label">Salidas de Hoy (Check-Out)</span>
+              <div class="kpi-icon-wrap blue">
+                <span class="material-symbols-outlined">logout</span>
+              </div>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ metrics().checkOutsToday }}</span>
+              <span class="kpi-subtext">Salidas al mediodía (hasta 12:00)</span>
+            </div>
+          </div>
+
+          <div class="kpi-card inventory-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Ocupación & Habitaciones</span>
+              <div class="kpi-icon-wrap purple">
+                <span class="material-symbols-outlined">meeting_room</span>
+              </div>
+            </div>
+            <div class="inventory-status-row">
+              <div class="inv-chip available">
+                <span class="dot"></span>
+                <strong>{{ metrics().availableCount }}</strong> Libres
+              </div>
+              <div class="inv-chip occupied">
+                <span class="dot"></span>
+                <strong>{{ metrics().occupiedCount }}</strong> Ocupadas
+              </div>
+              <div class="inv-chip maintenance">
+                <span class="dot"></span>
+                <strong>{{ metrics().maintenanceCount }}</strong> En Limpieza
+              </div>
+            </div>
+          </div>
+
+          @if (isAdmin()) {
+            <div class="kpi-card revenue-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Ingresos en Libros</span>
+                <div class="kpi-icon-wrap amber">
+                  <span class="material-symbols-outlined">payments</span>
+                </div>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-value">${{ metrics().totalRevenue | number:'1.2-2' }}</span>
+                <span class="kpi-subtext">Total reservas confirmadas</span>
+              </div>
+            </div>
+          }
+        </section>
+
+        <section class="room-rack-section">
+          <div class="rack-header-row">
+            <div class="rack-title-group">
+              <span class="material-symbols-outlined rack-icon">bed</span>
+              <h3 class="rack-title">Room Rack & Estado de Limpieza (Housekeeping)</h3>
+            </div>
+            <span class="rack-meta">Control de llaves y mantenimiento de suites</span>
+          </div>
+
+          <div class="rooms-grid">
+            @for (room of rooms(); track room.id) {
+              <div class="room-rack-card" [ngClass]="'status-' + room.status.toLowerCase()">
+                <div class="room-card-top">
+                  <span class="room-number-pill">Hab. {{ room.roomNumber }}</span>
+                  <span class="room-status-badge" [ngClass]="'badge-' + room.status.toLowerCase()">
+                    @if (room.status === 'AVAILABLE') {
+                      <span class="status-dot"></span> Lista / Disponible
+                    } @else if (room.status === 'OCCUPIED') {
+                      <span class="status-dot"></span> Huésped en Casa
+                    } @else {
+                      <span class="status-dot"></span> En Limpieza
+                    }
+                  </span>
+                </div>
+                <h4 class="room-type-title">{{ room.roomType.name }}</h4>
+
+                <div class="room-card-actions">
+                  @if (room.status === 'MAINTENANCE') {
+                    <button
+                      type="button"
+                      class="btn-clean-action"
+                      (click)="markRoomClean(room.id)"
+                      [disabled]="isActionProcessing()"
+                      title="Marcar suite como limpia y lista para entrega"
+                    >
+                      <span class="material-symbols-outlined">sanitizer</span>
+                      <span>Marcar Limpia y Lista</span>
+                    </button>
+                  } @else if (room.status === 'AVAILABLE') {
+                    <span class="ready-notice">
+                      <span class="material-symbols-outlined">check</span>
+                      Acondicionada para venta
+                    </span>
+                  } @else {
+                    <span class="inhouse-notice">
+                      <span class="material-symbols-outlined">vpn_key</span>
+                      Llaves entregadas a huésped
+                    </span>
+                  }
+                </div>
+              </div>
             }
           </div>
+        </section>
 
-          <div class="filter-tabs">
+        <section class="operations-panel">
+          <div class="panel-header-row">
+            <div class="panel-title-group">
+              <span class="panel-pretitle">Gestión de Recepción</span>
+              <h3 class="panel-title">Listado de Operaciones & Huéspedes</h3>
+            </div>
+
+            <button type="button" class="btn-refresh" (click)="loadData()" [disabled]="isLoading()">
+              <span class="material-symbols-outlined" [class.spinning]="isLoading()">sync</span>
+              <span>Actualizar</span>
+            </button>
+          </div>
+
+          <div class="controls-bar">
+            <div class="search-input-wrap">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input
+                type="text"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="searchQuery.set($event)"
+                placeholder="Buscar por código HOSP-..., huésped, teléfono o suite..."
+                class="search-input"
+              />
+              @if (searchQuery()) {
+                <button type="button" class="clear-search-btn" (click)="searchQuery.set('')">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              }
+            </div>
+
+            <div class="filter-tabs">
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'ALL'"
+                (click)="statusFilter.set('ALL')"
+              >
+                <span>Todas</span>
+                <span class="count-badge">{{ reservations().length }}</span>
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'TODAY_ARRIVALS'"
+                (click)="statusFilter.set('TODAY_ARRIVALS')"
+              >
+                <span class="material-symbols-outlined icon-mini">login</span>
+                <span>Llegadas Hoy</span>
+                @if (metrics().checkInsToday > 0) {
+                  <span class="alert-count">{{ metrics().checkInsToday }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'IN_HOUSE'"
+                (click)="statusFilter.set('IN_HOUSE')"
+              >
+                <span class="material-symbols-outlined icon-mini">hotel</span>
+                <span>En Casa</span>
+                @if (metrics().inHouseCount > 0) {
+                  <span class="count-badge">{{ metrics().inHouseCount }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'TODAY_DEPARTURES'"
+                (click)="statusFilter.set('TODAY_DEPARTURES')"
+              >
+                <span class="material-symbols-outlined icon-mini">logout</span>
+                <span>Salidas Hoy</span>
+                @if (metrics().checkOutsToday > 0) {
+                  <span class="count-badge">{{ metrics().checkOutsToday }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'CONFIRMED'"
+                (click)="statusFilter.set('CONFIRMED')"
+              >
+                <span>Confirmadas</span>
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'PENDING'"
+                (click)="statusFilter.set('PENDING')"
+              >
+                <span>Pendientes</span>
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'COMPLETED'"
+                (click)="statusFilter.set('COMPLETED')"
+              >
+                <span>Completadas</span>
+              </button>
+              <button
+                type="button"
+                class="filter-tab"
+                [class.active]="statusFilter() === 'CANCELLED'"
+                (click)="statusFilter.set('CANCELLED')"
+              >
+                <span>Canceladas</span>
+              </button>
+            </div>
+          </div>
+
+          @if (isLoading()) {
+            <div class="state-loading">
+              <span class="spinner-large"></span>
+              <p>Sincronizando operaciones de recepción en tiempo real...</p>
+            </div>
+          } @else if (filteredReservations().length === 0) {
+            <div class="state-empty">
+              <span class="material-symbols-outlined empty-icon">hotel</span>
+              <h4>No se encontraron reservas con los criterios seleccionados</h4>
+              <p>Intente con otro filtro o término de búsqueda.</p>
+            </div>
+          } @else {
+            <div class="table-wrap">
+              <table class="corp-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Huésped Titular</th>
+                    <th>Suite / Habitación</th>
+                    <th>Fechas Estancia</th>
+                    <th>Noches</th>
+                    <th>Modalidad de Pago</th>
+                    <th>Importe</th>
+                    <th>Estado</th>
+                    <th>Acciones Operativas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (res of filteredReservations(); track res.id) {
+                    <tr [class.row-inhouse]="res.status === 'CHECKED_IN'">
+                      <td>
+                        <div class="res-code-cell">
+                          <span class="res-code">HOSP-{{ res.id }}-2026</span>
+                          <button
+                            type="button"
+                            class="copy-btn"
+                            (click)="copyCode('HOSP-' + res.id + '-2026', res.id)"
+                            title="Copiar código"
+                          >
+                            <span class="material-symbols-outlined">
+                              {{ copiedCodeId() === res.id ? 'check' : 'content_copy' }}
+                            </span>
+                          </button>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div class="guest-cell">
+                          <strong class="guest-name">{{ res.guest?.firstName }} {{ res.guest?.lastName }}</strong>
+                          <span class="guest-meta">{{ res.guest?.email }}</span>
+                          @if (res.guest?.phone) {
+                            <span class="guest-phone">
+                              <span class="material-symbols-outlined icon-tiny">call</span>
+                              {{ res.guest.phone }}
+                            </span>
+                          }
+                        </div>
+                      </td>
+
+                      <td>
+                        <div class="room-cell">
+                          <span class="room-number-tag">Hab. {{ res.room?.roomNumber }}</span>
+                          <span class="room-name">{{ res.room?.roomType?.name }}</span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div class="dates-cell">
+                          <span class="date-in">
+                            <span class="material-symbols-outlined icon-tiny">login</span>
+                            {{ res.checkInDate }}
+                          </span>
+                          <span class="date-out">
+                            <span class="material-symbols-outlined icon-tiny">logout</span>
+                            {{ res.checkOutDate }}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <span class="nights-count">{{ calculateNights(res.checkInDate, res.checkOutDate) }} noche(s)</span>
+                      </td>
+
+                      <td>
+                        <div class="payment-method-cell">
+                          @if (res.paymentMethod === 'CREDIT_CARD') {
+                            <span class="pay-badge card">
+                              <span class="material-symbols-outlined icon-tiny">credit_card</span>
+                              <span>Online ({{ res.cardBrand || 'TARJETA' }})</span>
+                            </span>
+                            <span class="pay-sub">Liquidada •••• {{ res.cardLast4 || '4242' }}</span>
+                          } @else {
+                            <span class="pay-badge reception">
+                              <span class="material-symbols-outlined icon-tiny">storefront</span>
+                              <span>En Recepción</span>
+                            </span>
+                            <span class="pay-sub pending-charge">Cobro al Check-in</span>
+                          }
+                        </div>
+                      </td>
+
+                      <td>
+                        <strong class="price-val">${{ res.totalPrice | number:'1.2-2' }} USD</strong>
+                      </td>
+
+                      <td>
+                        <span class="status-badge" [ngClass]="getStatusBadgeClass(res.status)">
+                          {{ getStatusLabel(res.status) }}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div class="actions-cell">
+                          @if (res.status === 'PENDING') {
+                            <button
+                              type="button"
+                              class="action-btn confirm-btn"
+                              (click)="confirmReservation(res.id)"
+                              [disabled]="isActionProcessing()"
+                              title="Confirmar reserva"
+                            >
+                              <span class="material-symbols-outlined">check_circle</span>
+                              <span>Confirmar</span>
+                            </button>
+                          }
+
+                          @if (res.status === 'CONFIRMED') {
+                            <button
+                              type="button"
+                              class="action-btn checkin-btn"
+                              (click)="openCheckInModal(res)"
+                              [disabled]="isActionProcessing()"
+                              title="Registrar Check-In del huésped y entregar llaves"
+                            >
+                              <span class="material-symbols-outlined">key</span>
+                              <span>Hacer Check-In</span>
+                            </button>
+                          }
+
+                          @if (res.status === 'CHECKED_IN') {
+                            <button
+                              type="button"
+                              class="action-btn checkout-btn"
+                              (click)="openCheckOutModal(res)"
+                              [disabled]="isActionProcessing()"
+                              title="Registrar Check-Out y salida del huésped"
+                            >
+                              <span class="material-symbols-outlined">logout</span>
+                              <span>Hacer Check-Out</span>
+                            </button>
+                          }
+
+                          <button
+                            type="button"
+                            class="action-btn voucher-btn"
+                            (click)="openVoucher(res)"
+                            title="Ver o imprimir voucher corporativo"
+                          >
+                            <span class="material-symbols-outlined">receipt_long</span>
+                            <span>Voucher</span>
+                          </button>
+
+                          @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {
+                            <button
+                              type="button"
+                              class="action-btn cancel-btn"
+                              (click)="openCancelDialog(res)"
+                              [disabled]="isActionProcessing()"
+                              title="Cancelar reserva"
+                            >
+                              <span class="material-symbols-outlined">cancel</span>
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      @if (isAdmin() && activeSection() === 'STAFF') {
+        <section class="staff-section">
+          <div class="staff-header-row">
+            <div class="staff-title-group">
+              <span class="panel-pretitle">Administración y Permisos RBAC</span>
+              <h3 class="panel-title">Directorio de Personal & Recepcionistas</h3>
+              <p class="panel-desc">Cree cuentas y credenciales corporativas para que el personal de recepción opere en el Front Desk.</p>
+            </div>
+
+            <div class="staff-top-actions">
+              <button type="button" class="btn-refresh" (click)="loadStaff()" [disabled]="isStaffLoading()">
+                <span class="material-symbols-outlined" [class.spinning]="isStaffLoading()">sync</span>
+                <span>Actualizar</span>
+              </button>
+              <button type="button" class="btn-create-staff" (click)="openCreateStaffModal()">
+                <span class="material-symbols-outlined">person_add</span>
+                <span>Registrar Nueva Recepcionista</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="staff-kpi-row">
+            <div class="staff-kpi-card">
+              <div class="icon-wrap blue">
+                <span class="material-symbols-outlined">badge</span>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-num">{{ staffMetrics().total }}</span>
+                <span class="kpi-name">Total Cuentas Corporativas</span>
+              </div>
+            </div>
+
+            <div class="staff-kpi-card">
+              <div class="icon-wrap emerald">
+                <span class="material-symbols-outlined">concierge</span>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-num">{{ staffMetrics().receptionists }}</span>
+                <span class="kpi-name">Recepcionistas de Turno</span>
+              </div>
+            </div>
+
+            <div class="staff-kpi-card">
+              <div class="icon-wrap gold">
+                <span class="material-symbols-outlined">shield_person</span>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-num">{{ staffMetrics().admins }}</span>
+                <span class="kpi-name">Administradores Generales</span>
+              </div>
+            </div>
+          </div>
+
+          @if (isStaffLoading()) {
+            <div class="state-loading">
+              <span class="spinner-large"></span>
+              <p>Cargando directorio de personal corporativo...</p>
+            </div>
+          } @else if (staffList().length === 0) {
+            <div class="state-empty">
+              <span class="material-symbols-outlined empty-icon">badge</span>
+              <h4>No se encontraron cuentas de personal registradas</h4>
+              <p>Haga clic en 'Registrar Nueva Recepcionista' para otorgar credenciales de acceso al Front Desk.</p>
+            </div>
+          } @else {
+            <div class="table-wrap">
+              <table class="corp-table staff-table">
+                <thead>
+                  <tr>
+                    <th>Usuario Corporativo</th>
+                    <th>Correo Electrónico</th>
+                    <th>Rol & Permisos</th>
+                    <th>Estado Operativo</th>
+                    <th>Fecha de Alta</th>
+                    <th>Seguridad & Acceso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (staff of staffList(); track staff.id) {
+                    <tr>
+                      <td>
+                        <div class="staff-user-cell">
+                          <div class="user-avatar" [class.admin]="staff.role === 'ROLE_ADMIN'" [class.receptionist]="staff.role === 'ROLE_RECEPTIONIST'">
+                            {{ staff.username.charAt(0).toUpperCase() }}
+                          </div>
+                          <div class="user-cell-meta">
+                            <strong class="user-login">{{ staff.username }}</strong>
+                            <span class="user-id">ID: #{{ staff.id }}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>
+                        <span class="staff-email-text">{{ staff.email }}</span>
+                      </td>
+
+                      <td>
+                        <span class="staff-role-chip" [class.chip-admin]="staff.role === 'ROLE_ADMIN'" [class.chip-recep]="staff.role === 'ROLE_RECEPTIONIST'">
+                          <span class="material-symbols-outlined icon-mini">
+                            {{ staff.role === 'ROLE_ADMIN' ? 'shield' : 'support_agent' }}
+                          </span>
+                          <span>{{ getRoleBadgeLabel(staff.role) }}</span>
+                        </span>
+                      </td>
+
+                      <td>
+                        <span class="status-indicator active">
+                          <span class="pulse-dot"></span>
+                          <span>{{ staff.enabled ? 'Habilitado / Activo' : 'Inactivo' }}</span>
+                        </span>
+                      </td>
+
+                      <td>
+                        <span class="staff-date-text">{{ staff.createdAt ? (staff.createdAt | date:'dd/MM/yyyy HH:mm') : 'Pre-instalado' }}</span>
+                      </td>
+
+                      <td>
+                        <span class="access-note">
+                          <span class="material-symbols-outlined">verified_user</span>
+                          <span>Credenciales Activas</span>
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  </main>
+
+  @if (isStaffModalOpen()) {
+    <div class="modal-backdrop" (click)="closeCreateStaffModal()">
+      <div class="corp-dialog create-staff-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeCreateStaffModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="dialog-icon-badge staff-add">
+          <span class="material-symbols-outlined">person_add</span>
+        </div>
+
+        <span class="prestige-tag">Administración de Personal</span>
+        <h3 class="dialog-title">Alta de Nueva Recepcionista</h3>
+        <p class="dialog-desc">
+          Genere las credenciales de acceso para que el personal de recepción opere en el Front Desk de Hospentra.
+        </p>
+
+        @if (staffFormError()) {
+          <div class="modal-alert-error">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ staffFormError() }}</span>
+          </div>
+        }
+
+        <form (ngSubmit)="submitCreateStaff()" class="create-staff-form">
+          <div class="form-field-group">
+            <label for="newUsername" class="field-label">Nombre de Usuario Corporativo</label>
+            <div class="field-input-box">
+              <span class="material-symbols-outlined field-icon">badge</span>
+              <input
+                id="newUsername"
+                type="text"
+                [ngModel]="newUsername()"
+                (ngModelChange)="newUsername.set($event)"
+                name="newUsername"
+                placeholder="Ej. laura.frontdesk o recepcion1"
+                class="field-input"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <span class="field-helper">El personal usará este identificador para ingresar en /admin/login</span>
+          </div>
+
+          <div class="form-field-group">
+            <label for="newEmail" class="field-label">Correo Electrónico Institucional</label>
+            <div class="field-input-box">
+              <span class="material-symbols-outlined field-icon">mail</span>
+              <input
+                id="newEmail"
+                type="email"
+                [ngModel]="newEmail()"
+                (ngModelChange)="newEmail.set($event)"
+                name="newEmail"
+                placeholder="recepcion@hospentra.com"
+                class="field-input"
+                required
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="form-row-two">
+            <div class="form-field-group">
+              <label for="newPassword" class="field-label">Contraseña de Seguridad</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">lock</span>
+                <input
+                  id="newPassword"
+                  [type]="showNewPassword() ? 'text' : 'password'"
+                  [ngModel]="newPassword()"
+                  (ngModelChange)="newPassword.set($event)"
+                  name="newPassword"
+                  placeholder="Mínimo 6 caracteres"
+                  class="field-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="btn-toggle-eye"
+                  (click)="toggleNewPasswordVisibility()"
+                  aria-label="Alternar visibilidad"
+                >
+                  <span class="material-symbols-outlined">
+                    {{ showNewPassword() ? 'visibility_off' : 'visibility' }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-field-group">
+              <label for="newConfirmPassword" class="field-label">Confirmar Contraseña</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">lock_reset</span>
+                <input
+                  id="newConfirmPassword"
+                  [type]="showNewPassword() ? 'text' : 'password'"
+                  [ngModel]="newConfirmPassword()"
+                  (ngModelChange)="newConfirmPassword.set($event)"
+                  name="newConfirmPassword"
+                  placeholder="Repita la contraseña"
+                  class="field-input"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="role-permission-card">
+            <div class="role-card-header">
+              <span class="material-symbols-outlined icon-role">support_agent</span>
+              <div>
+                <strong>Rol Asignado: Recepcionista de Front Desk (ROLE_RECEPTIONIST)</strong>
+                <p>Habilita funciones clave: Check-In, Check-Out, cobro en recepción, Room Rack / Limpieza, consulta de huéspedes y vouchers.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-actions-row">
             <button
               type="button"
-              class="filter-tab"
-              [class.active]="statusFilter() === 'ALL'"
-              (click)="statusFilter.set('ALL')"
+              class="btn btn-outline"
+              (click)="closeCreateStaffModal()"
+              [disabled]="isCreatingStaff()"
             >
-              <span>Todas</span>
-              <span class="count-badge">{{ reservations().length }}</span>
+              Cancelar
             </button>
             <button
-              type="button"
-              class="filter-tab"
-              [class.active]="statusFilter() === 'CONFIRMED'"
-              (click)="statusFilter.set('CONFIRMED')"
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="isCreatingStaff()"
             >
-              <span>Confirmadas</span>
+              @if (isCreatingStaff()) {
+                <span class="btn-spinner"></span>
+                <span>Creando Credenciales...</span>
+              } @else {
+                <span class="material-symbols-outlined">person_add</span>
+                <span>Crear y Habilitar Acceso</span>
+              }
             </button>
-            <button
-              type="button"
-              class="filter-tab"
-              [class.active]="statusFilter() === 'PENDING'"
-              (click)="statusFilter.set('PENDING')"
-            >
-              <span>Pendientes</span>
-            </button>
-            <button
-              type="button"
-              class="filter-tab"
-              [class.active]="statusFilter() === 'COMPLETED'"
-              (click)="statusFilter.set('COMPLETED')"
-            >
-              <span>Completadas</span>
-            </button>
-            <button
-              type="button"
-              class="filter-tab"
-              [class.active]="statusFilter() === 'CANCELLED'"
-              (click)="statusFilter.set('CANCELLED')"
-            >
-              <span>Canceladas</span>
-            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (isCheckInModalOpen() && reservationToCheckIn()) {
+    <div class="modal-backdrop" (click)="closeCheckInModal()">
+      <div class="corp-dialog checkin-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeCheckInModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="dialog-icon-badge checkin">
+          <span class="material-symbols-outlined">key</span>
+        </div>
+
+        <span class="prestige-tag">Recepción • Registro de Entrada</span>
+        <h3 class="dialog-title">Check-In de Huésped</h3>
+        <p class="dialog-desc">
+          Formalice la llegada y entrega de llaves físicas de la suite para activar la estancia en el hotel.
+        </p>
+
+        <div class="checkin-summary-box">
+          <div class="summary-line">
+            <span class="lbl">Huésped Titular:</span>
+            <strong class="val">{{ reservationToCheckIn()?.guest?.firstName }} {{ reservationToCheckIn()?.guest?.lastName }}</strong>
+          </div>
+          <div class="summary-line">
+            <span class="lbl">Suite Asignada:</span>
+            <strong class="val highlight">Habitación {{ reservationToCheckIn()?.room?.roomNumber }} — {{ reservationToCheckIn()?.room?.roomType?.name }}</strong>
+          </div>
+          <div class="summary-line">
+            <span class="lbl">Fechas de Estadía:</span>
+            <span class="val">{{ reservationToCheckIn()?.checkInDate }} al {{ reservationToCheckIn()?.checkOutDate }}</span>
+          </div>
+
+          <div class="payment-collection-notice">
+            @if (reservationToCheckIn()?.paymentMethod === 'CREDIT_CARD') {
+              <div class="notice-online-paid">
+                <span class="material-symbols-outlined icon-success">verified</span>
+                <div>
+                  <strong>Pagada en Línea (•••• {{ reservationToCheckIn()?.cardLast4 || '4242' }})</strong>
+                  <p>Monto liquidado con tarjeta por pasarela bancaria. Saldo a cobrar en recepción: <strong>$0.00 USD</strong>. Entregar llaves directamente.</p>
+                </div>
+              </div>
+            } @else {
+              <div class="notice-checkin-charge">
+                <span class="material-symbols-outlined icon-warn">payments</span>
+                <div>
+                  <strong>Cobro en Mostrador Requerido: ${{ reservationToCheckIn()?.totalPrice | number:'1.2-2' }} USD</strong>
+                  <p>La reserva fue registrada para liquidar en recepción. Solicite el cobro antes de entregar las llaves:</p>
+                  <div class="payment-method-selector">
+                    <label class="radio-opt">
+                      <input type="radio" name="payCollect" value="POS_CARD" [checked]="paymentMethodCollected() === 'POS_CARD'" (change)="paymentMethodCollected.set('POS_CARD')" />
+                      <span>Tarjeta POS / Datáfono</span>
+                    </label>
+                    <label class="radio-opt">
+                      <input type="radio" name="payCollect" value="CASH" [checked]="paymentMethodCollected() === 'CASH'" (change)="paymentMethodCollected.set('CASH')" />
+                      <span>Efectivo en Caja</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
         </div>
 
-        @if (isLoading()) {
-          <div class="loading-state">
-            <div class="spinner-gold"></div>
-            <p>Sincronizando reservaciones con el sistema central...</p>
-          </div>
-        } @else if (filteredReservations().length === 0) {
-          <div class="empty-state">
-            <span class="material-symbols-outlined empty-icon">content_paste_off</span>
-            <h4>No se encontraron reservas</h4>
-            <p>No existen registros que coincidan con los criterios de búsqueda o el filtro seleccionado.</p>
-          </div>
-        } @else {
-          <div class="table-responsive">
-            <table class="corp-table">
-              <thead>
-                <tr>
-                  <th>Localizador</th>
-                  <th>Huésped</th>
-                  <th>Contacto</th>
-                  <th>Suite Asignada</th>
-                  <th>Estadía</th>
-                  <th>Total USD</th>
-                  <th>Estado</th>
-                  <th class="text-right">Acciones de Recepción</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (res of filteredReservations(); track res.id) {
-                  <tr>
-                    <td>
-                      <div class="code-cell">
-                        <span class="code-val">HOSP-{{ res.id }}-2026</span>
-                        <button
-                          type="button"
-                          class="code-copy-btn"
-                          (click)="copyCode('HOSP-' + res.id + '-2026', res.id)"
-                          title="Copiar código"
-                        >
-                          <span class="material-symbols-outlined">
-                            {{ copiedCodeId() === res.id ? 'check' : 'content_copy' }}
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div class="guest-cell">
-                        <strong class="guest-name">
-                          {{ res.guest?.firstName }} {{ res.guest?.lastName }}
-                        </strong>
-                        <span class="guest-id-tag">ID Huésped #{{ res.guest?.id }}</span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div class="contact-cell">
-                        <span class="contact-phone">
-                          <span class="material-symbols-outlined tiny-icon">call</span>
-                          {{ res.guest?.phone || 'Sin registrar' }}
-                        </span>
-                        <span class="contact-email">
-                          <span class="material-symbols-outlined tiny-icon">mail</span>
-                          {{ res.guest?.email }}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div class="suite-cell">
-                        <strong class="suite-num">Habitación {{ res.room?.roomNumber }}</strong>
-                        <span class="suite-type">{{ res.room?.roomType?.name }}</span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div class="dates-cell">
-                        <span class="dates-range">{{ res.checkInDate }} al {{ res.checkOutDate }}</span>
-                        <span class="nights-tag">
-                          {{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches
-                        </span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div class="price-cell">
-                        <strong class="price-val">${{ res.totalPrice | number:'1.2-2' }}</strong>
-                        <span class="price-curr">USD</span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span class="status-badge" [ngClass]="getStatusBadgeClass(res.status)">
-                        <span class="badge-dot"></span>
-                        {{ getStatusLabel(res.status) }}
-                      </span>
-                    </td>
-
-                    <td class="text-right">
-                      <div class="action-buttons-group">
-                        @if (res.status === 'PENDING') {
-                          <button
-                            type="button"
-                            class="action-btn confirm-btn"
-                            (click)="confirmReservation(res.id)"
-                            [disabled]="isActionProcessing()"
-                            title="Confirmar reserva"
-                          >
-                            <span class="material-symbols-outlined">check_circle</span>
-                            <span>Confirmar</span>
-                          </button>
-                        }
-
-                        @if (res.status === 'CONFIRMED') {
-                          <button
-                            type="button"
-                            class="action-btn complete-btn"
-                            (click)="completeReservation(res.id)"
-                            [disabled]="isActionProcessing()"
-                            title="Check-Out / Completar estancia"
-                          >
-                            <span class="material-symbols-outlined">task_alt</span>
-                            <span>Check-Out</span>
-                          </button>
-                        }
-
-                        <button
-                          type="button"
-                          class="action-btn voucher-btn"
-                          (click)="openVoucher(res)"
-                          title="Ver o imprimir voucher"
-                        >
-                          <span class="material-symbols-outlined">receipt_long</span>
-                          <span>Voucher</span>
-                        </button>
-
-                        @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {
-                          <button
-                            type="button"
-                            class="action-btn cancel-btn"
-                            (click)="openCancelDialog(res)"
-                            [disabled]="isActionProcessing()"
-                            title="Cancelar reserva"
-                          >
-                            <span class="material-symbols-outlined">cancel</span>
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </section>
+        <div class="dialog-actions-row">
+          <button type="button" class="btn btn-outline" (click)="closeCheckInModal()" [disabled]="isActionProcessing()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="confirmCheckIn()" [disabled]="isActionProcessing()">
+            <span class="material-symbols-outlined">key</span>
+            <span>{{ isActionProcessing() ? 'Registrando...' : 'Entregar Llaves y Registrar Check-In' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
-  </main>
+  }
+
+  @if (isCheckOutModalOpen() && reservationToCheckOut()) {
+    <div class="modal-backdrop" (click)="closeCheckOutModal()">
+      <div class="corp-dialog checkout-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeCheckOutModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="dialog-icon-badge checkout">
+          <span class="material-symbols-outlined">logout</span>
+        </div>
+
+        <span class="prestige-tag">Recepción • Registro de Salida</span>
+        <h3 class="dialog-title">Check-Out de Huésped</h3>
+        <p class="dialog-desc">
+          Finalice la estancia del huésped, reciba las llaves y libere la suite para el equipo de limpieza.
+        </p>
+
+        <div class="checkout-summary-box">
+          <div class="summary-line">
+            <span class="lbl">Huésped Titular:</span>
+            <strong class="val">{{ reservationToCheckOut()?.guest?.firstName }} {{ reservationToCheckOut()?.guest?.lastName }}</strong>
+          </div>
+          <div class="summary-line">
+            <span class="lbl">Habitación a Liberar:</span>
+            <strong class="val highlight">Habitación {{ reservationToCheckOut()?.room?.roomNumber }} — {{ reservationToCheckOut()?.room?.roomType?.name }}</strong>
+          </div>
+          <div class="summary-line">
+            <span class="lbl">Total Liquidado:</span>
+            <span class="val">${{ reservationToCheckOut()?.totalPrice | number:'1.2-2' }} USD (Sin cargos pendientes)</span>
+          </div>
+
+          <div class="housekeeping-alert-card">
+            <span class="material-symbols-outlined alert-icon">cleaning_services</span>
+            <div>
+              <strong>Acción Automática de Housekeeping:</strong>
+              <p>Al confirmar el Check-Out, la habitación <strong>{{ reservationToCheckOut()?.room?.roomNumber }}</strong> pasará inmediatamente a estado <strong>EN LIMPIEZA</strong> para que el personal de piso acondicione la suite.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-actions-row">
+          <button type="button" class="btn btn-outline" (click)="closeCheckOutModal()" [disabled]="isActionProcessing()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary btn-checkout-confirm" (click)="confirmCheckOut()" [disabled]="isActionProcessing()">
+            <span class="material-symbols-outlined">task_alt</span>
+            <span>{{ isActionProcessing() ? 'Procesando...' : 'Recibir Llaves y Completar Check-Out' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   @if (isVoucherModalOpen() && selectedVoucher()) {
     <div class="modal-backdrop" (click)="closeVoucher()">
@@ -376,6 +929,26 @@
             <span class="brand-title">Hospentra Voucher Oficial</span>
           </div>
           <span class="voucher-badge">COMPROBANTE CORPORATIVO DE RECEPCIÓN</span>
+        </div>
+
+        <div class="voucher-seal-wrapper">
+          @if (selectedVoucher()?.paymentMethod === 'CREDIT_CARD') {
+            <div class="pms-voucher-seal paid-online">
+              <span class="material-symbols-outlined seal-icon">verified</span>
+              <div>
+                <span class="seal-title">PAGADA EN LÍNEA</span>
+                <span class="seal-sub">COMPROBANTE LIQUIDADO • AUTH: {{ selectedVoucher()?.authCode || 'AUTH-901844' }}</span>
+              </div>
+            </div>
+          } @else {
+            <div class="pms-voucher-seal pay-checkin">
+              <span class="material-symbols-outlined seal-icon">storefront</span>
+              <div>
+                <span class="seal-title">LIQUIDACIÓN AL CHECK-IN</span>
+                <span class="seal-sub">COBRO EN FRONT DESK</span>
+              </div>
+            </div>
+          }
         </div>
 
         <div class="voucher-code-strip">
@@ -409,6 +982,17 @@
             </div>
           </div>
 
+          <div class="voucher-field">
+            <span class="field-title">Instrucción de Cobro en PMS</span>
+            @if (selectedVoucher()?.paymentMethod === 'CREDIT_CARD') {
+              <strong class="field-val text-emerald">Liquidada con Tarjeta Online ({{ selectedVoucher()?.cardBrand || 'VISA' }} •••• {{ selectedVoucher()?.cardLast4 || '4242' }})</strong>
+              <span class="field-sub">No realizar cobro al check-in. Saldo a cobrar: $0.00 USD.</span>
+            } @else {
+              <strong class="field-val text-amber">Cobro en Recepción Requerido</strong>
+              <span class="field-sub">Cobrar ${{ selectedVoucher()?.totalPrice | number:'1.2-2' }} USD al momento de entregar llaves.</span>
+            }
+          </div>
+
           <div class="voucher-price-row">
             <span>Importe Total de la Estancia:</span>
             <strong class="v-price">${{ selectedVoucher()?.totalPrice | number:'1.2-2' }} USD</strong>
@@ -438,20 +1022,17 @@
         <div class="cancel-warn-icon">
           <span class="material-symbols-outlined">warning</span>
         </div>
-        <h3 class="cancel-dialog-title">¿Cancelar reserva administrativa?</h3>
-        <p class="cancel-dialog-desc">
-          Está a punto de cancelar la reserva <strong>HOSP-{{ reservationToCancel()?.id }}-2026</strong> a nombre de <strong>{{ reservationToCancel()?.guest?.firstName }} {{ reservationToCancel()?.guest?.lastName }}</strong>.
-        </p>
-        <p class="cancel-policy-notice">
-          La habitación {{ reservationToCancel()?.room?.roomNumber }} volverá a estar disponible de inmediato en el calendario.
+        <h3 class="cancel-title">¿Cancelar Reservación HOSP-{{ reservationToCancel()?.id }}-2026?</h3>
+        <p class="cancel-desc">
+          Esta acción cancelará la estancia de <strong>{{ reservationToCancel()?.guest?.firstName }} {{ reservationToCancel()?.guest?.lastName }}</strong> en la <strong>Habitación {{ reservationToCancel()?.room?.roomNumber }}</strong>. La suite quedará liberada para nuevas reservaciones.
         </p>
 
-        <div class="dialog-actions-row">
-          <button type="button" class="btn-dialog-outline" (click)="closeCancelDialog()" [disabled]="isActionProcessing()">
-            Conservar Reserva
+        <div class="cancel-actions-row">
+          <button type="button" class="btn-cancel-keep" (click)="closeCancelDialog()" [disabled]="isActionProcessing()">
+            Mantener Activa
           </button>
-          <button type="button" class="btn-dialog-danger" (click)="confirmCancel()" [disabled]="isActionProcessing()">
-            {{ isActionProcessing() ? 'Cancelando...' : 'Confirmar Cancelación' }}
+          <button type="button" class="btn-cancel-confirm" (click)="confirmCancel()" [disabled]="isActionProcessing()">
+            {{ isActionProcessing() ? 'Procesando...' : 'Confirmar Cancelación' }}
           </button>
         </div>
       </div>

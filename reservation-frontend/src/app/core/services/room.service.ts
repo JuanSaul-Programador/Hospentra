@@ -23,6 +23,10 @@ export class RoomService {
     return this.http.get<Room>(`${this.roomsUrl}/${id}`);
   }
 
+  updateRoomStatus(id: number, status: RoomStatus): Observable<Room> {
+    return this.http.patch<Room>(`${this.roomsUrl}/${id}/status?status=${status}`, {});
+  }
+
   getRoomTypes(): Observable<RoomType[]> {
     return this.http.get<RoomType[]>(this.roomTypesUrl);
   }
