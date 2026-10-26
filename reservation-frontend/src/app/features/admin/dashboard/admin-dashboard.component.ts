@@ -320,7 +320,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (type === 'SPA') {
       switch (order.status) {
         case 'RECEIVED': return 'spa';
-        case 'PREPARING': return 'person_celebrating';
+        case 'PREPARING': return 'self_improvement';
         case 'READY_FOR_DELIVERY': return 'room_service';
         case 'DELIVERED': return 'check_circle';
         default: return 'cancel';
