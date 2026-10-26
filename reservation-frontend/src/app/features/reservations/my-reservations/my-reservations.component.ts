@@ -53,6 +53,9 @@ export class MyReservationsComponent implements OnInit {
   readonly isSubmittingOrder = signal<boolean>(false);
   readonly activeReservationOrders = signal<RoomOrder[]>([]);
   readonly orderSuccessMessage = signal<string | null>(null);
+  readonly spaLocation = signal<'IN_SUITE' | 'SPA_CENTER'>('IN_SUITE');
+  readonly spaScheduledTime = signal<string>('17:00 hrs');
+  readonly spaTimeSlots: string[] = ['10:00 hrs', '11:30 hrs', '13:00 hrs', '15:00 hrs', '16:30 hrs', '18:00 hrs', '19:30 hrs', '21:00 hrs'];
 
   readonly activeCancelCalculation = computed<RefundCalculation | null>(() => {
     const res = this.reservationToCancel();
@@ -289,6 +292,8 @@ export class MyReservationsComponent implements OnInit {
     this.roomOrderService.createOrder({
       reservationId: res.id,
       notes: this.orderNotes().trim(),
+      serviceLocation: this.cartHasSpaItems() ? this.spaLocation() : 'IN_SUITE',
+      scheduledTime: this.cartHasSpaItems() ? this.spaScheduledTime() : undefined,
       items
     }).subscribe({
       next: (createdOrder) => {

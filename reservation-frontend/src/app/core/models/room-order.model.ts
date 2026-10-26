@@ -31,6 +31,10 @@ export interface RoomOrder {
   notes: string;
   orderedAt: string;
   deliveredAt?: string | null;
+  therapistId?: number | null;
+  therapistName?: string | null;
+  serviceLocation?: 'IN_SUITE' | 'SPA_CENTER';
+  scheduledTime?: string | null;
   items: RoomOrderItem[];
 }
 
@@ -42,5 +46,7 @@ export interface CreateRoomOrderItem {
 export interface CreateRoomOrderRequest {
   reservationId: number;
   notes?: string;
+  serviceLocation?: 'IN_SUITE' | 'SPA_CENTER';
+  scheduledTime?: string;
   items: CreateRoomOrderItem[];
 }

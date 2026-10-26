@@ -35,4 +35,8 @@ export class RoomOrderService {
   updateOrderStatus(orderId: number, status: OrderStatus): Observable<RoomOrder> {
     return this.http.patch<RoomOrder>(`${this.apiUrl}/${orderId}/status`, { status });
   }
+
+  assignTherapist(orderId: number, therapistId: number): Observable<RoomOrder> {
+    return this.http.patch<RoomOrder>(`${this.apiUrl}/${orderId}/assign-therapist`, { therapistId });
+  }
 }

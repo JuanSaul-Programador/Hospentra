@@ -560,6 +560,10 @@
             </div>
 
             <div class="room-service-top-actions">
+              <button type="button" class="btn-therapists-dir" (click)="openTherapistsDirectory()">
+                <span class="material-symbols-outlined">spa</span>
+                <span>Directorio Terapeutas Spa</span>
+              </button>
               <button type="button" class="btn-refresh" (click)="loadOrders()">
                 <span class="material-symbols-outlined">sync</span>
                 <span>Actualizar Comandas</span>
@@ -669,10 +673,39 @@
                       </td>
 
                       <td>
-                        <span class="order-status-chip" [ngClass]="['status-' + order.status.toLowerCase(), getOrderType(order).toLowerCase()]">
-                          <span class="material-symbols-outlined icon-chip">{{ getOrderStatusIcon(order) }}</span>
-                          <span>{{ getOrderStatusLabel(order) }}</span>
-                        </span>
+                        <div class="order-status-action-cell">
+                          <span class="order-status-chip" [ngClass]="['status-' + order.status.toLowerCase(), getOrderType(order).toLowerCase()]">
+                            <span class="material-symbols-outlined icon-chip">{{ getOrderStatusIcon(order) }}</span>
+                            <span>{{ getOrderStatusLabel(order) }}</span>
+                          </span>
+
+                          @if (getOrderType(order) === 'SPA' || getOrderType(order) === 'MIXED') {
+                            <div class="spa-actions-wrap">
+                              @if (order.status === 'RECEIVED') {
+                                <button type="button" class="btn-spa-assign" (click)="openAssignModal(order)">
+                                  <span class="material-symbols-outlined">person_add</span>
+                                  <span>Asignar Terapeuta</span>
+                                </button>
+                              } @else if (order.status === 'PREPARING') {
+                                <div class="assigned-th-tag">
+                                  <span class="material-symbols-outlined">badge</span>
+                                  <span>{{ order.therapistName || 'Asignado' }}</span>
+                                </div>
+                                <button type="button" class="btn-spa-advance" (click)="advanceSpaStatus(order, 'READY_FOR_DELIVERY')" title="Marcar en camino a suite">
+                                  <span class="material-symbols-outlined">directions_walk</span>
+                                  <span>En Camino</span>
+                                </button>
+                              } @else if (order.status === 'READY_FOR_DELIVERY') {
+                                <button type="button" class="btn-spa-advance finish" (click)="advanceSpaStatus(order, 'DELIVERED')" title="Marcar servicio completado">
+                                  <span class="material-symbols-outlined">check_circle</span>
+                                  <span>Completar</span>
+                                </button>
+                              } @else if (order.status === 'DELIVERED' && order.therapistName) {
+                                <span class="assigned-th-done">Atendido por {{ order.therapistName }}</span>
+                              }
+                            </div>
+                          }
+                        </div>
                       </td>
                     </tr>
                   }
@@ -1367,6 +1400,258 @@
           </button>
           <button type="button" class="btn-cancel-confirm" (click)="confirmCancel()" [disabled]="isActionProcessing()">
             {{ isActionProcessing() ? 'Procesando...' : 'Confirmar Cancelación' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isTherapistsModalOpen()) {
+    <div class="modal-backdrop" (click)="closeTherapistsDirectory()">
+      <div class="therapists-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeTherapistsDirectory()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="th-modal-header">
+          <div class="th-header-icon">
+            <span class="material-symbols-outlined">spa</span>
+          </div>
+          <div class="th-header-info">
+            <h3 class="th-modal-title">Directorio de Especialistas & Terapeutas de Spa</h3>
+            <p class="th-modal-subtitle">Gestione a los terapeutas autorizados del hotel para asignación de masajes y tratamientos.</p>
+          </div>
+          <button type="button" class="btn-add-th" (click)="openCreateTherapistModal()">
+            <span class="material-symbols-outlined">person_add</span>
+            <span>Agregar Terapeuta</span>
+          </button>
+        </div>
+
+        <div class="th-table-wrap">
+          @if (therapists().length === 0) {
+            <div class="th-empty-state">
+              <span class="material-symbols-outlined">spa</span>
+              <p>No hay terapeutas registrados en el directorio.</p>
+            </div>
+          } @else {
+            <table class="corp-table th-table">
+              <thead>
+                <tr>
+                  <th>Especialista</th>
+                  <th>Especialidad</th>
+                  <th>Contacto / WhatsApp</th>
+                  <th>Disponibilidad</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (th of therapists(); track th.id) {
+                  <tr [class.inactive-row]="!th.active">
+                    <td>
+                      <div class="th-name-cell">
+                        <div class="th-avatar">
+                          <span class="material-symbols-outlined">spa</span>
+                        </div>
+                        <span class="th-name">{{ th.name }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="th-spec">{{ th.specialty }}</span>
+                    </td>
+                    <td>
+                      @if (th.phone) {
+                        <a [href]="'tel:' + th.phone" class="th-phone-link">
+                          <span class="material-symbols-outlined">call</span>
+                          <span>{{ th.phone }}</span>
+                        </a>
+                      } @else {
+                        <span class="th-no-phone">Sin teléfono</span>
+                      }
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="status-toggle-btn"
+                        [class.active]="th.active"
+                        (click)="toggleTherapistStatus(th)"
+                        [title]="th.active ? 'Haga clic para marcar Inactivo (descanso/vacaciones)' : 'Haga clic para activar'"
+                      >
+                        <span class="status-dot"></span>
+                        <span>{{ th.active ? 'Activo (En Guardia)' : 'Inactivo (Descanso)' }}</span>
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="btn-th-delete"
+                        (click)="deleteTherapist(th.id)"
+                        title="Eliminar especialista"
+                      >
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isTherapistFormModalOpen()) {
+    <div class="modal-backdrop sub-modal" (click)="closeTherapistFormModal()">
+      <div class="therapist-form-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <div class="th-form-header">
+          <span class="material-symbols-outlined">person_add</span>
+          <h3>Registrar Nuevo Terapeuta en Directorio</h3>
+        </div>
+
+        <div class="th-form-grid">
+          <div class="form-group">
+            <label for="thName">Nombre Completo del Especialista *</label>
+            <input
+              id="thName"
+              type="text"
+              class="form-control"
+              [(ngModel)]="therapistForm().name"
+              placeholder="Ej. Lucía Morales"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="thSpec">Especialidad / Tratamientos *</label>
+            <input
+              id="thSpec"
+              type="text"
+              class="form-control"
+              [(ngModel)]="therapistForm().specialty"
+              placeholder="Ej. Masajes Holísticos & Piedras Calientes"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="thPhone">Teléfono de Contacto Directo / WhatsApp</label>
+            <input
+              id="thPhone"
+              type="text"
+              class="form-control"
+              [(ngModel)]="therapistForm().phone"
+              placeholder="Ej. +52 998 555 1234"
+            />
+          </div>
+        </div>
+
+        <div class="th-form-actions-row">
+          <button type="button" class="btn-cancel" (click)="closeTherapistFormModal()" [disabled]="isSavingTherapist()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn-save-th"
+            (click)="saveTherapist()"
+            [disabled]="isSavingTherapist() || !therapistForm().name.trim() || !therapistForm().specialty.trim()"
+          >
+            {{ isSavingTherapist() ? 'Guardando...' : 'Guardar Terapeuta' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isAssignModalOpen() && orderToAssign()) {
+    <div class="modal-backdrop" (click)="closeAssignModal()">
+      <div class="assign-therapist-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeAssignModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="assign-header">
+          <span class="material-symbols-outlined assign-icon">spa</span>
+          <div>
+            <h3 class="assign-title">Asignar Terapeuta a Solicitud de Spa</h3>
+            <p class="assign-subtitle">Comanda #CMD-{{ orderToAssign()?.id }} • Suite {{ orderToAssign()?.roomNumber }} • {{ orderToAssign()?.guestName }}</p>
+          </div>
+        </div>
+
+        <div class="order-context-box">
+          <div class="ctx-item">
+            <span class="ctx-lbl">Servicio Solicitado:</span>
+            <strong class="ctx-val">
+              @for (it of orderToAssign()?.items; track it.id) {
+                {{ it.quantity }}x {{ it.serviceName }}
+              }
+            </strong>
+          </div>
+          <div class="ctx-item">
+            <span class="ctx-lbl">Ubicación del Servicio:</span>
+            <strong class="ctx-val">{{ orderToAssign()?.serviceLocation === 'SPA_CENTER' ? 'En Cabina de Spa del Hotel' : 'En Suite (Hab. ' + orderToAssign()?.roomNumber + ')' }}</strong>
+          </div>
+          <div class="ctx-item">
+            <span class="ctx-lbl">Horario Solicitado:</span>
+            <strong class="ctx-val gold">{{ orderToAssign()?.scheduledTime || 'Atención Inmediata' }}</strong>
+          </div>
+          @if (orderToAssign()?.notes) {
+            <div class="ctx-item full">
+              <span class="ctx-lbl">Instrucciones del Huésped:</span>
+              <p class="ctx-notes">"{{ orderToAssign()?.notes }}"</p>
+            </div>
+          }
+        </div>
+
+        <div class="select-therapist-wrap">
+          <label class="lbl-select-th">Seleccione el especialista activo que atenderá el servicio:</label>
+
+          @if (activeTherapists().length === 0) {
+            <div class="no-th-alert">
+              <span class="material-symbols-outlined">warning</span>
+              <p>No hay terapeutas activos en el directorio en este momento.</p>
+              <button type="button" class="btn-quick-add-th" (click)="openCreateTherapistModal()">
+                + Agregar Terapeuta Ahora
+              </button>
+            </div>
+          } @else {
+            <div class="th-cards-grid">
+              @for (th of activeTherapists(); track th.id) {
+                <div
+                  class="th-select-card"
+                  [class.selected]="selectedTherapistId() === th.id"
+                  (click)="selectedTherapistId.set(th.id)"
+                >
+                  <div class="th-card-avatar">
+                    <span class="material-symbols-outlined">spa</span>
+                  </div>
+                  <div class="th-card-info">
+                    <strong class="th-card-name">{{ th.name }}</strong>
+                    <span class="th-card-spec">{{ th.specialty }}</span>
+                    @if (th.phone) {
+                      <span class="th-card-phone">
+                        <span class="material-symbols-outlined">call</span>
+                        <span>{{ th.phone }}</span>
+                      </span>
+                    }
+                  </div>
+                  <div class="select-radio-indicator">
+                    <span class="radio-circle" [class.checked]="selectedTherapistId() === th.id"></span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="assign-actions-row">
+          <button type="button" class="btn-cancel" (click)="closeAssignModal()" [disabled]="isAssigningTherapist()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn-confirm-assign"
+            (click)="confirmAssignTherapist()"
+            [disabled]="isAssigningTherapist() || !selectedTherapistId()"
+          >
+            {{ isAssigningTherapist() ? 'Asignando...' : 'Confirmar y Asignar Terapeuta' }}
           </button>
         </div>
       </div>

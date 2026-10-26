@@ -819,6 +819,48 @@
                 }
               </div>
 
+              @if (cartHasSpaItems()) {
+                <div class="spa-preferences-card">
+                  <div class="pref-group">
+                    <label class="lbl-pref">¿Dónde prefiere recibir el servicio de Spa?</label>
+                    <div class="pref-options">
+                      <button
+                        type="button"
+                        class="btn-pref-option"
+                        [class.active]="spaLocation() === 'IN_SUITE'"
+                        (click)="spaLocation.set('IN_SUITE')"
+                      >
+                        <span class="material-symbols-outlined">hotel</span>
+                        <span>En mi Suite</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-pref-option"
+                        [class.active]="spaLocation() === 'SPA_CENTER'"
+                        (click)="spaLocation.set('SPA_CENTER')"
+                      >
+                        <span class="material-symbols-outlined">spa</span>
+                        <span>En Cabina de Spa del Hotel</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="pref-group">
+                    <label for="spaTimeSelect" class="lbl-pref">Horario preferido para la sesión:</label>
+                    <select
+                      id="spaTimeSelect"
+                      [ngModel]="spaScheduledTime()"
+                      (ngModelChange)="spaScheduledTime.set($event)"
+                      class="spa-time-select"
+                    >
+                      @for (slot of spaTimeSlots; track slot) {
+                        <option [value]="slot">{{ slot }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              }
+
               <div class="notes-field-wrap">
                 <label for="rsNotes" class="lbl-notes">
                   {{ orderDestinationType() === 'SPA' ? 'Instrucciones Especiales para Concierge / Terapeuta:' : 'Instrucciones Especiales para Cocina / Servicio:' }}
@@ -954,6 +996,31 @@
                       <span class="material-symbols-outlined">info</span>
                       <span>{{ getOrderStatusLabel(ord.status, getOrderType(ord)) }}</span>
                     </div>
+
+                    @if (ord.therapistName) {
+                      <div class="track-therapist-badge">
+                        <span class="material-symbols-outlined icon-therapist">badge</span>
+                        <div class="therapist-info">
+                          <span class="lbl-therapist">Terapeuta Oficial Asignado:</span>
+                          <strong class="val-therapist">{{ ord.therapistName }}</strong>
+                        </div>
+                      </div>
+                    }
+
+                    @if (getOrderType(ord) === 'SPA' || getOrderType(ord) === 'MIXED') {
+                      <div class="track-spa-detail-row">
+                        <span class="spa-meta-chip">
+                          <span class="material-symbols-outlined icon-chip">{{ ord.serviceLocation === 'SPA_CENTER' ? 'spa' : 'hotel' }}</span>
+                          <span>{{ ord.serviceLocation === 'SPA_CENTER' ? 'En Cabina de Spa del Hotel' : 'En mi Suite' }}</span>
+                        </span>
+                        @if (ord.scheduledTime) {
+                          <span class="spa-meta-chip time">
+                            <span class="material-symbols-outlined icon-chip">schedule</span>
+                            <span>Horario Solicitado: {{ ord.scheduledTime }}</span>
+                          </span>
+                        }
+                      </div>
+                    }
 
                     <div class="track-items-box">
                       <span class="items-head-lbl">Artículos en esta comanda:</span>

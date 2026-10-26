@@ -7,11 +7,13 @@ import { RoomService } from '../../../core/services/room.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { StaffService } from '../../../core/services/staff.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
+import { TherapistService } from '../../../core/services/therapist.service';
 import { Reservation, ReservationStatus } from '../../../core/models/reservation.model';
 import { Room, RoomStatus } from '../../../core/models/room.model';
 import { Role } from '../../../core/models/auth.model';
 import { Shift, UserResponse, WorkStatus } from '../../../core/models/staff.model';
 import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
+import { Therapist } from '../../../core/models/therapist.model';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
@@ -27,6 +29,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly roomService = inject(RoomService);
   private readonly staffService = inject(StaffService);
   private readonly roomOrderService = inject(RoomOrderService);
+  private readonly therapistService = inject(TherapistService);
   readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -38,6 +41,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly reservations = signal<Reservation[]>([]);
   readonly rooms = signal<Room[]>([]);
   readonly roomOrders = signal<RoomOrder[]>([]);
+  readonly therapists = signal<Therapist[]>([]);
+  readonly activeTherapists = computed(() => this.therapists().filter(t => t.active));
+  readonly isTherapistsModalOpen = signal<boolean>(false);
+  readonly isTherapistFormModalOpen = signal<boolean>(false);
+  readonly isSavingTherapist = signal<boolean>(false);
+  readonly therapistForm = signal<{ name: string; specialty: string; phone: string }>({ name: '', specialty: '', phone: '' });
+  readonly isAssignModalOpen = signal<boolean>(false);
+  readonly orderToAssign = signal<RoomOrder | null>(null);
+  readonly selectedTherapistId = signal<number | null>(null);
+  readonly isAssigningTherapist = signal<boolean>(false);
   readonly activeOrdersCount = computed(() => {
     return this.roomOrders().filter(o => o.status === 'RECEIVED' || o.status === 'PREPARING' || o.status === 'READY_FOR_DELIVERY').length;
   });
@@ -320,6 +333,122 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       case 'DELIVERED': return 'check_circle';
       default: return 'cancel';
     }
+  }
+
+  loadTherapists(): void {
+    this.therapistService.getTherapists().subscribe({
+      next: (list) => {
+        this.therapists.set(list || []);
+      },
+      error: () => {}
+    });
+  }
+
+  openTherapistsDirectory(): void {
+    this.loadTherapists();
+    this.isTherapistsModalOpen.set(true);
+  }
+
+  closeTherapistsDirectory(): void {
+    this.isTherapistsModalOpen.set(false);
+  }
+
+  openCreateTherapistModal(): void {
+    this.therapistForm.set({ name: '', specialty: '', phone: '' });
+    this.isTherapistFormModalOpen.set(true);
+  }
+
+  closeTherapistFormModal(): void {
+    this.isTherapistFormModalOpen.set(false);
+  }
+
+  saveTherapist(): void {
+    const form = this.therapistForm();
+    if (!form.name.trim() || !form.specialty.trim()) return;
+
+    this.isSavingTherapist.set(true);
+    this.therapistService.createTherapist({
+      name: form.name.trim(),
+      specialty: form.specialty.trim(),
+      phone: form.phone.trim() || undefined,
+      active: true
+    }).subscribe({
+      next: (created) => {
+        this.isSavingTherapist.set(false);
+        this.therapists.update(list => [created, ...list]);
+        this.closeTherapistFormModal();
+        this.showToast(`Terapeuta ${created.name} agregado al directorio exitosamente.`);
+      },
+      error: () => {
+        this.isSavingTherapist.set(false);
+      }
+    });
+  }
+
+  toggleTherapistStatus(therapist: Therapist): void {
+    this.therapistService.toggleStatus(therapist.id).subscribe({
+      next: (updated) => {
+        this.therapists.update(list => list.map(t => t.id === updated.id ? updated : t));
+        const statusText = updated.active ? 'activado' : 'desactivado';
+        this.showToast(`Terapeuta ${updated.name} ${statusText}.`);
+      },
+      error: () => {}
+    });
+  }
+
+  deleteTherapist(id: number): void {
+    const th = this.therapists().find(t => t.id === id);
+    if (!confirm(`¿Eliminar a ${th?.name || 'este especialista'} del directorio de terapeutas?`)) return;
+
+    this.therapistService.deleteTherapist(id).subscribe({
+      next: () => {
+        this.therapists.update(list => list.filter(t => t.id !== id));
+        this.showToast('Terapeuta eliminado del directorio.');
+      },
+      error: () => {}
+    });
+  }
+
+  openAssignModal(order: RoomOrder): void {
+    this.orderToAssign.set(order);
+    this.selectedTherapistId.set(null);
+    this.isAssignModalOpen.set(true);
+    this.loadTherapists();
+  }
+
+  closeAssignModal(): void {
+    this.isAssignModalOpen.set(false);
+    this.orderToAssign.set(null);
+    this.selectedTherapistId.set(null);
+  }
+
+  confirmAssignTherapist(): void {
+    const order = this.orderToAssign();
+    const therapistId = this.selectedTherapistId();
+    if (!order || !therapistId) return;
+
+    this.isAssigningTherapist.set(true);
+    this.roomOrderService.assignTherapist(order.id, therapistId).subscribe({
+      next: (updatedOrder) => {
+        this.isAssigningTherapist.set(false);
+        this.roomOrders.update(list => list.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+        this.closeAssignModal();
+        this.showToast(`Terapeuta asignado a Comanda #${updatedOrder.id} de Suite ${updatedOrder.roomNumber}.`);
+      },
+      error: () => {
+        this.isAssigningTherapist.set(false);
+      }
+    });
+  }
+
+  advanceSpaStatus(order: RoomOrder, newStatus: OrderStatus): void {
+    this.roomOrderService.updateOrderStatus(order.id, newStatus).subscribe({
+      next: (updatedOrder) => {
+        this.roomOrders.update(list => list.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+        this.showToast(`Estado de servicio actualizado a ${this.getOrderStatusLabel(updatedOrder)}.`);
+      },
+      error: () => {}
+    });
   }
 
   loadStaff(): void {
