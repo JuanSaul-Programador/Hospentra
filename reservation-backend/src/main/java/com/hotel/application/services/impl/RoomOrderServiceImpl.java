@@ -32,6 +32,7 @@ public class RoomOrderServiceImpl implements RoomOrderService {
     private final ReservationRepository reservationRepository;
     private final ExtraServiceRepository extraServiceRepository;
     private final UserRepository userRepository;
+    private final com.hotel.domain.repository.TherapistRepository therapistRepository;
 
     @Override
     @Transactional
@@ -52,6 +53,8 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 .guestName(guestName)
                 .status(OrderStatus.RECEIVED)
                 .notes(request.notes())
+                .serviceLocation(request.serviceLocation() != null ? request.serviceLocation() : "IN_SUITE")
+                .scheduledTime(request.scheduledTime())
                 .orderedAt(LocalDateTime.now())
                 .items(new ArrayList<>())
                 .totalAmount(BigDecimal.ZERO)
@@ -145,6 +148,22 @@ public class RoomOrderServiceImpl implements RoomOrderService {
         return mapToResponse(updated);
     }
 
+    @Override
+    @Transactional
+    public RoomOrderResponse assignTherapist(Long orderId, Long therapistId) {
+        RoomOrder order = roomOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room order not found with id: " + orderId));
+        com.hotel.domain.model.Therapist therapist = therapistRepository.findById(therapistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Therapist not found with id: " + therapistId));
+
+        order.setTherapistId(therapist.getId());
+        order.setTherapistName(therapist.getName());
+        order.setStatus(OrderStatus.PREPARING);
+
+        RoomOrder updated = roomOrderRepository.save(order);
+        return mapToResponse(updated);
+    }
+
     private RoomOrderResponse mapToResponse(RoomOrder order) {
         List<RoomOrderItemResponse> itemResponses = order.getItems().stream()
                 .map(item -> new RoomOrderItemResponse(
@@ -168,6 +187,10 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 order.getNotes(),
                 order.getOrderedAt(),
                 order.getDeliveredAt(),
+                order.getTherapistId(),
+                order.getTherapistName(),
+                order.getServiceLocation(),
+                order.getScheduledTime(),
                 itemResponses
         );
     }

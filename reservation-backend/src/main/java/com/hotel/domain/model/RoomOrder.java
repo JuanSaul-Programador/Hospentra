@@ -47,6 +47,19 @@ public class RoomOrder {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
+    @Column(name = "therapist_id")
+    private Long therapistId;
+
+    @Column(name = "therapist_name", length = 150)
+    private String therapistName;
+
+    @Column(name = "service_location", length = 50)
+    @Builder.Default
+    private String serviceLocation = "IN_SUITE";
+
+    @Column(name = "scheduled_time", length = 50)
+    private String scheduledTime;
+
     @OneToMany(mappedBy = "roomOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default

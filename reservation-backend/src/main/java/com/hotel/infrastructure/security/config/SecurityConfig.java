@@ -110,6 +110,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/room-orders/active").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
                         .requestMatchers(HttpMethod.PATCH, "/api/room-orders/*/status").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
+                        .requestMatchers("/api/therapists/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/room-orders/**").authenticated()
 
                         .anyRequest().authenticated()

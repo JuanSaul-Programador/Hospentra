@@ -9,5 +9,7 @@ import java.util.List;
 public record CreateRoomOrderRequest(
         @NotNull Long reservationId,
         String notes,
+        String serviceLocation,
+        String scheduledTime,
         @NotEmpty @Valid List<CreateOrderItemRequest> items
 ) {}

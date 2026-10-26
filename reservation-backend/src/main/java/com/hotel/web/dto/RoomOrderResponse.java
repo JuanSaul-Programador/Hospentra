@@ -16,5 +16,9 @@ public record RoomOrderResponse(
         String notes,
         LocalDateTime orderedAt,
         LocalDateTime deliveredAt,
+        Long therapistId,
+        String therapistName,
+        String serviceLocation,
+        String scheduledTime,
         List<RoomOrderItemResponse> items
 ) {}

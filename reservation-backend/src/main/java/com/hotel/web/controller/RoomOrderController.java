@@ -46,4 +46,12 @@ public class RoomOrderController {
     ) {
         return ResponseEntity.ok(roomOrderService.updateOrderStatus(id, request.status()));
     }
+
+    @PatchMapping("/{id}/assign-therapist")
+    public ResponseEntity<RoomOrderResponse> assignTherapist(
+            @PathVariable Long id,
+            @Valid @RequestBody com.hotel.web.dto.AssignTherapistRequest request
+    ) {
+        return ResponseEntity.ok(roomOrderService.assignTherapist(id, request.therapistId()));
+    }
 }

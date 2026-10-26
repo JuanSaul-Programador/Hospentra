@@ -12,4 +12,5 @@ public interface RoomOrderService {
     List<RoomOrderResponse> findActiveKitchenOrders();
     List<RoomOrderResponse> findAllOrders();
     RoomOrderResponse updateOrderStatus(Long orderId, OrderStatus status);
+    RoomOrderResponse assignTherapist(Long orderId, Long therapistId);
 }
