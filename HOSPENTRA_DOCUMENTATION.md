@@ -385,13 +385,14 @@ A continuación se detallan los casos de uso fundamentales que abarcan el 100% d
 | **POST** | `/api/rooms` | `ROLE_ADMIN` | Alta de nuevas habitaciones en catálogo |
 | **PUT** | `/api/rooms/{id}` | `ROLE_ADMIN` | Modificación de datos de habitación |
 | **DELETE**| `/api/rooms/{id}`| `ROLE_ADMIN` | Baja de habitación del inventario |
-| **GET** | `/api/reservations` | Autenticado | Listado de reservas (filtrado por usuario o global para staff) |
+| **GET** | `/api/reservations/my` | Autenticado | Listado exclusivo de reservas propias del huésped autenticado (Aislamiento de privacidad) |
+| **GET** | `/api/reservations` | `ADMIN`, `RECEPTIONIST` | Listado global de todas las reservas del hotel para gestión operativa PMS en Front Desk |
 | **POST** | `/api/reservations` | Autenticado | Creación de reserva con modalidad de pago |
-| **GET** | `/api/reservations/{id}` | Autenticado | Detalle de una reserva específica |
+| **GET** | `/api/reservations/{id}` | Autenticado | Detalle de una reserva específica (Valida propiedad si el invocador es huésped) |
 | **PATCH**| `/api/reservations/{id}/confirm` | `ADMIN`, `RECEPTIONIST` | Confirmar reserva pendiente |
 | **PATCH**| `/api/reservations/{id}/check-in` | `ADMIN`, `RECEPTIONIST` | Registrar check-in y entrega de llaves |
 | **PATCH**| `/api/reservations/{id}/complete` | `ADMIN`, `RECEPTIONIST` | Registrar check-out y enviar suite a limpieza |
-| **PATCH**| `/api/reservations/{id}/cancel` | Autenticado | Cancelar reserva aplicando política de reembolso |
+| **PATCH**| `/api/reservations/{id}/cancel` | Autenticado | Cancelar reserva aplicando política de reembolso (Valida propiedad si es huésped) |
 | **GET** | `/api/guests` | `ADMIN`, `RECEPTIONIST` | Directorio de huéspedes y perfiles de contacto |
 | **GET** | `/api/users` | `ROLE_ADMIN` | Directorio de cuentas corporativas con turnos y presencia |
 | **POST** | `/api/users` | `ROLE_ADMIN` | Creación de cuentas de staff (`RECEPTIONIST`, `KITCHEN`, `ADMIN`) con asignación de turno |
