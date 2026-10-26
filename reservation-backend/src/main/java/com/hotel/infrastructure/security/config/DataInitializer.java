@@ -37,5 +37,16 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
             userRepository.save(admin);
         }
+
+        if (!userRepository.existsByUsername("cocina")) {
+            User kitchenStation = User.builder()
+                    .username("cocina")
+                    .email("cocina@hospentra.com")
+                    .password(passwordEncoder.encode("cocina123"))
+                    .role(Role.ROLE_KITCHEN)
+                    .enabled(true)
+                    .build();
+            userRepository.save(kitchenStation);
+        }
     }
 }

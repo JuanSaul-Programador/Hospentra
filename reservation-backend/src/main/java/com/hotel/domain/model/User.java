@@ -44,6 +44,19 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    @Builder.Default
+    private Shift shift = Shift.MORNING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_status", length = 50)
+    @Builder.Default
+    private WorkStatus workStatus = WorkStatus.ON_DUTY;
+
+    @Column(name = "break_started_at")
+    private LocalDateTime breakStartedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
