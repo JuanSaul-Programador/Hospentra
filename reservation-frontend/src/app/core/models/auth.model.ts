@@ -1,4 +1,4 @@
-export type Role = 'ROLE_ADMIN' | 'ROLE_RECEPTIONIST' | 'ROLE_CUSTOMER';
+export type Role = 'ROLE_ADMIN' | 'ROLE_RECEPTIONIST' | 'ROLE_KITCHEN' | 'ROLE_CUSTOMER';
 
 export interface LoginRequest {
   username: string;

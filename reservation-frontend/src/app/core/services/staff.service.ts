@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CreateStaffRequest, UserResponse } from '../models/staff.model';
+import { CreateStaffRequest, UserResponse, WorkStatus } from '../models/staff.model';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +15,15 @@ export class StaffService {
     return this.http.get<UserResponse[]>(this.apiUrl);
   }
 
+  getUserById(id: number): Observable<UserResponse> {
+    return this.http.get<UserResponse>(`${this.apiUrl}/${id}`);
+  }
+
   createStaff(request: CreateStaffRequest): Observable<UserResponse> {
     return this.http.post<UserResponse>(this.apiUrl, request);
+  }
+
+  updateWorkStatus(userId: number, workStatus: WorkStatus): Observable<UserResponse> {
+    return this.http.patch<UserResponse>(`${this.apiUrl}/${userId}/work-status`, { workStatus });
   }
 }

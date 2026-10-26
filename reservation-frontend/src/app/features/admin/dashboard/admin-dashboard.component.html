@@ -17,6 +17,25 @@
           <span>Ver Portal Huéspedes</span>
         </a>
 
+        @if (isReceptionist()) {
+          <button
+            type="button"
+            class="btn-break-toggle"
+            [class.on-break]="currentWorkStatus() === 'ON_BREAK'"
+            (click)="toggleBreak()"
+            title="Alternar estado de turno y refrigerio"
+          >
+            <span class="status-indicator-dot" [class.break-dot]="currentWorkStatus() === 'ON_BREAK'"></span>
+            @if (currentWorkStatus() === 'ON_DUTY') {
+              <span class="material-symbols-outlined icon-btn-break">coffee</span>
+              <span>En Mostrador • Tomar Break</span>
+            } @else {
+              <span class="material-symbols-outlined icon-btn-break">timer</span>
+              <span>En Break ({{ breakTimerText() }}) • Reanudar</span>
+            }
+          </button>
+        }
+
         <div class="staff-chip">
           <div class="staff-avatar" [class.avatar-admin]="isAdmin()" [class.avatar-receptionist]="isReceptionist()">
             {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || (isAdmin() ? 'A' : 'R') }}
@@ -36,18 +55,40 @@
       </div>
     </div>
 
-    @if (isAdmin()) {
-      <div class="corp-header-subnav">
-        <div class="subnav-container">
-          <button
-            type="button"
-            class="subnav-btn"
-            [class.active]="activeSection() === 'OPERATIONS'"
-            (click)="switchSection('OPERATIONS')"
-          >
-            <span class="material-symbols-outlined">concierge</span>
-            <span>Operaciones Front Desk & Room Rack</span>
-          </button>
+    <div class="corp-header-subnav">
+      <div class="subnav-container">
+        <button
+          type="button"
+          class="subnav-btn"
+          [class.active]="activeSection() === 'OPERATIONS'"
+          (click)="switchSection('OPERATIONS')"
+        >
+          <span class="material-symbols-outlined">concierge</span>
+          <span>Operaciones Front Desk & Room Rack</span>
+        </button>
+        <button
+          type="button"
+          class="subnav-btn"
+          [class.active]="activeSection() === 'ROOM_SERVICE'"
+          (click)="switchSection('ROOM_SERVICE')"
+        >
+          <span class="material-symbols-outlined">room_service</span>
+          <span>Comandas & Room Service</span>
+          @if (roomOrders().length > 0) {
+            <span class="subnav-badge">{{ roomOrders().length }}</span>
+          }
+        </button>
+        <a
+          routerLink="/kitchen/orders"
+          target="_blank"
+          class="subnav-btn subnav-kds-link"
+          title="Abrir terminal digital de cocina KDS en nueva pestaña"
+        >
+          <span class="material-symbols-outlined">skillet</span>
+          <span>Terminal KDS Cocina</span>
+          <span class="material-symbols-outlined icon-ext">open_in_new</span>
+        </a>
+        @if (isAdmin()) {
           <button
             type="button"
             class="subnav-btn"
@@ -55,12 +96,12 @@
             (click)="switchSection('STAFF')"
           >
             <span class="material-symbols-outlined">badge</span>
-            <span>Gestión de Personal & Recepcionistas</span>
-            <span class="subnav-badge">{{ staffMetrics().receptionists }} recepcionista(s)</span>
+            <span>Gestión de Personal & Turnos</span>
+            <span class="subnav-badge">{{ staffMetrics().total }} personal</span>
           </button>
-        </div>
+        }
       </div>
-    }
+    </div>
   </header>
 
   <main class="dashboard-main">
@@ -509,13 +550,154 @@
         </section>
       }
 
+      @if (activeSection() === 'ROOM_SERVICE') {
+        <section class="room-service-section">
+          <div class="room-service-header-row">
+            <div class="room-service-title-group">
+              <span class="panel-pretitle">Room Service & Gastronomía</span>
+              <h3 class="panel-title">Comandas y Consumos a la Habitación</h3>
+              <p class="panel-desc">Monitor en tiempo real de pedidos boutique solicitados por huéspedes en estancia (In-House) para entrega en suite.</p>
+            </div>
+
+            <div class="room-service-top-actions">
+              <button type="button" class="btn-refresh" (click)="loadOrders()">
+                <span class="material-symbols-outlined">sync</span>
+                <span>Actualizar Comandas</span>
+              </button>
+              <a routerLink="/kitchen/orders" target="_blank" class="btn-kds-direct">
+                <span class="material-symbols-outlined">skillet</span>
+                <span>Abrir Terminal KDS</span>
+                <span class="material-symbols-outlined icon-mini-ext">open_in_new</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="kds-quick-metrics">
+            <div class="kds-metric-card">
+              <div class="kds-metric-icon gold">
+                <span class="material-symbols-outlined">receipt_long</span>
+              </div>
+              <div class="kds-metric-info">
+                <span class="metric-num">{{ roomOrders().length }}</span>
+                <span class="metric-lbl">Total Comandas Registradas</span>
+              </div>
+            </div>
+
+            <div class="kds-metric-card">
+              <div class="kds-metric-icon emerald">
+                <span class="material-symbols-outlined">skillet</span>
+              </div>
+              <div class="kds-metric-info">
+                <span class="metric-num">{{ activeOrdersCount() }}</span>
+                <span class="metric-lbl">En Preparación / Por Entregar</span>
+              </div>
+            </div>
+
+            <div class="kds-metric-card">
+              <div class="kds-metric-icon blue">
+                <span class="material-symbols-outlined">task_alt</span>
+              </div>
+              <div class="kds-metric-info">
+                <span class="metric-num">{{ deliveredOrdersCount() }}</span>
+                <span class="metric-lbl">Entregadas a Suite</span>
+              </div>
+            </div>
+          </div>
+
+          @if (roomOrders().length === 0) {
+            <div class="state-empty">
+              <span class="material-symbols-outlined empty-icon">room_service</span>
+              <h4>No hay comandas registradas en este momento</h4>
+              <p>Las solicitudes de Room Service enviadas desde las suites activas aparecerán aquí y en la terminal de cocina KDS.</p>
+            </div>
+          } @else {
+            <div class="table-wrap">
+              <table class="corp-table room-orders-table">
+                <thead>
+                  <tr>
+                    <th>Comanda / Folio</th>
+                    <th>Habitación / Huésped</th>
+                    <th>Artículos Solicitados</th>
+                    <th>Observaciones Especiales</th>
+                    <th>Total Cargo</th>
+                    <th>Estado de Cocina</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of roomOrders(); track order.id) {
+                    <tr>
+                      <td>
+                        <div class="order-id-cell">
+                          <strong class="order-code">CMD-{{ order.id }}</strong>
+                          <span class="order-time">{{ order.orderedAt ? (order.orderedAt | date:'HH:mm dd/MM') : 'Reciente' }}</span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div class="order-suite-cell">
+                          <span class="order-room-badge">Hab. {{ order.roomNumber }}</span>
+                          <span class="order-guest-name">{{ order.guestName }}</span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div class="order-items-list">
+                          @for (item of order.items; track item.id) {
+                            <div class="order-item-chip">
+                              <span class="item-qty">{{ item.quantity }}x</span>
+                              <span class="item-name">{{ item.serviceName }}</span>
+                              <span class="item-price">(${{ item.subtotal | number:'1.2-2' }})</span>
+                            </div>
+                          }
+                        </div>
+                      </td>
+
+                      <td>
+                        <span class="order-notes" [class.no-notes]="!order.notes">
+                          {{ order.notes || 'Sin especificaciones adicionales' }}
+                        </span>
+                      </td>
+
+                      <td>
+                        <strong class="order-amount">${{ order.totalAmount | number:'1.2-2' }} USD</strong>
+                      </td>
+
+                      <td>
+                        <span class="order-status-chip" [ngClass]="'status-' + order.status.toLowerCase()">
+                          @if (order.status === 'RECEIVED') {
+                            <span class="material-symbols-outlined icon-chip">timer</span>
+                            <span>Recibida en Cocina</span>
+                          } @else if (order.status === 'PREPARING') {
+                            <span class="material-symbols-outlined icon-chip">skillet</span>
+                            <span>En Elaboración</span>
+                          } @else if (order.status === 'READY_FOR_DELIVERY') {
+                            <span class="material-symbols-outlined icon-chip">room_service</span>
+                            <span>Lista para Despacho</span>
+                          } @else if (order.status === 'DELIVERED') {
+                            <span class="material-symbols-outlined icon-chip">check_circle</span>
+                            <span>Entregada en Suite</span>
+                          } @else {
+                            <span class="material-symbols-outlined icon-chip">cancel</span>
+                            <span>Cancelada</span>
+                          }
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
       @if (isAdmin() && activeSection() === 'STAFF') {
         <section class="staff-section">
           <div class="staff-header-row">
             <div class="staff-title-group">
               <span class="panel-pretitle">Administración y Permisos RBAC</span>
-              <h3 class="panel-title">Directorio de Personal & Recepcionistas</h3>
-              <p class="panel-desc">Cree cuentas y credenciales corporativas para que el personal de recepción opere en el Front Desk.</p>
+              <h3 class="panel-title">Directorio de Personal & Turnos de Guardia</h3>
+              <p class="panel-desc">Gestione cuentas corporativas, roles de Front Desk y Cocina KDS, y turnos horarios asignados por la administración.</p>
             </div>
 
             <div class="staff-top-actions">
@@ -525,7 +707,7 @@
               </button>
               <button type="button" class="btn-create-staff" (click)="openCreateStaffModal()">
                 <span class="material-symbols-outlined">person_add</span>
-                <span>Registrar Nueva Recepcionista</span>
+                <span>Registrar Nuevo Personal</span>
               </button>
             </div>
           </div>
@@ -547,7 +729,17 @@
               </div>
               <div class="kpi-info">
                 <span class="kpi-num">{{ staffMetrics().receptionists }}</span>
-                <span class="kpi-name">Recepcionistas de Turno</span>
+                <span class="kpi-name">Recepcionistas Front Desk</span>
+              </div>
+            </div>
+
+            <div class="staff-kpi-card">
+              <div class="icon-wrap amber">
+                <span class="material-symbols-outlined">skillet</span>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-num">{{ staffMetrics().kitchenStaff }}</span>
+                <span class="kpi-name">Estación Cocina & Bar</span>
               </div>
             </div>
 
@@ -571,7 +763,7 @@
             <div class="state-empty">
               <span class="material-symbols-outlined empty-icon">badge</span>
               <h4>No se encontraron cuentas de personal registradas</h4>
-              <p>Haga clic en 'Registrar Nueva Recepcionista' para otorgar credenciales de acceso al Front Desk.</p>
+              <p>Haga clic en 'Registrar Nuevo Personal' para otorgar credenciales de acceso al Front Desk o Cocina.</p>
             </div>
           } @else {
             <div class="table-wrap">
@@ -580,10 +772,10 @@
                   <tr>
                     <th>Usuario Corporativo</th>
                     <th>Correo Electrónico</th>
-                    <th>Rol & Permisos</th>
+                    <th>Rol & Estación</th>
+                    <th>Turno Asignado</th>
                     <th>Estado Operativo</th>
                     <th>Fecha de Alta</th>
-                    <th>Seguridad & Acceso</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -591,7 +783,7 @@
                     <tr>
                       <td>
                         <div class="staff-user-cell">
-                          <div class="user-avatar" [class.admin]="staff.role === 'ROLE_ADMIN'" [class.receptionist]="staff.role === 'ROLE_RECEPTIONIST'">
+                          <div class="user-avatar" [class.admin]="staff.role === 'ROLE_ADMIN'" [class.receptionist]="staff.role === 'ROLE_RECEPTIONIST'" [class.kitchen]="staff.role === 'ROLE_KITCHEN'">
                             {{ staff.username.charAt(0).toUpperCase() }}
                           </div>
                           <div class="user-cell-meta">
@@ -606,30 +798,43 @@
                       </td>
 
                       <td>
-                        <span class="staff-role-chip" [class.chip-admin]="staff.role === 'ROLE_ADMIN'" [class.chip-recep]="staff.role === 'ROLE_RECEPTIONIST'">
+                        <span class="staff-role-chip" [class.chip-admin]="staff.role === 'ROLE_ADMIN'" [class.chip-recep]="staff.role === 'ROLE_RECEPTIONIST'" [class.chip-kitchen]="staff.role === 'ROLE_KITCHEN'">
                           <span class="material-symbols-outlined icon-mini">
-                            {{ staff.role === 'ROLE_ADMIN' ? 'shield' : 'support_agent' }}
+                            @if (staff.role === 'ROLE_ADMIN') {
+                              shield
+                            } @else if (staff.role === 'ROLE_KITCHEN') {
+                              skillet
+                            } @else {
+                              support_agent
+                            }
                           </span>
                           <span>{{ getRoleBadgeLabel(staff.role) }}</span>
                         </span>
                       </td>
 
                       <td>
-                        <span class="status-indicator active">
-                          <span class="pulse-dot"></span>
-                          <span>{{ staff.enabled ? 'Habilitado / Activo' : 'Inactivo' }}</span>
+                        <span class="shift-chip">
+                          <span class="material-symbols-outlined icon-mini-shift">schedule</span>
+                          <span>{{ getShiftLabel(staff.shift) }}</span>
                         </span>
+                      </td>
+
+                      <td>
+                        @if (staff.workStatus === 'ON_BREAK') {
+                          <span class="status-indicator break">
+                            <span class="pulse-dot break-dot"></span>
+                            <span>En Break / Refrigerio</span>
+                          </span>
+                        } @else {
+                          <span class="status-indicator active">
+                            <span class="pulse-dot"></span>
+                            <span>{{ staff.workStatus === 'ON_DUTY' ? 'En Mostrador / Activo' : (staff.enabled ? 'Habilitado' : 'Inactivo') }}</span>
+                          </span>
+                        }
                       </td>
 
                       <td>
                         <span class="staff-date-text">{{ staff.createdAt ? (staff.createdAt | date:'dd/MM/yyyy HH:mm') : 'Pre-instalado' }}</span>
-                      </td>
-
-                      <td>
-                        <span class="access-note">
-                          <span class="material-symbols-outlined">verified_user</span>
-                          <span>Credenciales Activas</span>
-                        </span>
                       </td>
                     </tr>
                   }
@@ -654,9 +859,9 @@
         </div>
 
         <span class="prestige-tag">Administración de Personal</span>
-        <h3 class="dialog-title">Alta de Nueva Recepcionista</h3>
+        <h3 class="dialog-title">Alta de Personal Corporativo & Turno</h3>
         <p class="dialog-desc">
-          Genere las credenciales de acceso para que el personal de recepción opere en el Front Desk de Hospentra.
+          Genere las credenciales de acceso para personal de Front Desk o Estación de Cocina KDS y asigne su turno de guardia.
         </p>
 
         @if (staffFormError()) {
@@ -677,13 +882,13 @@
                 [ngModel]="newUsername()"
                 (ngModelChange)="newUsername.set($event)"
                 name="newUsername"
-                placeholder="Ej. laura.frontdesk o recepcion1"
+                placeholder="Ej. laura.frontdesk o chef.estacion"
                 class="field-input"
                 required
                 autocomplete="off"
               />
             </div>
-            <span class="field-helper">El personal usará este identificador para ingresar en /admin/login</span>
+            <span class="field-helper">El usuario usará este identificador para ingresar en el portal corporativo</span>
           </div>
 
           <div class="form-field-group">
@@ -696,7 +901,7 @@
                 [ngModel]="newEmail()"
                 (ngModelChange)="newEmail.set($event)"
                 name="newEmail"
-                placeholder="recepcion@hospentra.com"
+                placeholder="personal@hospentra.com"
                 class="field-input"
                 required
                 autocomplete="off"
@@ -750,12 +955,67 @@
             </div>
           </div>
 
+          <div class="form-row-two">
+            <div class="form-field-group">
+              <label for="newRole" class="field-label">Rol & Estación de Trabajo</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">manage_accounts</span>
+                <select
+                  id="newRole"
+                  [ngModel]="newRole()"
+                  (ngModelChange)="newRole.set($event)"
+                  name="newRole"
+                  class="field-input field-select"
+                >
+                  <option value="ROLE_RECEPTIONIST">Recepcionista Front Desk</option>
+                  <option value="ROLE_KITCHEN">Personal de Cocina & Bar (KDS)</option>
+                  <option value="ROLE_ADMIN">Administrador General</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-field-group">
+              <label for="newShift" class="field-label">Turno Horario Asignado</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">schedule</span>
+                <select
+                  id="newShift"
+                  [ngModel]="newShift()"
+                  (ngModelChange)="newShift.set($event)"
+                  name="newShift"
+                  class="field-input field-select"
+                >
+                  <option value="MORNING">Mañana (07:00 - 15:00)</option>
+                  <option value="EVENING">Tarde (15:00 - 23:00)</option>
+                  <option value="NIGHT">Noche (23:00 - 07:00)</option>
+                  <option value="FLEXIBLE">Turno Flexible / Estación</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div class="role-permission-card">
             <div class="role-card-header">
-              <span class="material-symbols-outlined icon-role">support_agent</span>
+              <span class="material-symbols-outlined icon-role">
+                @if (newRole() === 'ROLE_ADMIN') {
+                  shield
+                } @else if (newRole() === 'ROLE_KITCHEN') {
+                  skillet
+                } @else {
+                  support_agent
+                }
+              </span>
               <div>
-                <strong>Rol Asignado: Recepcionista de Front Desk (ROLE_RECEPTIONIST)</strong>
-                <p>Habilita funciones clave: Check-In, Check-Out, cobro en recepción, Room Rack / Limpieza, consulta de huéspedes y vouchers.</p>
+                <strong>Permisos: {{ getRoleBadgeLabel(newRole()) }} • {{ getShiftLabel(newShift()) }}</strong>
+                <p>
+                  @if (newRole() === 'ROLE_KITCHEN') {
+                    Acceso directo a la terminal de comandas KDS de cocina para gestionar la preparación y despacho de pedidos a suite.
+                  } @else if (newRole() === 'ROLE_ADMIN') {
+                    Acceso global a métricas de ocupación, liquidaciones, room rack, auditoría y administración de personal.
+                  } @else {
+                    Habilita funciones clave de Front Desk: Check-In, Check-Out, cobro en recepción, Room Rack / Limpieza y control de pausas.
+                  }
+                </p>
               </div>
             </div>
           </div>
@@ -890,8 +1150,69 @@
             <strong class="val highlight">Habitación {{ reservationToCheckOut()?.room?.roomNumber }} — {{ reservationToCheckOut()?.room?.roomType?.name }}</strong>
           </div>
           <div class="summary-line">
-            <span class="lbl">Total Liquidado:</span>
-            <span class="val">${{ reservationToCheckOut()?.totalPrice | number:'1.2-2' }} USD (Sin cargos pendientes)</span>
+            <span class="lbl">Estancia Suite:</span>
+            <span class="val">${{ reservationToCheckOut()?.totalPrice | number:'1.2-2' }} USD ({{ calculateNights(reservationToCheckOut()!.checkInDate, reservationToCheckOut()!.checkOutDate) }} noches)</span>
+          </div>
+
+          <div class="checkout-folio-section">
+            <div class="folio-header">
+              <span class="material-symbols-outlined folio-icon">room_service</span>
+              <strong>Consumos de Habitación & Gastronomía:</strong>
+            </div>
+
+            @if (checkOutOrders().length === 0) {
+              <div class="no-extras-banner">
+                <span class="material-symbols-outlined icon-info">info</span>
+                <span>Sin pedidos de Room Service cargados a esta habitación.</span>
+              </div>
+            } @else {
+              <div class="folio-orders-list">
+                @for (order of checkOutOrders(); track order.id) {
+                  <div class="folio-order-row">
+                    <div class="folio-order-meta">
+                      <span class="cmd-code">CMD-{{ order.id }}</span>
+                      <span class="cmd-items">
+                        @for (item of order.items; track item.id) {
+                          {{ item.quantity }}x {{ item.serviceName }} &bull;
+                        }
+                      </span>
+                    </div>
+                    <strong class="cmd-subtotal">${{ order.totalAmount | number:'1.2-2' }} USD</strong>
+                  </div>
+                }
+                <div class="folio-extras-subtotal">
+                  <span>Subtotal Consumos Suite:</span>
+                  <strong>${{ checkOutExtrasTotal() | number:'1.2-2' }} USD</strong>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="checkout-grand-total-card">
+            <div class="grand-total-line">
+              <span class="gt-lbl">Total Folio Consolidado:</span>
+              <strong class="gt-val">${{ checkOutGrandTotal() | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="pending-balance-line">
+              <span class="pb-lbl">Saldo a Liquidar al Check-Out:</span>
+              <strong class="pb-val" [class.balance-zero]="checkOutPendingBalance() === 0">
+                ${{ checkOutPendingBalance() | number:'1.2-2' }} USD
+              </strong>
+            </div>
+            <div class="balance-clarification">
+              @if (reservationToCheckOut()?.paymentMethod === 'CREDIT_CARD') {
+                @if (checkOutPendingBalance() > 0) {
+                  <span class="material-symbols-outlined icon-warn">error_outline</span>
+                  <span>Estancia pagada previamente en línea con tarjeta bancaria. Cobrar únicamente <strong>${{ checkOutPendingBalance() | number:'1.2-2' }} USD</strong> de consumos extras.</span>
+                } @else {
+                  <span class="material-symbols-outlined icon-ok">check_circle</span>
+                  <span>Estancia pagada online y sin consumos extras pendientes. Saldo a cobrar: <strong>$0.00 USD</strong>.</span>
+                }
+              } @else {
+                <span class="material-symbols-outlined icon-warn">payments</span>
+                <span>Cobro consolidado total en mostrador: estancia (${{ reservationToCheckOut()?.totalPrice | number:'1.2-2' }}) + consumos (${{ checkOutExtrasTotal() | number:'1.2-2' }}).</span>
+              }
+            </div>
           </div>
 
           <div class="housekeeping-alert-card">
@@ -994,9 +1315,30 @@
           </div>
 
           <div class="voucher-price-row">
-            <span>Importe Total de la Estancia:</span>
+            <span>Importe de la Estancia (Base):</span>
             <strong class="v-price">${{ selectedVoucher()?.totalPrice | number:'1.2-2' }} USD</strong>
           </div>
+
+          @if (voucherOrders().length > 0) {
+            <div class="voucher-field folio-extras-box">
+              <span class="field-title">Consumos de Habitación & Gastronomía (Folio Adicional)</span>
+              @for (order of voucherOrders(); track order.id) {
+                <div class="voucher-order-item">
+                  <span class="v-order-label">CMD-{{ order.id }} • {{ order.items.length }} ítem(s):</span>
+                  <span class="v-order-val">${{ order.totalAmount | number:'1.2-2' }} USD</span>
+                </div>
+              }
+              <div class="voucher-extras-sum">
+                <span>Subtotal Consumos:</span>
+                <strong>${{ voucherExtrasTotal() | number:'1.2-2' }} USD</strong>
+              </div>
+            </div>
+
+            <div class="voucher-price-row grand-total-row">
+              <span>Total Consolidado con Consumos:</span>
+              <strong class="v-price-gold">${{ voucherGrandTotal() | number:'1.2-2' }} USD</strong>
+            </div>
+          }
 
           <div class="voucher-status-chip">
             <span>Estado Actual: <strong>{{ getStatusLabel(selectedVoucher()!.status) }}</strong></span>

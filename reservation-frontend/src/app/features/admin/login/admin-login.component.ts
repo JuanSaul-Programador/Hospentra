@@ -52,6 +52,8 @@ export class AdminLoginComponent implements OnInit {
         this.isLoading.set(false);
         if (response.role === 'ROLE_ADMIN' || response.role === 'ROLE_RECEPTIONIST') {
           this.router.navigate(['/admin/dashboard']);
+        } else if (response.role === 'ROLE_KITCHEN') {
+          this.router.navigate(['/kitchen/orders']);
         } else {
           this.authService.logout();
           this.errorMessage.set('Acceso denegado: Esta cuenta de huésped no tiene permisos para el panel de gestión.');

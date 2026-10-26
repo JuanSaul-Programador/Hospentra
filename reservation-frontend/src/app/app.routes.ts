@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { kitchenGuard } from './core/guards/kitchen.guard';
 
 export const routes: Routes = [
   {
@@ -49,6 +50,15 @@ export const routes: Routes = [
   {
     path: 'admin',
     redirectTo: 'admin/dashboard'
+  },
+  {
+    path: 'kitchen/orders',
+    canActivate: [kitchenGuard],
+    loadComponent: () => import('./features/kitchen/orders/kitchen-orders.component').then(m => m.KitchenOrdersComponent)
+  },
+  {
+    path: 'kitchen',
+    redirectTo: 'kitchen/orders'
   },
   {
     path: '**',

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -6,10 +6,12 @@ import { ReservationService } from '../../../core/services/reservation.service';
 import { RoomService } from '../../../core/services/room.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { StaffService } from '../../../core/services/staff.service';
+import { RoomOrderService } from '../../../core/services/room-order.service';
 import { Reservation, ReservationStatus } from '../../../core/models/reservation.model';
 import { Room, RoomStatus } from '../../../core/models/room.model';
 import { Role } from '../../../core/models/auth.model';
-import { UserResponse } from '../../../core/models/staff.model';
+import { Shift, UserResponse, WorkStatus } from '../../../core/models/staff.model';
+import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
@@ -20,20 +22,28 @@ export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPA
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly reservationService = inject(ReservationService);
   private readonly roomService = inject(RoomService);
   private readonly staffService = inject(StaffService);
+  private readonly roomOrderService = inject(RoomOrderService);
   readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
   readonly isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
   readonly isReceptionist = computed(() => this.authService.userRole() === 'ROLE_RECEPTIONIST');
 
-  readonly activeSection = signal<'OPERATIONS' | 'STAFF'>('OPERATIONS');
+  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'STAFF'>('OPERATIONS');
 
   readonly reservations = signal<Reservation[]>([]);
   readonly rooms = signal<Room[]>([]);
+  readonly roomOrders = signal<RoomOrder[]>([]);
+  readonly activeOrdersCount = computed(() => {
+    return this.roomOrders().filter(o => o.status === 'RECEIVED' || o.status === 'PREPARING' || o.status === 'READY_FOR_DELIVERY').length;
+  });
+  readonly deliveredOrdersCount = computed(() => {
+    return this.roomOrders().filter(o => o.status === 'DELIVERED').length;
+  });
   readonly isLoading = signal<boolean>(true);
   readonly isActionProcessing = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
@@ -42,14 +52,55 @@ export class AdminDashboardComponent implements OnInit {
   readonly searchQuery = signal<string>('');
   readonly statusFilter = signal<AdminFilterTab>('ALL');
 
+  readonly currentWorkStatus = signal<WorkStatus>('ON_DUTY');
+  readonly breakSeconds = signal<number>(0);
+  private breakInterval: any = null;
+
+  readonly breakTimerText = computed(() => {
+    const sec = this.breakSeconds();
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  });
+
   readonly reservationToCheckIn = signal<Reservation | null>(null);
   readonly isCheckInModalOpen = signal<boolean>(false);
   readonly paymentMethodCollected = signal<'POS_CARD' | 'CASH'>('POS_CARD');
 
   readonly reservationToCheckOut = signal<Reservation | null>(null);
   readonly isCheckOutModalOpen = signal<boolean>(false);
+  readonly checkOutOrders = signal<RoomOrder[]>([]);
+
+  readonly checkOutExtrasTotal = computed(() => {
+    return this.checkOutOrders().reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+  });
+
+  readonly checkOutGrandTotal = computed(() => {
+    const res = this.reservationToCheckOut();
+    if (!res) return 0;
+    return (Number(res.totalPrice) || 0) + this.checkOutExtrasTotal();
+  });
+
+  readonly checkOutPendingBalance = computed(() => {
+    const res = this.reservationToCheckOut();
+    if (!res) return 0;
+    const extras = this.checkOutExtrasTotal();
+    if (res.paymentMethod === 'CREDIT_CARD') {
+      return extras;
+    }
+    return (Number(res.totalPrice) || 0) + extras;
+  });
 
   readonly selectedVoucher = signal<Reservation | null>(null);
+  readonly voucherOrders = signal<RoomOrder[]>([]);
+  readonly voucherExtrasTotal = computed(() => {
+    return this.voucherOrders().reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  });
+  readonly voucherGrandTotal = computed(() => {
+    const v = this.selectedVoucher();
+    if (!v) return 0;
+    return (Number(v.totalPrice) || 0) + this.voucherExtrasTotal();
+  });
   readonly isVoucherModalOpen = signal<boolean>(false);
 
   readonly reservationToCancel = signal<Reservation | null>(null);
@@ -68,6 +119,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly newPassword = signal<string>('');
   readonly newConfirmPassword = signal<string>('');
   readonly newRole = signal<Role>('ROLE_RECEPTIONIST');
+  readonly newShift = signal<Shift>('MORNING');
   readonly showNewPassword = signal<boolean>(false);
 
   readonly todayString = new Date().toISOString().split('T')[0];
@@ -75,10 +127,12 @@ export class AdminDashboardComponent implements OnInit {
   readonly staffMetrics = computed(() => {
     const list = this.staffList();
     const receptionists = list.filter(u => u.role === 'ROLE_RECEPTIONIST').length;
+    const kitchenStaff = list.filter(u => u.role === 'ROLE_KITCHEN').length;
     const admins = list.filter(u => u.role === 'ROLE_ADMIN').length;
     return {
       total: list.length,
       receptionists,
+      kitchenStaff,
       admins
     };
   });
@@ -169,8 +223,15 @@ export class AdminDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadOrders();
     if (this.isAdmin()) {
       this.loadStaff();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.breakInterval) {
+      clearInterval(this.breakInterval);
     }
   }
 
@@ -198,6 +259,15 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
+  loadOrders(): void {
+    this.roomOrderService.getAllOrders().subscribe({
+      next: (orders) => {
+        this.roomOrders.set(orders || []);
+      },
+      error: () => {}
+    });
+  }
+
   loadStaff(): void {
     if (!this.isAdmin()) return;
     this.isStaffLoading.set(true);
@@ -212,11 +282,32 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  switchSection(section: 'OPERATIONS' | 'STAFF'): void {
+  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'STAFF'): void {
     if (section === 'STAFF' && !this.isAdmin()) return;
     this.activeSection.set(section);
     if (section === 'STAFF' && this.staffList().length === 0) {
       this.loadStaff();
+    }
+    if (section === 'ROOM_SERVICE') {
+      this.loadOrders();
+    }
+  }
+
+  toggleBreak(): void {
+    if (this.currentWorkStatus() === 'ON_DUTY') {
+      this.currentWorkStatus.set('ON_BREAK');
+      this.breakSeconds.set(0);
+      this.breakInterval = setInterval(() => {
+        this.breakSeconds.update(sec => sec + 1);
+      }, 1000);
+      this.showToast('Refrigerio de turno iniciado. Mostrador en guardia (tiempo sugerido: 45 min).');
+    } else {
+      this.currentWorkStatus.set('ON_DUTY');
+      if (this.breakInterval) {
+        clearInterval(this.breakInterval);
+        this.breakInterval = null;
+      }
+      this.showToast('Reanulación exitosa. Recepcionista activo en mostrador.');
     }
   }
 
@@ -227,6 +318,7 @@ export class AdminDashboardComponent implements OnInit {
     this.newPassword.set('');
     this.newConfirmPassword.set('');
     this.newRole.set('ROLE_RECEPTIONIST');
+    this.newShift.set('MORNING');
     this.showNewPassword.set(false);
     this.isStaffModalOpen.set(true);
   }
@@ -246,6 +338,7 @@ export class AdminDashboardComponent implements OnInit {
     const password = this.newPassword().trim();
     const confirmPassword = this.newConfirmPassword().trim();
     const role = this.newRole();
+    const shift = this.newShift();
 
     if (!username || username.length < 3) {
       this.staffFormError.set('El nombre de usuario corporativo debe tener al menos 3 caracteres.');
@@ -271,16 +364,16 @@ export class AdminDashboardComponent implements OnInit {
     this.isCreatingStaff.set(true);
     this.staffFormError.set(null);
 
-    this.staffService.createStaff({ username, email, password, role }).subscribe({
+    this.staffService.createStaff({ username, email, password, role, shift }).subscribe({
       next: (createdUser) => {
         this.isCreatingStaff.set(false);
         this.staffList.update(list => [...list, createdUser]);
         this.closeCreateStaffModal();
-        this.showToast(`Recepcionista '${createdUser.username}' dada de alta con éxito. Puede operar de inmediato.`);
+        this.showToast(`Usuario '${createdUser.username}' registrado con éxito con rol ${this.getRoleBadgeLabel(createdUser.role)}.`);
       },
       error: (err) => {
         this.isCreatingStaff.set(false);
-        const msg = err.error?.detail || err.error?.message || 'Error al crear las credenciales del recepcionista.';
+        const msg = err.error?.detail || err.error?.message || 'Error al crear las credenciales corporativas.';
         this.staffFormError.set(msg);
       }
     });
@@ -344,12 +437,21 @@ export class AdminDashboardComponent implements OnInit {
 
   openCheckOutModal(res: Reservation): void {
     this.reservationToCheckOut.set(res);
+    this.checkOutOrders.set([]);
     this.isCheckOutModalOpen.set(true);
+
+    this.roomOrderService.getOrdersByReservation(res.id).subscribe({
+      next: (orders) => {
+        this.checkOutOrders.set(orders || []);
+      },
+      error: () => {}
+    });
   }
 
   closeCheckOutModal(): void {
     this.isCheckOutModalOpen.set(false);
     this.reservationToCheckOut.set(null);
+    this.checkOutOrders.set([]);
   }
 
   confirmCheckOut(): void {
@@ -434,12 +536,21 @@ export class AdminDashboardComponent implements OnInit {
 
   openVoucher(res: Reservation): void {
     this.selectedVoucher.set(res);
+    this.voucherOrders.set([]);
     this.isVoucherModalOpen.set(true);
+
+    this.roomOrderService.getOrdersByReservation(res.id).subscribe({
+      next: (orders) => {
+        this.voucherOrders.set(orders || []);
+      },
+      error: () => {}
+    });
   }
 
   closeVoucher(): void {
     this.isVoucherModalOpen.set(false);
     this.selectedVoucher.set(null);
+    this.voucherOrders.set([]);
   }
 
   printVoucher(): void {
@@ -491,8 +602,28 @@ export class AdminDashboardComponent implements OnInit {
     switch (role) {
       case 'ROLE_ADMIN': return 'Administrador General';
       case 'ROLE_RECEPTIONIST': return 'Recepcionista Front Desk';
+      case 'ROLE_KITCHEN': return 'Estación de Cocina & Bar';
       case 'ROLE_CUSTOMER': return 'Huésped Registrado';
       default: return role;
+    }
+  }
+
+  getShiftLabel(shift?: Shift): string {
+    switch (shift) {
+      case 'MORNING': return 'Mañana (07:00 - 15:00)';
+      case 'EVENING': return 'Tarde (15:00 - 23:00)';
+      case 'NIGHT': return 'Noche (23:00 - 07:00)';
+      case 'FLEXIBLE': return 'Turno Flexible / Estación';
+      default: return 'Mañana (07:00 - 15:00)';
+    }
+  }
+
+  getWorkStatusLabel(status?: WorkStatus): string {
+    switch (status) {
+      case 'ON_DUTY': return 'En Mostrador / Activo';
+      case 'ON_BREAK': return 'En Refrigerio / Break';
+      case 'OFF_DUTY': return 'Fuera de Turno';
+      default: return 'En Mostrador';
     }
   }
 
