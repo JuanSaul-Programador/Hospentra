@@ -17,11 +17,19 @@ export class App {
   readonly isAdminRoute = signal<boolean>(false);
 
   constructor() {
+    const initialUrl = typeof window !== 'undefined' ? window.location.pathname : '';
+    this.updateRouteState(initialUrl);
+
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
       const url = event.urlAfterRedirects || event.url || '';
-      this.isAdminRoute.set(url.startsWith('/admin'));
+      this.updateRouteState(url);
     });
+  }
+
+  private updateRouteState(url: string): void {
+    const isSpecialRoute = url.startsWith('/admin') || url.startsWith('/kitchen');
+    this.isAdminRoute.set(isSpecialRoute);
   }
 }
