@@ -60,7 +60,7 @@ export class KitchenOrdersComponent implements OnInit, OnDestroy {
     }
     this.errorMessage.set(null);
 
-    this.roomOrderService.getAllOrders().subscribe({
+    this.roomOrderService.getActiveKitchenOrders().subscribe({
       next: (data) => {
         this.orders.set(data || []);
         this.isLoading.set(false);

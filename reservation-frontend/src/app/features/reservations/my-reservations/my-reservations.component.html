@@ -688,10 +688,10 @@
         <div class="rs-header">
           <div class="rs-badge">
             <span class="material-symbols-outlined">room_service</span>
-            <span>Servicio a la Suite</span>
+            <span>Experiencias & Room Service en Suite</span>
           </div>
-          <h3 class="rs-title">Carta Boutique de Suite — Hab. {{ activeCheckedInReservation()?.room?.roomNumber }}</h3>
-          <p class="rs-subtitle">Ordene gastronomía de autor, cava premium y bienestar directamente a su habitación. El cargo se sumará a la cuenta de su suite.</p>
+          <h3 class="rs-title">Carta Boutique — Habitación {{ activeCheckedInReservation()?.room?.roomNumber }}</h3>
+          <p class="rs-subtitle">Ordene gastronomía de autor y coctelería a cocina, o reserve experiencias de bienestar & spa a concierge. Los cargos se suman al folio de su suite.</p>
         </div>
 
         @if (orderSuccessMessage()) {
@@ -701,116 +701,283 @@
           </div>
         }
 
-        <div class="rs-categories-tabs">
-          <button type="button" class="cat-pill" [class.active]="selectedCategory() === 'ALL'" (click)="selectedCategory.set('ALL')">
-            Todos
+        <div class="rs-modal-tabs">
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="rsActiveView() === 'MENU'"
+            (click)="rsActiveView.set('MENU')"
+          >
+            <span class="material-symbols-outlined">restaurant_menu</span>
+            <span>Carta de Servicios</span>
           </button>
-          <button type="button" class="cat-pill" [class.active]="selectedCategory() === 'GASTRONOMY'" (click)="selectedCategory.set('GASTRONOMY')">
-            🍽️ Gastronomía
-          </button>
-          <button type="button" class="cat-pill" [class.active]="selectedCategory() === 'BAR_WINE'" (click)="selectedCategory.set('BAR_WINE')">
-            🍾 Cava & Bar
-          </button>
-          <button type="button" class="cat-pill" [class.active]="selectedCategory() === 'WELLNESS_SPA'" (click)="selectedCategory.set('WELLNESS_SPA')">
-            💆‍♀️ Wellness & Spa
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="rsActiveView() === 'ORDERS'"
+            (click)="rsActiveView.set('ORDERS')"
+          >
+            <span class="material-symbols-outlined">receipt_long</span>
+            <span>Seguimiento de Mis Pedidos</span>
+            @if (activeReservationOrders().length > 0) {
+              <span class="tab-badge">{{ activeReservationOrders().length }}</span>
+            }
           </button>
         </div>
 
-        <div class="rs-menu-grid">
-          @for (item of filteredExtraServices(); track item.id) {
-            <div class="menu-item-card" [class.in-cart]="(cartQuantities()[item.id] || 0) > 0">
-              <div class="item-info">
-                <div class="item-title-row">
-                  <h4 class="item-name">{{ item.name }}</h4>
-                  <span class="item-price">${{ item.price | number:'1.2-2' }} USD</span>
+        @if (rsActiveView() === 'MENU') {
+          <div class="rs-categories-tabs">
+            <button
+              type="button"
+              class="cat-pill"
+              [class.active]="selectedCategory() === 'ALL'"
+              (click)="selectedCategory.set('ALL')"
+            >
+              <span class="material-symbols-outlined cat-icon">apps</span>
+              <span>Todos</span>
+            </button>
+            <button
+              type="button"
+              class="cat-pill"
+              [class.active]="selectedCategory() === 'GASTRONOMY'"
+              (click)="selectedCategory.set('GASTRONOMY')"
+            >
+              <span class="material-symbols-outlined cat-icon">restaurant</span>
+              <span>Gastronomía</span>
+            </button>
+            <button
+              type="button"
+              class="cat-pill"
+              [class.active]="selectedCategory() === 'BAR_WINE'"
+              (click)="selectedCategory.set('BAR_WINE')"
+            >
+              <span class="material-symbols-outlined cat-icon">wine_bar</span>
+              <span>Cava & Bar</span>
+            </button>
+            <button
+              type="button"
+              class="cat-pill"
+              [class.active]="selectedCategory() === 'WELLNESS_SPA'"
+              (click)="selectedCategory.set('WELLNESS_SPA')"
+            >
+              <span class="material-symbols-outlined cat-icon">spa</span>
+              <span>Wellness & Spa</span>
+            </button>
+          </div>
+
+          <div class="rs-menu-grid">
+            @for (item of filteredExtraServices(); track item.id) {
+              <div class="menu-item-card" [class.in-cart]="(cartQuantities()[item.id] || 0) > 0">
+                <div class="item-info">
+                  <div class="item-meta-top">
+                    <span class="item-cat-tag" [ngClass]="item.category.toLowerCase()">
+                      <span class="material-symbols-outlined icon-mini">{{ getCategoryIcon(item.category) }}</span>
+                      <span>{{ getCategoryLabel(item.category) }}</span>
+                    </span>
+                  </div>
+                  <div class="item-title-row">
+                    <h4 class="item-name">{{ item.name }}</h4>
+                    <span class="item-price">${{ item.price | number:'1.2-2' }} USD</span>
+                  </div>
+                  <p class="item-desc">{{ item.description }}</p>
                 </div>
-                <p class="item-desc">{{ item.description }}</p>
+
+                <div class="item-stepper">
+                  @if ((cartQuantities()[item.id] || 0) === 0) {
+                    <button type="button" class="btn-add-item" (click)="increaseCart(item.id)">
+                      <span class="material-symbols-outlined">add</span>
+                      <span>Agregar</span>
+                    </button>
+                  } @else {
+                    <div class="stepper-controls">
+                      <button type="button" class="btn-step" (click)="decreaseCart(item.id)">
+                        <span class="material-symbols-outlined">remove</span>
+                      </button>
+                      <span class="step-num">{{ cartQuantities()[item.id] }}</span>
+                      <button type="button" class="btn-step" (click)="increaseCart(item.id)">
+                        <span class="material-symbols-outlined">add</span>
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (cartTotalCount() > 0) {
+            <div class="rs-order-footer">
+              <div class="destination-notice" [ngClass]="orderDestinationType().toLowerCase()">
+                @if (orderDestinationType() === 'KITCHEN') {
+                  <span class="material-symbols-outlined">skillet</span>
+                  <span>Este pedido se transmitirá directamente a la <strong>Terminal KDS de Cocina & Bar</strong>.</span>
+                } @else if (orderDestinationType() === 'SPA') {
+                  <span class="material-symbols-outlined">spa</span>
+                  <span>Esta solicitud se transmitirá a <strong>Recepción & Concierge</strong> para coordinar su terapeuta de spa.</span>
+                } @else {
+                  <span class="material-symbols-outlined">room_service</span>
+                  <span>Pedido combinado: Cocina preparará sus platillos y Concierge coordinará su sesión de Spa.</span>
+                }
               </div>
 
-              <div class="item-stepper">
-                @if ((cartQuantities()[item.id] || 0) === 0) {
-                  <button type="button" class="btn-add-item" (click)="increaseCart(item.id)">
-                    <span class="material-symbols-outlined">add</span>
-                    <span>Agregar</span>
-                  </button>
-                } @else {
-                  <div class="stepper-controls">
-                    <button type="button" class="btn-step" (click)="decreaseCart(item.id)">
-                      <span class="material-symbols-outlined">remove</span>
-                    </button>
-                    <span class="step-num">{{ cartQuantities()[item.id] }}</span>
-                    <button type="button" class="btn-step" (click)="increaseCart(item.id)">
-                      <span class="material-symbols-outlined">add</span>
-                    </button>
-                  </div>
-                }
+              <div class="notes-field-wrap">
+                <label for="rsNotes" class="lbl-notes">
+                  {{ orderDestinationType() === 'SPA' ? 'Instrucciones Especiales para Concierge / Terapeuta:' : 'Instrucciones Especiales para Cocina / Servicio:' }}
+                </label>
+                <textarea
+                  id="rsNotes"
+                  [ngModel]="orderNotes()"
+                  (ngModelChange)="orderNotes.set($event)"
+                  [placeholder]="orderDestinationType() === 'SPA' ? 'Ej. Preferencia de horario para la sesión, esencias relajantes...' : 'Ej. Término de la carne medio, entregar a las 20:30 hrs, copas de champagne frías...'"
+                  rows="2"
+                  class="notes-textarea"
+                ></textarea>
+              </div>
+
+              <div class="order-action-bar">
+                <div class="order-total-block">
+                  <span class="lbl-total">Total a Cargar a la Suite:</span>
+                  <strong class="val-total">${{ cartTotalAmount() | number:'1.2-2' }} USD</strong>
+                  <span class="sub-total">({{ cartTotalCount() }} producto(s) seleccionado(s))</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn-submit-order"
+                  (click)="submitRoomOrder()"
+                  [disabled]="isSubmittingOrder()"
+                  [ngClass]="orderDestinationType().toLowerCase()"
+                >
+                  @if (isSubmittingOrder()) {
+                    <span class="btn-spinner"></span>
+                    <span>Procesando...</span>
+                  } @else {
+                    @if (orderDestinationType() === 'SPA') {
+                      <span class="material-symbols-outlined">spa</span>
+                      <span>Solicitar Servicio de Spa a Concierge</span>
+                    } @else if (orderDestinationType() === 'MIXED') {
+                      <span class="material-symbols-outlined">room_service</span>
+                      <span>Confirmar Pedido a Suite</span>
+                    } @else {
+                      <span class="material-symbols-outlined">skillet</span>
+                      <span>Enviar Comanda a Cocina & Bar</span>
+                    }
+                  }
+                </button>
               </div>
             </div>
           }
-        </div>
-
-        @if (cartTotalCount() > 0) {
-          <div class="rs-order-footer">
-            <div class="notes-field-wrap">
-              <label for="rsNotes" class="lbl-notes">Instrucciones Especiales para Cocina / Servicio:</label>
-              <textarea
-                id="rsNotes"
-                [ngModel]="orderNotes()"
-                (ngModelChange)="orderNotes.set($event)"
-                placeholder="Ej. Término de la carne medio, entregar a las 20:30 hrs, copas de champagne frías..."
-                rows="2"
-                class="notes-textarea"
-              ></textarea>
-            </div>
-
-            <div class="order-action-bar">
-              <div class="order-total-block">
-                <span class="lbl-total">Total a Cargar a la Suite:</span>
-                <strong class="val-total">${{ cartTotalAmount() | number:'1.2-2' }} USD</strong>
-                <span class="sub-total">({{ cartTotalCount() }} productos seleccionados)</span>
-              </div>
-              <button
-                type="button"
-                class="btn-submit-order"
-                (click)="submitRoomOrder()"
-                [disabled]="isSubmittingOrder()"
-              >
-                @if (isSubmittingOrder()) {
-                  <span class="btn-spinner"></span>
-                  <span>Enviando a Cocina...</span>
-                } @else {
-                  <span class="material-symbols-outlined">skillet</span>
-                  <span>Confirmar Pedido a Suite</span>
-                }
-              </button>
-            </div>
-          </div>
         }
 
-        @if (activeReservationOrders().length > 0) {
-          <div class="rs-history-section">
-            <h4 class="history-title">
-              <span class="material-symbols-outlined">receipt_long</span>
-              <span>Pedidos Anteriores en esta Estancia ({{ activeReservationOrders().length }})</span>
-            </h4>
-            <div class="history-orders-list">
-              @for (ord of activeReservationOrders(); track ord.id) {
-                <div class="order-history-card">
-                  <div class="ord-head">
-                    <span class="ord-id">Comanda #{{ ord.id }}</span>
-                    <span class="ord-status" [ngClass]="'status-' + ord.status.toLowerCase()">
-                      {{ ord.status === 'RECEIVED' ? 'Recibido en Cocina' : ord.status === 'PREPARING' ? 'En Fogón / Preparando' : ord.status === 'READY_FOR_DELIVERY' ? 'En Camino a Suite' : 'Entregado' }}
-                    </span>
-                    <strong class="ord-amount">${{ ord.totalAmount | number:'1.2-2' }} USD</strong>
-                  </div>
-                  <div class="ord-items">
-                    @for (it of ord.items; track it.id) {
-                      <span class="it-pill">{{ it.quantity }}x {{ it.serviceName }}</span>
+        @if (rsActiveView() === 'ORDERS') {
+          <div class="orders-tracking-view">
+            <div class="folio-summary-banner">
+              <div class="folio-banner-icon">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+              </div>
+              <div class="folio-banner-content">
+                <span class="banner-title">Folio Consolidado — Suite {{ activeCheckedInReservation()?.room?.roomNumber }}</span>
+                <p class="banner-desc">Todos los consumos se cargan a su habitación y se abonan de forma unificada en mostrador durante su Check-Out.</p>
+              </div>
+              <div class="folio-banner-amount">
+                <span class="lbl-accum">Subtotal Acumulado:</span>
+                <strong class="val-accum">${{ totalAccumulatedOrdersAmount() | number:'1.2-2' }} USD</strong>
+              </div>
+            </div>
+
+            @if (activeReservationOrders().length === 0) {
+              <div class="orders-empty-state">
+                <span class="material-symbols-outlined empty-icon">receipt_long</span>
+                <h4>No tiene pedidos o servicios registrados en esta estancia</h4>
+                <p>Explore nuestra carta boutique para ordenar gastronomía, cava o experiencias de bienestar en su suite.</p>
+                <button type="button" class="btn-goto-menu" (click)="rsActiveView.set('MENU')">
+                  <span class="material-symbols-outlined">restaurant_menu</span>
+                  <span>Ver Carta de Servicios</span>
+                </button>
+              </div>
+            } @else {
+              <div class="orders-tracking-list">
+                @for (ord of activeReservationOrders(); track ord.id) {
+                  <div class="track-order-card" [class.delivered]="ord.status === 'DELIVERED'">
+                    <div class="track-card-head">
+                      <div class="track-meta">
+                        <div class="track-code-row">
+                          <strong class="track-code">Comanda #ORD-{{ ord.id }}</strong>
+                          <span class="track-type-badge" [ngClass]="getOrderType(ord).toLowerCase()">
+                            <span class="material-symbols-outlined">
+                              {{ getOrderType(ord) === 'SPA' ? 'spa' : getOrderType(ord) === 'MIXED' ? 'room_service' : 'skillet' }}
+                            </span>
+                            <span>{{ getOrderType(ord) === 'SPA' ? 'Concierge & Spa' : getOrderType(ord) === 'MIXED' ? 'Suite & Spa' : 'Cocina & Bar' }}</span>
+                          </span>
+                        </div>
+                        <span class="track-time">Solicitado: {{ ord.orderedAt | date:'HH:mm • dd MMM' }}</span>
+                      </div>
+
+                      <div class="track-price-tag">
+                        <span class="lbl-ord-total">Total Comanda:</span>
+                        <strong class="track-amount">${{ ord.totalAmount | number:'1.2-2' }} USD</strong>
+                      </div>
+                    </div>
+
+                    <div class="track-stepper">
+                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 1" [class.current]="getOrderStatusStep(ord.status) === 1">
+                        <div class="step-dot">
+                          <span class="material-symbols-outlined">receipt</span>
+                        </div>
+                        <span class="step-lbl">Recibido</span>
+                      </div>
+                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 2"></div>
+
+                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 2" [class.current]="getOrderStatusStep(ord.status) === 2">
+                        <div class="step-dot">
+                          <span class="material-symbols-outlined">{{ getOrderType(ord) === 'SPA' ? 'person_celebrating' : 'outdoor_grill' }}</span>
+                        </div>
+                        <span class="step-lbl">{{ getOrderType(ord) === 'SPA' ? 'Asignado' : 'En Fogón' }}</span>
+                      </div>
+                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 3"></div>
+
+                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 3" [class.current]="getOrderStatusStep(ord.status) === 3">
+                        <div class="step-dot">
+                          <span class="material-symbols-outlined">room_service</span>
+                        </div>
+                        <span class="step-lbl">En Camino</span>
+                      </div>
+                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 4"></div>
+
+                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 4" [class.current]="getOrderStatusStep(ord.status) === 4">
+                        <div class="step-dot">
+                          <span class="material-symbols-outlined">check_circle</span>
+                        </div>
+                        <span class="step-lbl">Entregado</span>
+                      </div>
+                    </div>
+
+                    <div class="track-status-banner" [ngClass]="ord.status.toLowerCase()">
+                      <span class="material-symbols-outlined">info</span>
+                      <span>{{ getOrderStatusLabel(ord.status, getOrderType(ord)) }}</span>
+                    </div>
+
+                    <div class="track-items-box">
+                      <span class="items-head-lbl">Artículos en esta comanda:</span>
+                      <div class="items-pills-row">
+                        @for (it of ord.items; track it.id) {
+                          <div class="it-pill-card">
+                            <span class="it-qty">{{ it.quantity }}x</span>
+                            <span class="it-name">{{ it.serviceName }}</span>
+                            <span class="it-subtotal">${{ it.subtotal | number:'1.2-2' }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+
+                    @if (ord.notes) {
+                      <div class="track-notes-row">
+                        <span class="material-symbols-outlined">sticky_note_2</span>
+                        <p class="notes-text">"{{ ord.notes }}"</p>
+                      </div>
                     }
                   </div>
-                </div>
-              }
-            </div>
+                }
+              </div>
+            }
           </div>
         }
       </div>

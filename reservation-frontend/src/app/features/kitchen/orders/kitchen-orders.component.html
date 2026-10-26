@@ -113,10 +113,12 @@
 
                 <div class="order-items-list">
                   @for (item of order.items; track item.id) {
-                    <div class="item-row">
-                      <span class="item-qty">{{ item.quantity }}x</span>
-                      <strong class="item-name">{{ item.serviceName }}</strong>
-                    </div>
+                    @if (item.category !== 'WELLNESS_SPA') {
+                      <div class="item-row">
+                        <span class="item-qty">{{ item.quantity }}x</span>
+                        <strong class="item-name">{{ item.serviceName }}</strong>
+                      </div>
+                    }
                   }
                 </div>
 
@@ -180,10 +182,12 @@
 
                 <div class="order-items-list">
                   @for (item of order.items; track item.id) {
-                    <div class="item-row">
-                      <span class="item-qty">{{ item.quantity }}x</span>
-                      <strong class="item-name">{{ item.serviceName }}</strong>
-                    </div>
+                    @if (item.category !== 'WELLNESS_SPA') {
+                      <div class="item-row">
+                        <span class="item-qty">{{ item.quantity }}x</span>
+                        <strong class="item-name">{{ item.serviceName }}</strong>
+                      </div>
+                    }
                   }
                 </div>
 
@@ -244,10 +248,12 @@
 
                 <div class="order-items-list">
                   @for (item of order.items; track item.id) {
-                    <div class="item-row">
-                      <span class="item-qty">{{ item.quantity }}x</span>
-                      <strong class="item-name">{{ item.serviceName }}</strong>
-                    </div>
+                    @if (item.category !== 'WELLNESS_SPA') {
+                      <div class="item-row">
+                        <span class="item-qty">{{ item.quantity }}x</span>
+                        <strong class="item-name">{{ item.serviceName }}</strong>
+                      </div>
+                    }
                   }
                 </div>
 

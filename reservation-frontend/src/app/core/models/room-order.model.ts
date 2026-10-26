@@ -15,6 +15,7 @@ export interface RoomOrderItem {
   id: number;
   extraServiceId: number;
   serviceName: string;
+  category?: ExtraCategory;
   unitPrice: number;
   quantity: number;
   subtotal: number;

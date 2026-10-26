@@ -113,8 +113,14 @@ public class RoomOrderServiceImpl implements RoomOrderService {
     @Override
     public List<RoomOrderResponse> findActiveKitchenOrders() {
         return roomOrderRepository.findByStatusInOrderByOrderedAtAsc(
-                List.of(OrderStatus.RECEIVED, OrderStatus.PREPARING, OrderStatus.READY_FOR_DELIVERY)
-        ).stream().map(this::mapToResponse).toList();
+                List.of(OrderStatus.RECEIVED, OrderStatus.PREPARING, OrderStatus.READY_FOR_DELIVERY, OrderStatus.DELIVERED)
+        ).stream()
+                .filter(order -> order.getItems().stream().anyMatch(item ->
+                        item.getExtraService() != null &&
+                        (item.getExtraService().getCategory() == ExtraCategory.GASTRONOMY ||
+                         item.getExtraService().getCategory() == ExtraCategory.BAR_WINE)))
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
@@ -145,6 +151,7 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                         item.getId(),
                         item.getExtraService() != null ? item.getExtraService().getId() : null,
                         item.getServiceName(),
+                        item.getExtraService() != null ? item.getExtraService().getCategory() : null,
                         item.getUnitPrice(),
                         item.getQuantity(),
                         item.getSubtotal()

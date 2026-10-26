@@ -6,7 +6,7 @@ import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { Reservation } from '../../../core/models/reservation.model';
-import { ExtraCategory, ExtraService, RoomOrder } from '../../../core/models/room-order.model';
+import { ExtraCategory, ExtraService, OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 
 export interface RefundCalculation {
   hoursUntilCheckIn: number;
@@ -44,6 +44,7 @@ export class MyReservationsComponent implements OnInit {
   readonly isCancelling = signal<boolean>(false);
 
   readonly isRoomServiceModalOpen = signal<boolean>(false);
+  readonly rsActiveView = signal<'MENU' | 'ORDERS'>('MENU');
   readonly activeCheckedInReservation = signal<Reservation | null>(null);
   readonly extraServices = signal<ExtraService[]>([]);
   readonly selectedCategory = signal<ExtraCategory | 'ALL'>('ALL');
@@ -117,6 +118,46 @@ export class MyReservationsComponent implements OnInit {
     return total;
   });
 
+  readonly cartItems = computed(() => {
+    const cart = this.cartQuantities();
+    const services = this.extraServices();
+    return Object.entries(cart)
+      .filter(([_, qty]) => qty > 0)
+      .map(([idStr, qty]) => {
+        const item = services.find(s => s.id === Number(idStr));
+        return {
+          service: item,
+          quantity: qty,
+          subtotal: item ? item.price * qty : 0
+        };
+      })
+      .filter(entry => entry.service !== undefined);
+  });
+
+  readonly cartHasKitchenItems = computed(() => {
+    return this.cartItems().some(
+      it => it.service?.category === 'GASTRONOMY' || it.service?.category === 'BAR_WINE'
+    );
+  });
+
+  readonly cartHasSpaItems = computed(() => {
+    return this.cartItems().some(
+      it => it.service?.category === 'WELLNESS_SPA'
+    );
+  });
+
+  readonly orderDestinationType = computed<'KITCHEN' | 'SPA' | 'MIXED'>(() => {
+    const hasKitchen = this.cartHasKitchenItems();
+    const hasSpa = this.cartHasSpaItems();
+    if (hasKitchen && hasSpa) return 'MIXED';
+    if (hasSpa) return 'SPA';
+    return 'KITCHEN';
+  });
+
+  readonly totalAccumulatedOrdersAmount = computed(() => {
+    return this.activeReservationOrders().reduce((sum, ord) => sum + (ord.totalAmount || 0), 0);
+  });
+
   ngOnInit(): void {
     this.loadReservations();
   }
@@ -177,12 +218,13 @@ export class MyReservationsComponent implements OnInit {
     });
   }
 
-  openRoomServiceModal(res: Reservation): void {
+  openRoomServiceModal(res: Reservation, defaultView: 'MENU' | 'ORDERS' = 'MENU'): void {
     this.activeCheckedInReservation.set(res);
     this.cartQuantities.set({});
     this.orderNotes.set('');
     this.selectedCategory.set('ALL');
     this.orderSuccessMessage.set(null);
+    this.rsActiveView.set(defaultView);
     this.isRoomServiceModalOpen.set(true);
 
     this.roomOrderService.getExtraServices().subscribe({
@@ -242,6 +284,7 @@ export class MyReservationsComponent implements OnInit {
 
     if (items.length === 0) return;
 
+    const dest = this.orderDestinationType();
     this.isSubmittingOrder.set(true);
     this.roomOrderService.createOrder({
       reservationId: res.id,
@@ -253,15 +296,84 @@ export class MyReservationsComponent implements OnInit {
         this.cartQuantities.set({});
         this.orderNotes.set('');
         this.activeReservationOrders.update(orders => [createdOrder, ...orders]);
-        this.orderSuccessMessage.set(`¡Pedido #${createdOrder.id} enviado a Cocina & Bar! Se preparará de inmediato para su Suite.`);
+
+        let msg = `¡Comanda #${createdOrder.id} enviada a Cocina & Bar! Se preparará de inmediato para su Suite.`;
+        if (dest === 'SPA') {
+          msg = `¡Solicitud #${createdOrder.id} de Bienestar & Spa enviada a Concierge! Un terapeuta coordinará su sesión en suite.`;
+        } else if (dest === 'MIXED') {
+          msg = `¡Servicio #${createdOrder.id} confirmado! Cocina preparará sus platillos y Concierge coordinará su sesión de Spa.`;
+        }
+        this.orderSuccessMessage.set(msg);
+        this.rsActiveView.set('ORDERS');
         setTimeout(() => {
           this.orderSuccessMessage.set(null);
-        }, 5000);
+        }, 6000);
       },
       error: () => {
         this.isSubmittingOrder.set(false);
       }
     });
+  }
+
+  getOrderType(order: RoomOrder): 'KITCHEN' | 'SPA' | 'MIXED' {
+    const hasKitchen = (order.items || []).some(
+      it => it.category === 'GASTRONOMY' || it.category === 'BAR_WINE'
+    );
+    const hasSpa = (order.items || []).some(
+      it => it.category === 'WELLNESS_SPA'
+    );
+    if (hasKitchen && hasSpa) return 'MIXED';
+    if (hasSpa) return 'SPA';
+    return 'KITCHEN';
+  }
+
+  getOrderStatusStep(status: OrderStatus): number {
+    switch (status) {
+      case 'RECEIVED': return 1;
+      case 'PREPARING': return 2;
+      case 'READY_FOR_DELIVERY': return 3;
+      case 'DELIVERED': return 4;
+      default: return 1;
+    }
+  }
+
+  getOrderStatusLabel(status: OrderStatus, type: 'KITCHEN' | 'SPA' | 'MIXED'): string {
+    if (type === 'SPA') {
+      switch (status) {
+        case 'RECEIVED': return 'Solicitud Recibida en Concierge';
+        case 'PREPARING': return 'Terapeuta Asignado';
+        case 'READY_FOR_DELIVERY': return 'En Camino a su Suite';
+        case 'DELIVERED': return 'Sesión Completada en Suite';
+        case 'CANCELLED': return 'Cancelada';
+        default: return status;
+      }
+    }
+    switch (status) {
+      case 'RECEIVED': return 'Recibido en Cocina & Bar';
+      case 'PREPARING': return 'En Fogón / Preparando';
+      case 'READY_FOR_DELIVERY': return 'Listo / En Camino a Suite';
+      case 'DELIVERED': return 'Entregado en Suite';
+      case 'CANCELLED': return 'Cancelada';
+      default: return status;
+    }
+  }
+
+  getCategoryLabel(category: ExtraCategory): string {
+    switch (category) {
+      case 'GASTRONOMY': return 'Cocina en Vivo';
+      case 'BAR_WINE': return 'Cava & Bar';
+      case 'WELLNESS_SPA': return 'Concierge & Spa';
+      default: return category;
+    }
+  }
+
+  getCategoryIcon(category: ExtraCategory): string {
+    switch (category) {
+      case 'GASTRONOMY': return 'restaurant';
+      case 'BAR_WINE': return 'wine_bar';
+      case 'WELLNESS_SPA': return 'spa';
+      default: return 'room_service';
+    }
   }
 
   calculateRefund(res: Reservation): RefundCalculation {
