@@ -2348,6 +2348,39 @@
     .order-id-cell {
       display: flex;
       flex-direction: column;
+      gap: 0.2rem;
+
+      .order-code-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+
+        .order-dept-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.15rem;
+          padding: 0.1rem 0.35rem;
+          border-radius: 9999px;
+          font-size: 0.625rem;
+          font-weight: 700;
+
+          .material-symbols-outlined {
+            font-size: 0.75rem;
+          }
+
+          &.spa {
+            background-color: rgba(139, 92, 246, 0.12);
+            color: #7c3aed;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+          }
+
+          &.kitchen {
+            background-color: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+          }
+        }
+      }
 
       .order-code {
         font-family: monospace;
@@ -2459,6 +2492,30 @@
       &.status-cancelled {
         background-color: rgba(239, 68, 68, 0.12);
         color: #dc2626;
+      }
+
+      &.spa {
+        border: 1px solid rgba(139, 92, 246, 0.25);
+
+        &.status-received {
+          background-color: rgba(139, 92, 246, 0.12);
+          color: #7c3aed;
+        }
+
+        &.status-preparing {
+          background-color: rgba(217, 119, 6, 0.12);
+          color: #b45309;
+        }
+
+        &.status-ready_for_delivery {
+          background-color: rgba(139, 92, 246, 0.15);
+          color: #6d28d9;
+        }
+
+        &.status-delivered {
+          background-color: rgba(16, 185, 129, 0.12);
+          color: #059669;
+        }
       }
     }
   }

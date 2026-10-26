@@ -620,7 +620,7 @@
                     <th>Artículos Solicitados</th>
                     <th>Observaciones Especiales</th>
                     <th>Total Cargo</th>
-                    <th>Estado de Cocina</th>
+                    <th>Estado Operativo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -628,7 +628,13 @@
                     <tr>
                       <td>
                         <div class="order-id-cell">
-                          <strong class="order-code">CMD-{{ order.id }}</strong>
+                          <div class="order-code-row">
+                            <strong class="order-code">CMD-{{ order.id }}</strong>
+                            <span class="order-dept-tag" [ngClass]="getOrderType(order).toLowerCase()">
+                              <span class="material-symbols-outlined">{{ getOrderType(order) === 'SPA' ? 'spa' : 'skillet' }}</span>
+                              <span>{{ getOrderType(order) === 'SPA' ? 'Spa' : 'Cocina' }}</span>
+                            </span>
+                          </div>
                           <span class="order-time">{{ order.orderedAt ? (order.orderedAt | date:'HH:mm dd/MM') : 'Reciente' }}</span>
                         </div>
                       </td>
@@ -643,7 +649,7 @@
                       <td>
                         <div class="order-items-list">
                           @for (item of order.items; track item.id) {
-                            <div class="order-item-chip">
+                            <div class="order-item-chip" [class.spa-chip]="item.category === 'WELLNESS_SPA'">
                               <span class="item-qty">{{ item.quantity }}x</span>
                               <span class="item-name">{{ item.serviceName }}</span>
                               <span class="item-price">(${{ item.subtotal | number:'1.2-2' }})</span>
@@ -663,23 +669,9 @@
                       </td>
 
                       <td>
-                        <span class="order-status-chip" [ngClass]="'status-' + order.status.toLowerCase()">
-                          @if (order.status === 'RECEIVED') {
-                            <span class="material-symbols-outlined icon-chip">timer</span>
-                            <span>Recibida en Cocina</span>
-                          } @else if (order.status === 'PREPARING') {
-                            <span class="material-symbols-outlined icon-chip">skillet</span>
-                            <span>En Elaboración</span>
-                          } @else if (order.status === 'READY_FOR_DELIVERY') {
-                            <span class="material-symbols-outlined icon-chip">room_service</span>
-                            <span>Lista para Despacho</span>
-                          } @else if (order.status === 'DELIVERED') {
-                            <span class="material-symbols-outlined icon-chip">check_circle</span>
-                            <span>Entregada en Suite</span>
-                          } @else {
-                            <span class="material-symbols-outlined icon-chip">cancel</span>
-                            <span>Cancelada</span>
-                          }
+                        <span class="order-status-chip" [ngClass]="['status-' + order.status.toLowerCase(), getOrderType(order).toLowerCase()]">
+                          <span class="material-symbols-outlined icon-chip">{{ getOrderStatusIcon(order) }}</span>
+                          <span>{{ getOrderStatusLabel(order) }}</span>
                         </span>
                       </td>
                     </tr>

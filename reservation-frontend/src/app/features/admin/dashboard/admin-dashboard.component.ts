@@ -268,6 +268,60 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  getOrderType(order: RoomOrder): 'KITCHEN' | 'SPA' | 'MIXED' {
+    const hasKitchen = (order.items || []).some(
+      it => it.category === 'GASTRONOMY' || it.category === 'BAR_WINE'
+    );
+    const hasSpa = (order.items || []).some(
+      it => it.category === 'WELLNESS_SPA'
+    );
+    if (hasKitchen && hasSpa) return 'MIXED';
+    if (hasSpa) return 'SPA';
+    return 'KITCHEN';
+  }
+
+  getOrderStatusLabel(order: RoomOrder): string {
+    const type = this.getOrderType(order);
+    if (type === 'SPA') {
+      switch (order.status) {
+        case 'RECEIVED': return 'Solicitud en Concierge';
+        case 'PREPARING': return 'Terapeuta Asignado';
+        case 'READY_FOR_DELIVERY': return 'En Camino a Suite';
+        case 'DELIVERED': return 'Completado en Suite';
+        case 'CANCELLED': return 'Cancelada';
+        default: return order.status;
+      }
+    }
+    switch (order.status) {
+      case 'RECEIVED': return 'Recibida en Cocina';
+      case 'PREPARING': return 'En Elaboración';
+      case 'READY_FOR_DELIVERY': return 'Lista para Despacho';
+      case 'DELIVERED': return 'Entregada en Suite';
+      case 'CANCELLED': return 'Cancelada';
+      default: return order.status;
+    }
+  }
+
+  getOrderStatusIcon(order: RoomOrder): string {
+    const type = this.getOrderType(order);
+    if (type === 'SPA') {
+      switch (order.status) {
+        case 'RECEIVED': return 'spa';
+        case 'PREPARING': return 'person_celebrating';
+        case 'READY_FOR_DELIVERY': return 'room_service';
+        case 'DELIVERED': return 'check_circle';
+        default: return 'cancel';
+      }
+    }
+    switch (order.status) {
+      case 'RECEIVED': return 'timer';
+      case 'PREPARING': return 'skillet';
+      case 'READY_FOR_DELIVERY': return 'room_service';
+      case 'DELIVERED': return 'check_circle';
+      default: return 'cancel';
+    }
+  }
+
   loadStaff(): void {
     if (!this.isAdmin()) return;
     this.isStaffLoading.set(true);
