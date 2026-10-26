@@ -100,6 +100,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/guests/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
+                        .requestMatchers(HttpMethod.GET, "/api/reservations/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/reservations/guest/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, "/api/reservations").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/confirm").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/check-in").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/complete").hasAnyRole("ADMIN", "RECEPTIONIST")

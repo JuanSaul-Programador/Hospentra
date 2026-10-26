@@ -11,6 +11,7 @@ import com.hotel.domain.repository.UserRepository;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,22 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    public List<ReservationResponse> findMyReservations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return List.of();
+        }
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null || user.getGuest() == null) {
+            return List.of();
+        }
+        return reservationRepository.findByGuestId(user.getGuest().getId()).stream()
+                .map(reservationMapper::toResponse)
+                .toList();
+    }
+
+    @Override
     public List<ReservationResponse> findByStatus(ReservationStatus status) {
         return reservationRepository.findByStatus(status).stream()
                 .map(reservationMapper::toResponse)
@@ -59,9 +76,23 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public ReservationResponse findById(Long id) {
-        return reservationRepository.findById(id)
-                .map(reservationMapper::toResponse)
+        Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isStaff = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            if (!isStaff) {
+                String username = authentication.getName();
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                    throw new AccessDeniedException("No tiene permisos para acceder a esta reservación");
+                }
+            }
+        }
+
+        return reservationMapper.toResponse(reservation);
     }
 
     @Override
@@ -159,6 +190,19 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationResponse cancel(Long id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isStaff = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            if (!isStaff) {
+                String username = authentication.getName();
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                    throw new AccessDeniedException("No tiene permisos para cancelar esta reservación");
+                }
+            }
+        }
 
         if (reservation.getStatus() == ReservationStatus.COMPLETED) {
             throw new IllegalArgumentException("A completed reservation cannot be cancelled");

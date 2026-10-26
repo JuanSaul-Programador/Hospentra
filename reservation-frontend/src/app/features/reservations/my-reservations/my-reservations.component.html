@@ -111,9 +111,15 @@
           @if (upcomingReservations().length === 0) {
             <div class="empty-state-card">
               <span class="material-symbols-outlined empty-icon">luggage</span>
-              <h3 class="empty-title">No tiene reservas próximas</h3>
-              <p class="empty-desc">Explore nuestra colección privada de suites y planifique su próxima estancia inolvidable.</p>
-              <a routerLink="/" class="btn btn-primary">Explorar Catálogo de Suites</a>
+              @if (isStaffUser()) {
+                <h3 class="empty-title">Sin reservaciones personales como huésped</h3>
+                <p class="empty-desc">Ha iniciado sesión con una cuenta corporativa de personal. Para supervisar y operar las reservaciones de los clientes del hotel, ingrese a la consola de recepción.</p>
+                <a routerLink="/admin/dashboard" class="btn btn-primary">Ir al Panel de Gestión PMS</a>
+              } @else {
+                <h3 class="empty-title">No tiene reservas próximas</h3>
+                <p class="empty-desc">Explore nuestra colección privada de suites y planifique su próxima estancia inolvidable.</p>
+                <a routerLink="/" class="btn btn-primary">Explorar Catálogo de Suites</a>
+              }
             </div>
           } @else {
             @for (res of upcomingReservations(); track res.id) {
@@ -452,8 +458,8 @@
         <div class="voucher-body">
           <div class="voucher-field">
             <span class="field-title">Titular de la Reserva</span>
-            <strong class="field-val">{{ authService.currentUser()?.username }}</strong>
-            <span class="field-sub">{{ authService.currentUser()?.email }}</span>
+            <strong class="field-val">{{ selectedVoucherReservation()?.guest?.firstName }} {{ selectedVoucherReservation()?.guest?.lastName }}</strong>
+            <span class="field-sub">{{ selectedVoucherReservation()?.guest?.email }} • Tel: {{ selectedVoucherReservation()?.guest?.phone || 'Sin registrar' }}</span>
           </div>
 
           <div class="voucher-field">

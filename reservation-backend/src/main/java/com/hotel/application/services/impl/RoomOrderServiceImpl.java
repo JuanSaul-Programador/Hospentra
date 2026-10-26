@@ -6,11 +6,15 @@ import com.hotel.domain.model.*;
 import com.hotel.domain.repository.ExtraServiceRepository;
 import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.RoomOrderRepository;
+import com.hotel.domain.repository.UserRepository;
 import com.hotel.web.dto.CreateOrderItemRequest;
 import com.hotel.web.dto.CreateRoomOrderRequest;
 import com.hotel.web.dto.RoomOrderItemResponse;
 import com.hotel.web.dto.RoomOrderResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +31,15 @@ public class RoomOrderServiceImpl implements RoomOrderService {
     private final RoomOrderRepository roomOrderRepository;
     private final ReservationRepository reservationRepository;
     private final ExtraServiceRepository extraServiceRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public RoomOrderResponse createOrder(CreateRoomOrderRequest request) {
         Reservation reservation = reservationRepository.findById(request.reservationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + request.reservationId()));
+
+        validateReservationAccess(reservation, "ordenar");
 
         String roomNumber = reservation.getRoom() != null ? reservation.getRoom().getRoomNumber() : "General";
         String guestName = reservation.getGuest() != null
@@ -79,9 +86,28 @@ public class RoomOrderServiceImpl implements RoomOrderService {
 
     @Override
     public List<RoomOrderResponse> findByReservationId(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId));
+        validateReservationAccess(reservation, "ver comandas");
+
         return roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(reservationId).stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    private void validateReservationAccess(Reservation reservation, String action) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isStaff = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST") || a.getAuthority().equals("ROLE_KITCHEN"));
+            if (!isStaff) {
+                String username = authentication.getName();
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                    throw new AccessDeniedException("No tiene permisos para " + action + " en esta reservación");
+                }
+            }
+        }
     }
 
     @Override

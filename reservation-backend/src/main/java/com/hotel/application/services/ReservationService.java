@@ -10,6 +10,8 @@ public interface ReservationService {
 
     List<ReservationResponse> findAll();
 
+    List<ReservationResponse> findMyReservations();
+
     List<ReservationResponse> findByStatus(ReservationStatus status);
 
     List<ReservationResponse> findByGuestId(Long guestId);

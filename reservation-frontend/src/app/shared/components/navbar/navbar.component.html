@@ -35,14 +35,22 @@
                 <p class="dropdown-email">{{ authService.currentUser()?.email }}</p>
               </div>
               <div class="dropdown-divider"></div>
-              <a routerLink="/my-reservations" class="dropdown-item" (click)="closeMenus()">
-                <span class="material-symbols-outlined">luggage</span>
-                Mis Reservas
-              </a>
               @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
                 <a routerLink="/admin/dashboard" class="dropdown-item" (click)="closeMenus()">
                   <span class="material-symbols-outlined">admin_panel_settings</span>
-                  Panel de Gestión
+                  Panel de Gestión PMS
+                </a>
+              }
+              @if (authService.userRole() === 'ROLE_KITCHEN') {
+                <a routerLink="/kitchen/orders" class="dropdown-item" (click)="closeMenus()">
+                  <span class="material-symbols-outlined">skillet</span>
+                  Terminal KDS Cocina
+                </a>
+              }
+              @if (authService.userRole() === 'ROLE_CUSTOMER') {
+                <a routerLink="/my-reservations" class="dropdown-item" (click)="closeMenus()">
+                  <span class="material-symbols-outlined">luggage</span>
+                  Mis Reservas
                 </a>
               }
               <div class="dropdown-divider"></div>
@@ -69,14 +77,22 @@
         <a href="#servicios" class="mobile-nav-link" (click)="closeMenus()">Servicios</a>
         <a href="#contacto" class="mobile-nav-link" (click)="closeMenus()">Contacto</a>
         @if (authService.isAuthenticated()) {
-          <a routerLink="/my-reservations" class="mobile-nav-link" (click)="closeMenus()">
-            <span class="material-symbols-outlined">luggage</span>
-            Mis Reservas
-          </a>
           @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
             <a routerLink="/admin/dashboard" class="mobile-nav-link" (click)="closeMenus()">
               <span class="material-symbols-outlined">admin_panel_settings</span>
-              Panel de Gestión
+              Panel de Gestión PMS
+            </a>
+          }
+          @if (authService.userRole() === 'ROLE_KITCHEN') {
+            <a routerLink="/kitchen/orders" class="mobile-nav-link" (click)="closeMenus()">
+              <span class="material-symbols-outlined">skillet</span>
+              Terminal KDS Cocina
+            </a>
+          }
+          @if (authService.userRole() === 'ROLE_CUSTOMER') {
+            <a routerLink="/my-reservations" class="mobile-nav-link" (click)="closeMenus()">
+              <span class="material-symbols-outlined">luggage</span>
+              Mis Reservas
             </a>
           }
         }

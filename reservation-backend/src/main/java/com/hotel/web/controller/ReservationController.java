@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,8 +21,20 @@ public class ReservationController {
 
     private final ReservationService reservationService;
 
+    @GetMapping("/my")
+    public ResponseEntity<List<ReservationResponse>> findMyReservations() {
+        return ResponseEntity.ok(reservationService.findMyReservations());
+    }
+
     @GetMapping
     public ResponseEntity<List<ReservationResponse>> findAll(@RequestParam(required = false) ReservationStatus status) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isStaff = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+        if (!isStaff) {
+            return ResponseEntity.ok(reservationService.findMyReservations());
+        }
+
         if (status != null) {
             return ResponseEntity.ok(reservationService.findByStatus(status));
         }

@@ -73,6 +73,12 @@ export class ReservationService {
     );
   }
 
+  getMyReservations(): Observable<Reservation[]> {
+    return this.http.get<Reservation[]>(`${this.apiUrl}/my`).pipe(
+      map(list => (list || []).map(r => this.enrichReservation(r)))
+    );
+  }
+
   getReservationById(id: number): Observable<Reservation> {
     return this.http.get<Reservation>(`${this.apiUrl}/${id}`).pipe(
       map(res => this.enrichReservation(res))

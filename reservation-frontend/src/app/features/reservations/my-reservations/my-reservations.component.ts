@@ -73,40 +73,10 @@ export class MyReservationsComponent implements OnInit {
     6: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80'
   };
 
-  private readonly fallbackReservations: Reservation[] = [
-    {
-      id: 8841,
-      guest: {
-        id: 1,
-        firstName: 'Juan',
-        lastName: 'Pérez',
-        email: 'juan@ejemplo.com',
-        phone: '+51 987654321'
-      },
-      room: {
-        id: 4,
-        roomNumber: '401',
-        status: 'AVAILABLE',
-        roomType: {
-          id: 4,
-          name: 'Villa Serena con Alberca Privada',
-          description: 'Refugio idílico rodeado de palmeras y vegetación tropical, máxima privacidad con alberca climatizada de agua salada.',
-          capacity: 4,
-          pricePerNight: 540.00
-        }
-      },
-      checkInDate: '2026-06-12',
-      checkOutDate: '2026-06-16',
-      status: 'COMPLETED',
-      totalPrice: 2160.00,
-      createdAt: '2026-06-01T10:00:00',
-      paymentMethod: 'CREDIT_CARD',
-      paymentStatus: 'PAID',
-      cardLast4: '8812',
-      cardBrand: 'MASTERCARD',
-      authCode: 'AUTH-520199'
-    }
-  ];
+  readonly isStaffUser = computed(() => {
+    const role = this.authService.userRole();
+    return role === 'ROLE_ADMIN' || role === 'ROLE_RECEPTIONIST' || role === 'ROLE_KITCHEN';
+  });
 
   readonly upcomingReservations = computed(() => {
     return this.reservations().filter(r => r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'CHECKED_IN');
@@ -155,17 +125,13 @@ export class MyReservationsComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.reservationService.getReservations().subscribe({
+    this.reservationService.getMyReservations().subscribe({
       next: (data) => {
-        if (data && data.length > 0) {
-          this.reservations.set(data);
-        } else {
-          this.reservations.set(this.fallbackReservations);
-        }
+        this.reservations.set(data || []);
         this.isLoading.set(false);
       },
       error: () => {
-        this.reservations.set(this.fallbackReservations);
+        this.reservations.set([]);
         this.isLoading.set(false);
       }
     });
