@@ -54,4 +54,9 @@ public class RoomOrderController {
     ) {
         return ResponseEntity.ok(roomOrderService.assignTherapist(id, request.therapistId()));
     }
+
+    @GetMapping("/busy-therapists")
+    public ResponseEntity<List<Long>> getBusyTherapists(@RequestParam(required = false) String scheduledTime) {
+        return ResponseEntity.ok(roomOrderService.findBusyTherapistIds(scheduledTime));
+    }
 }

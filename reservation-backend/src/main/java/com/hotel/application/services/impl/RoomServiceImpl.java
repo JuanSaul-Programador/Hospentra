@@ -1,7 +1,9 @@
 package com.hotel.application.services.impl;
 
+import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.mapper.RoomMapper;
 import com.hotel.application.services.RoomService;
+import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
 import com.hotel.domain.model.Room;
 import com.hotel.domain.model.RoomStatus;
@@ -24,6 +26,7 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final RoomMapper roomMapper;
+    private final SseNotificationService sseNotificationService;
 
     @Override
     public List<RoomResponse> findAll() {
@@ -77,7 +80,19 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
         room.setStatus(status);
-        return roomMapper.toResponse(roomRepository.save(room));
+        RoomResponse response = roomMapper.toResponse(roomRepository.save(room));
+
+        NotificationEvent event = NotificationEvent.of(
+                "ROOM_STATUS_CHANGED",
+                "ROOM_RACK",
+                room.getId(),
+                "Estado de Suite " + room.getRoomNumber() + " Actualizado",
+                "La habitación ahora está " + status,
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     @Override

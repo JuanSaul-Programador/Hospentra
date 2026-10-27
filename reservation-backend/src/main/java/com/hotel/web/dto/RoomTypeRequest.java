@@ -8,7 +8,9 @@ import java.math.BigDecimal;
 
 public record RoomTypeRequest(
         @NotBlank String name,
+        String nameEn,
         String description,
+        String descriptionEn,
         @Positive int capacity,
         @NotNull @Positive BigDecimal pricePerNight
 ) {}

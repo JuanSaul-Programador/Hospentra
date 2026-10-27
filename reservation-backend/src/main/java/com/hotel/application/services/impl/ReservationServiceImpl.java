@@ -1,7 +1,9 @@
 package com.hotel.application.services.impl;
 
+import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.mapper.ReservationMapper;
 import com.hotel.application.services.ReservationService;
+import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
 import com.hotel.domain.model.*;
 import com.hotel.domain.repository.GuestRepository;
@@ -33,6 +35,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ReservationMapper reservationMapper;
+    private final SseNotificationService sseNotificationService;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -123,7 +126,20 @@ public class ReservationServiceImpl implements ReservationService {
         BigDecimal totalPrice = room.getRoomType().getPricePerNight().multiply(BigDecimal.valueOf(nights));
 
         Reservation reservation = reservationMapper.toEntity(request, guest, room, totalPrice);
-        return reservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent event = NotificationEvent.of(
+                "RESERVATION_CREATED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Nueva Reservación #HOSP-" + saved.getId(),
+                guest.getFirstName() + " " + guest.getLastName() + " reservó Suite " + room.getRoomNumber(),
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     private Guest resolveGuest(Long requestedGuestId) {
@@ -160,7 +176,20 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.setStatus(ReservationStatus.CONFIRMED);
-        return reservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent event = NotificationEvent.of(
+                "RESERVATION_STATUS_CHANGED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Reservación Confirmada #HOSP-" + saved.getId(),
+                "Reserva de Suite " + saved.getRoom().getRoomNumber() + " confirmada",
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     @Override
@@ -182,7 +211,30 @@ public class ReservationServiceImpl implements ReservationService {
         room.setStatus(RoomStatus.OCCUPIED);
         roomRepository.save(room);
 
-        return reservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent resEvent = NotificationEvent.of(
+                "RESERVATION_STATUS_CHANGED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Check-In Registrado #HOSP-" + saved.getId(),
+                saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName() + " ingresó a Suite " + room.getRoomNumber(),
+                response
+        );
+        sseNotificationService.broadcast(resEvent);
+
+        NotificationEvent roomEvent = NotificationEvent.of(
+                "ROOM_STATUS_CHANGED",
+                "ROOM_RACK",
+                room.getId(),
+                "Suite " + room.getRoomNumber() + " Ocupada",
+                "Huésped en casa",
+                room
+        );
+        sseNotificationService.broadcast(roomEvent);
+
+        return response;
     }
 
     @Override
@@ -227,7 +279,20 @@ public class ReservationServiceImpl implements ReservationService {
                 reservation.setPaymentStatus(PaymentStatus.PARTIALLY_REFUNDED);
             }
         }
-        return reservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent event = NotificationEvent.of(
+                "RESERVATION_STATUS_CHANGED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Reservación Cancelada #HOSP-" + saved.getId(),
+                "Reserva de Suite " + saved.getRoom().getRoomNumber() + " cancelada",
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     @Override
@@ -246,6 +311,29 @@ public class ReservationServiceImpl implements ReservationService {
         room.setStatus(RoomStatus.MAINTENANCE);
         roomRepository.save(room);
 
-        return reservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent resEvent = NotificationEvent.of(
+                "RESERVATION_STATUS_CHANGED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Check-Out Registrado #HOSP-" + saved.getId(),
+                "Suite " + room.getRoomNumber() + " desocupada",
+                response
+        );
+        sseNotificationService.broadcast(resEvent);
+
+        NotificationEvent roomEvent = NotificationEvent.of(
+                "ROOM_STATUS_CHANGED",
+                "ROOM_RACK",
+                room.getId(),
+                "Suite " + room.getRoomNumber() + " en Limpieza",
+                "Enviada a housekeeping",
+                room
+        );
+        sseNotificationService.broadcast(roomEvent);
+
+        return response;
     }
 }

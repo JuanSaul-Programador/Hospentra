@@ -21,8 +21,14 @@ public class RoomType {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(name = "name_en", length = 150)
+    private String nameEn;
+
     @Column
     private String description;
+
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
 
     @Column(nullable = false)
     private int capacity;

@@ -13,4 +13,5 @@ public interface RoomOrderService {
     List<RoomOrderResponse> findAllOrders();
     RoomOrderResponse updateOrderStatus(Long orderId, OrderStatus status);
     RoomOrderResponse assignTherapist(Long orderId, Long therapistId);
+    List<Long> findBusyTherapistIds(String scheduledTime);
 }

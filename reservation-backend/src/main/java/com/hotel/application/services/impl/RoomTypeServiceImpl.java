@@ -51,7 +51,9 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         RoomType roomType = roomTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
         roomType.setName(request.name());
+        roomType.setNameEn(request.nameEn());
         roomType.setDescription(request.description());
+        roomType.setDescriptionEn(request.descriptionEn());
         roomType.setCapacity(request.capacity());
         roomType.setPricePerNight(request.pricePerNight());
         return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));

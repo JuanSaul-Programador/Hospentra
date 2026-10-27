@@ -1,6 +1,8 @@
 package com.hotel.application.services.impl;
 
+import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.services.RoomOrderService;
+import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
 import com.hotel.domain.model.*;
 import com.hotel.domain.repository.ExtraServiceRepository;
@@ -33,6 +35,7 @@ public class RoomOrderServiceImpl implements RoomOrderService {
     private final ExtraServiceRepository extraServiceRepository;
     private final UserRepository userRepository;
     private final com.hotel.domain.repository.TherapistRepository therapistRepository;
+    private final SseNotificationService sseNotificationService;
 
     @Override
     @Transactional
@@ -83,8 +86,27 @@ public class RoomOrderServiceImpl implements RoomOrderService {
 
         order.setTotalAmount(total);
         RoomOrder savedOrder = roomOrderRepository.save(order);
+        RoomOrderResponse response = mapToResponse(savedOrder);
 
-        return mapToResponse(savedOrder);
+        boolean hasKitchenItems = savedOrder.getItems().stream().anyMatch(item ->
+                item.getExtraService() != null &&
+                (item.getExtraService().getCategory() == ExtraCategory.GASTRONOMY ||
+                 item.getExtraService().getCategory() == ExtraCategory.BAR_WINE));
+
+        String channel = hasKitchenItems ? "KITCHEN" : "SPA";
+        String categoryLabel = hasKitchenItems ? "Gastronomía / Bar" : "Bienestar & Spa";
+
+        NotificationEvent event = NotificationEvent.of(
+                "ORDER_CREATED",
+                channel,
+                savedOrder.getId(),
+                "Nueva Comanda #" + savedOrder.getId(),
+                "Suite " + savedOrder.getRoomNumber() + " solicitó " + categoryLabel,
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     @Override
@@ -145,7 +167,19 @@ public class RoomOrderServiceImpl implements RoomOrderService {
         }
 
         RoomOrder updated = roomOrderRepository.save(order);
-        return mapToResponse(updated);
+        RoomOrderResponse response = mapToResponse(updated);
+
+        NotificationEvent event = NotificationEvent.of(
+                "ORDER_STATUS_CHANGED",
+                "ROOM_SERVICE",
+                updated.getId(),
+                "Comanda #" + updated.getId() + " Actualizada",
+                "Nuevo estado: " + status + " en Suite " + updated.getRoomNumber(),
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
     }
 
     @Override
@@ -156,12 +190,50 @@ public class RoomOrderServiceImpl implements RoomOrderService {
         com.hotel.domain.model.Therapist therapist = therapistRepository.findById(therapistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Therapist not found with id: " + therapistId));
 
+        if (!Boolean.TRUE.equals(therapist.getActive())) {
+            throw new IllegalArgumentException("El especialista " + therapist.getName() + " se encuentra inactivo o en descanso");
+        }
+
+        if (order.getScheduledTime() != null && !order.getScheduledTime().isBlank()) {
+            boolean isBusy = roomOrderRepository.existsByTherapistIdAndScheduledTimeAndStatusIn(
+                    therapistId,
+                    order.getScheduledTime(),
+                    List.of(OrderStatus.PREPARING, OrderStatus.READY_FOR_DELIVERY)
+            );
+            if (isBusy) {
+                throw new IllegalArgumentException("El especialista " + therapist.getName() + " ya tiene una cita asignada para el horario " + order.getScheduledTime());
+            }
+        }
+
         order.setTherapistId(therapist.getId());
         order.setTherapistName(therapist.getName());
         order.setStatus(OrderStatus.PREPARING);
 
         RoomOrder updated = roomOrderRepository.save(order);
-        return mapToResponse(updated);
+        RoomOrderResponse response = mapToResponse(updated);
+
+        NotificationEvent event = NotificationEvent.of(
+                "ORDER_THERAPIST_ASSIGNED",
+                "SPA",
+                updated.getId(),
+                "Terapeuta Asignado",
+                therapist.getName() + " asignado a comanda de Suite " + updated.getRoomNumber(),
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
+    }
+
+    @Override
+    public List<Long> findBusyTherapistIds(String scheduledTime) {
+        if (scheduledTime == null || scheduledTime.isBlank()) {
+            return List.of();
+        }
+        return roomOrderRepository.findBusyTherapistIdsByScheduledTime(
+                scheduledTime,
+                List.of(OrderStatus.PREPARING, OrderStatus.READY_FOR_DELIVERY)
+        );
     }
 
     private RoomOrderResponse mapToResponse(RoomOrder order) {

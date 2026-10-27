@@ -112,6 +112,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/room-orders/*/status").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
                         .requestMatchers("/api/therapists/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/room-orders/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
 
                         .anyRequest().authenticated()
                 );

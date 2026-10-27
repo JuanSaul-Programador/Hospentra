@@ -21,12 +21,18 @@ public class ExtraService {
     @Column(nullable = false, length = 150)
     private String name;
 
+    @Column(name = "name_en", length = 150)
+    private String nameEn;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private ExtraCategory category;
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
