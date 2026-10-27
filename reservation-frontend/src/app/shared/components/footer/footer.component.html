@@ -7,66 +7,66 @@
           <span class="brand-text">Hospentra</span>
         </a>
         <p class="brand-desc">
-          Colección exclusiva de retiros boutique y residencias de lujo con servicio personalizado y atención de concierge 24/7.
+          {{ i18n.t('footer.brandDesc') }}
         </p>
         <div class="prestige-tag">
           <span class="material-symbols-outlined star-icon">star</span>
-          <span>Hospitalidad de Autor • 5 Diamantes</span>
+          <span>{{ i18n.t('footer.prestige') }}</span>
         </div>
       </div>
 
       <div class="footer-col">
-        <h4 class="col-title">Explorar</h4>
+        <h4 class="col-title">{{ i18n.t('footer.explore') }}</h4>
         <ul class="col-links">
-          <li><a href="#catalogo">Suites Panorámicas</a></li>
-          <li><a href="#catalogo">Villas Privadas</a></li>
-          <li><a href="#catalogo">Penthouse de Autor</a></li>
-          <li><a href="#catalogo">Habitaciones Deluxe</a></li>
+          <li><a href="#catalogo">{{ i18n.t('footer.panoramicSuites') }}</a></li>
+          <li><a href="#catalogo">{{ i18n.t('footer.privateVillas') }}</a></li>
+          <li><a href="#catalogo">{{ i18n.t('footer.penthouse') }}</a></li>
+          <li><a href="#catalogo">{{ i18n.t('footer.deluxeRooms') }}</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4 class="col-title">Experiencias</h4>
+        <h4 class="col-title">{{ i18n.t('footer.experiences') }}</h4>
         <ul class="col-links">
-          <li><a href="#servicios">Gastronomía Privada</a></li>
-          <li><a href="#servicios">Tratamientos Spa Wellness</a></li>
-          <li><a href="#servicios">Cata de Vinos & Sommelier</a></li>
-          <li><a href="#servicios">Transporte VIP & Helipuerto</a></li>
+          <li><a href="#servicios">{{ i18n.t('footer.privateDining') }}</a></li>
+          <li><a href="#servicios">{{ i18n.t('footer.spaTreatments') }}</a></li>
+          <li><a href="#servicios">{{ i18n.t('footer.wineTasting') }}</a></li>
+          <li><a href="#servicios">{{ i18n.t('footer.vipTransport') }}</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4 class="col-title">Transparencia</h4>
+        <h4 class="col-title">{{ i18n.t('footer.transparency') }}</h4>
         <ul class="col-links">
-          <li><a href="#contacto">Cancelación Flexible</a></li>
-          <li><a href="#contacto">Términos de Reserva</a></li>
-          <li><a href="#contacto">Política de Privacidad</a></li>
-          <li><a href="#contacto">Protocolos de Seguridad</a></li>
+          <li><a href="#contacto">{{ i18n.t('footer.flexibleCancel') }}</a></li>
+          <li><a href="#contacto">{{ i18n.t('footer.terms') }}</a></li>
+          <li><a href="#contacto">{{ i18n.t('footer.privacy') }}</a></li>
+          <li><a href="#contacto">{{ i18n.t('footer.safety') }}</a></li>
         </ul>
       </div>
     </div>
 
     <div class="newsletter-card">
       <div class="newsletter-info">
-        <h4 class="newsletter-title">Suscripción Exclusiva</h4>
-        <p class="newsletter-desc">Acceso prioritario a nuevas suites boutique, ofertas de temporada y beneficios para socios.</p>
+        <h4 class="newsletter-title">{{ i18n.t('footer.newsletterTitle') }}</h4>
+        <p class="newsletter-desc">{{ i18n.t('footer.newsletterDesc') }}</p>
       </div>
       <div class="newsletter-form">
-        <input type="email" placeholder="Su correo electrónico..." class="newsletter-input" />
-        <button type="button" class="btn btn-primary">Suscribirse</button>
+        <input type="email" [placeholder]="i18n.t('footer.emailPlaceholder')" class="newsletter-input" />
+        <button type="button" class="btn btn-primary">{{ i18n.t('footer.subscribeBtn') }}</button>
       </div>
     </div>
 
     <div class="footer-bottom">
       <p class="copyright-text">
-        © {{ currentYear }} Hospentra Inc. Reservas de hotelería boutique de alta gama.
+        {{ i18n.t('footer.copyright', { year: currentYear }) }}
       </p>
       <div class="footer-bottom-actions">
         <a routerLink="/admin/login" class="staff-portal-link">
           <span class="material-symbols-outlined icon-tiny">lock</span>
-          <span>Portal Personal & Recepción</span>
+          <span>{{ i18n.t('footer.staffPortal') }}</span>
         </a>
-        <span class="rights-text">Todos los derechos reservados.</span>
+        <span class="rights-text">{{ i18n.t('footer.rights') }}</span>
       </div>
     </div>
   </div>

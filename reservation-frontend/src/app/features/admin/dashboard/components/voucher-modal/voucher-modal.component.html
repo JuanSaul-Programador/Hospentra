@@ -1,0 +1,120 @@
+@if (reservation) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="voucher-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="onClose()" aria-label="Cerrar voucher">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="voucher-header">
+        <div class="voucher-brand">
+          <span class="material-symbols-outlined brand-star">hotel_class</span>
+          <span class="brand-title">Hospentra Voucher Oficial</span>
+        </div>
+        <span class="voucher-badge">COMPROBANTE CORPORATIVO DE RECEPCIÓN</span>
+      </div>
+
+      <div class="voucher-seal-wrapper">
+        @if (reservation.paymentMethod === 'CREDIT_CARD') {
+          <div class="pms-voucher-seal paid-online">
+            <span class="material-symbols-outlined seal-icon">verified</span>
+            <div>
+              <span class="seal-title">PAGADA EN LÍNEA</span>
+              <span class="seal-sub">COMPROBANTE LIQUIDADO • AUTH: {{ reservation.authCode || 'AUTH-901844' }}</span>
+            </div>
+          </div>
+        } @else {
+          <div class="pms-voucher-seal pay-checkin">
+            <span class="material-symbols-outlined seal-icon">storefront</span>
+            <div>
+              <span class="seal-title">LIQUIDACIÓN AL CHECK-IN</span>
+              <span class="seal-sub">COBRO EN FRONT DESK</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="voucher-code-strip">
+        <span class="strip-label">Código de Confirmación:</span>
+        <span class="strip-code">HOSP-{{ reservation.id }}-2026</span>
+      </div>
+
+      <div class="voucher-body">
+        <div class="voucher-field">
+          <span class="field-title">Titular de la Reserva</span>
+          <strong class="field-val">{{ reservation.guest?.firstName }} {{ reservation.guest?.lastName }}</strong>
+          <span class="field-sub">{{ reservation.guest?.email }} • Tel: {{ reservation.guest?.phone || 'Sin registrar' }}</span>
+        </div>
+
+        <div class="voucher-field">
+          <span class="field-title">Suite Asignada</span>
+          <strong class="field-val">{{ reservation.room?.roomType?.name }}</strong>
+          <span class="field-sub">Habitación {{ reservation.room?.roomNumber }} • Categoría Boutique</span>
+        </div>
+
+        <div class="voucher-dates-row">
+          <div class="v-date">
+            <span class="field-title">Check-in</span>
+            <strong class="field-val">{{ reservation.checkInDate }}</strong>
+            <span class="field-sub">Desde 15:00 hrs</span>
+          </div>
+          <div class="v-date">
+            <span class="field-title">Check-out</span>
+            <strong class="field-val">{{ reservation.checkOutDate }}</strong>
+            <span class="field-sub">Hasta 12:00 hrs</span>
+          </div>
+        </div>
+
+        <div class="voucher-field">
+          <span class="field-title">Instrucción de Cobro en PMS</span>
+          @if (reservation.paymentMethod === 'CREDIT_CARD') {
+            <strong class="field-val text-emerald">Liquidada con Tarjeta Online ({{ reservation.cardBrand || 'VISA' }} •••• {{ reservation.cardLast4 || '4242' }})</strong>
+            <span class="field-sub">No realizar cobro al check-in. Saldo a cobrar: $0.00 USD.</span>
+          } @else {
+            <strong class="field-val text-amber">Cobro en Recepción Requerido</strong>
+            <span class="field-sub">Cobrar ${{ reservation.totalPrice | number:'1.2-2' }} USD al momento de entregar llaves.</span>
+          }
+        </div>
+
+        <div class="voucher-price-row">
+          <span>Importe de la Estancia (Base):</span>
+          <strong class="v-price">${{ reservation.totalPrice | number:'1.2-2' }} USD</strong>
+        </div>
+
+        @if (folioOrders.length > 0) {
+          <div class="voucher-field folio-extras-box">
+            <span class="field-title">Consumos de Habitación & Gastronomía (Folio Adicional)</span>
+            @for (order of folioOrders; track order.id) {
+              <div class="voucher-order-item">
+                <span class="v-order-label">CMD-{{ order.id }} • {{ order.items.length }} ítem(s):</span>
+                <span class="v-order-val">${{ order.totalAmount | number:'1.2-2' }} USD</span>
+              </div>
+            }
+            <div class="voucher-extras-sum">
+              <span>Subtotal Consumos:</span>
+              <strong>${{ extrasTotal | number:'1.2-2' }} USD</strong>
+            </div>
+          </div>
+
+          <div class="voucher-price-row grand-total-row">
+            <span>Total Consolidado con Consumos:</span>
+            <strong class="v-price-gold">${{ grandTotal | number:'1.2-2' }} USD</strong>
+          </div>
+        }
+
+        <div class="voucher-status-chip">
+          <span>Estado Actual: <strong>{{ getStatusLabel(reservation.status) }}</strong></span>
+        </div>
+      </div>
+
+      <div class="voucher-actions-row">
+        <button type="button" class="btn-voucher-print" (click)="printVoucher()">
+          <span class="material-symbols-outlined">print</span>
+          <span>Imprimir / Guardar PDF</span>
+        </button>
+        <button type="button" class="btn-voucher-close" (click)="onClose()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { RoomService } from '../../../core/services/room.service';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { Room } from '../../../core/models/room.model';
 import { Reservation, ReservationRequest, PaymentMethod } from '../../../core/models/reservation.model';
 
@@ -21,6 +22,7 @@ export class CheckoutComponent implements OnInit {
   private readonly roomService = inject(RoomService);
   private readonly reservationService = inject(ReservationService);
   readonly authService = inject(AuthService);
+  readonly i18n = inject(I18nService);
 
   readonly room = signal<Room | null>(null);
   readonly checkInDate = signal<string>('');
@@ -135,7 +137,8 @@ export class CheckoutComponent implements OnInit {
 
   readonly displayCardHolder = computed<string>(() => {
     const name = this.cardHolder().trim() || this.guestName().trim();
-    return (name || 'TITULAR DE LA TARJETA').toUpperCase();
+    const fallback = this.i18n.currentLang() === 'en' ? 'CARDHOLDER NAME' : 'TITULAR DE LA TARJETA';
+    return (name || fallback).toUpperCase();
   });
 
   private formatDate(d: Date): string {

@@ -20,6 +20,25 @@
           </div>
         </div>
 
+        <div class="live-stream-badge" [class.connected]="sseService.isConnected()" [title]="sseService.isConnected() ? 'Transmisión en tiempo real SSE activa' : 'Reconectando canal en vivo SSE'">
+          <span class="live-pulse-dot" [class.active]="sseService.isConnected()"></span>
+          <span>{{ sseService.isConnected() ? 'En Vivo (SSE)' : 'Reconectando' }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="btn-kds-sound"
+          [class.sound-active]="soundEnabled()"
+          [class.sound-muted]="!soundEnabled()"
+          (click)="toggleSound()"
+          [title]="soundEnabled() ? 'Silenciar alertas sonoras' : 'Activar alertas sonoras de comandas'"
+        >
+          <span class="material-symbols-outlined" [class.bell-ringing]="hasSoundChimed()">
+            {{ soundEnabled() ? 'notifications_active' : 'notifications_off' }}
+          </span>
+          <span>{{ soundEnabled() ? 'Alerta Sonora Activa' : 'Audio Silenciado' }}</span>
+        </button>
+
         <button type="button" class="btn-kds-refresh" (click)="loadOrders()" [disabled]="isLoading()" title="Actualizar comandas">
           <span class="material-symbols-outlined" [class.spinning]="isLoading()">sync</span>
           <span>Actualizar</span>

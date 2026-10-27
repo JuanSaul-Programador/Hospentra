@@ -36,6 +36,11 @@
           </button>
         }
 
+        <div class="live-stream-badge" [class.connected]="sseService.isConnected()" [title]="sseService.isConnected() ? 'Transmisión en tiempo real SSE activa' : 'Reconectando canal en vivo SSE'">
+          <span class="live-pulse-dot" [class.active]="sseService.isConnected()"></span>
+          <span>{{ sseService.isConnected() ? 'Live SSE' : 'Conectando...' }}</span>
+        </div>
+
         <div class="staff-chip">
           <div class="staff-avatar" [class.avatar-admin]="isAdmin()" [class.avatar-receptionist]="isReceptionist()">
             {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || (isAdmin() ? 'A' : 'R') }}
@@ -89,6 +94,16 @@
           <span class="material-symbols-outlined icon-ext">open_in_new</span>
         </a>
         @if (isAdmin()) {
+          <button
+            type="button"
+            class="subnav-btn"
+            [class.active]="activeSection() === 'SUITES_INVENTORY'"
+            (click)="switchSection('SUITES_INVENTORY')"
+          >
+            <span class="material-symbols-outlined">hotel_class</span>
+            <span>Inventario de Suites & Habitaciones</span>
+            <span class="subnav-badge">{{ rooms().length }} suites</span>
+          </button>
           <button
             type="button"
             class="subnav-btn"
@@ -200,75 +215,62 @@
           }
         </section>
 
-        <section class="room-rack-section">
-          <div class="rack-header-row">
-            <div class="rack-title-group">
-              <span class="material-symbols-outlined rack-icon">bed</span>
-              <h3 class="rack-title">Room Rack & Estado de Limpieza (Housekeeping)</h3>
-            </div>
-            <span class="rack-meta">Control de llaves y mantenimiento de suites</span>
-          </div>
-
-          <div class="rooms-grid">
-            @for (room of rooms(); track room.id) {
-              <div class="room-rack-card" [ngClass]="'status-' + room.status.toLowerCase()">
-                <div class="room-card-top">
-                  <span class="room-number-pill">Hab. {{ room.roomNumber }}</span>
-                  <span class="room-status-badge" [ngClass]="'badge-' + room.status.toLowerCase()">
-                    @if (room.status === 'AVAILABLE') {
-                      <span class="status-dot"></span> Lista / Disponible
-                    } @else if (room.status === 'OCCUPIED') {
-                      <span class="status-dot"></span> Huésped en Casa
-                    } @else {
-                      <span class="status-dot"></span> En Limpieza
-                    }
-                  </span>
-                </div>
-                <h4 class="room-type-title">{{ room.roomType.name }}</h4>
-
-                <div class="room-card-actions">
-                  @if (room.status === 'MAINTENANCE') {
-                    <button
-                      type="button"
-                      class="btn-clean-action"
-                      (click)="markRoomClean(room.id)"
-                      [disabled]="isActionProcessing()"
-                      title="Marcar suite como limpia y lista para entrega"
-                    >
-                      <span class="material-symbols-outlined">sanitizer</span>
-                      <span>Marcar Limpia y Lista</span>
-                    </button>
-                  } @else if (room.status === 'AVAILABLE') {
-                    <span class="ready-notice">
-                      <span class="material-symbols-outlined">check</span>
-                      Acondicionada para venta
-                    </span>
-                  } @else {
-                    <span class="inhouse-notice">
-                      <span class="material-symbols-outlined">vpn_key</span>
-                      Llaves entregadas a huésped
-                    </span>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </section>
+        <app-room-rack
+          [rooms]="rooms()"
+          [isActionProcessing]="isActionProcessing()"
+          (markClean)="markRoomClean($event)"
+        ></app-room-rack>
 
         <section class="operations-panel">
           <div class="panel-header-row">
             <div class="panel-title-group">
               <span class="panel-pretitle">Gestión de Recepción</span>
-              <h3 class="panel-title">Listado de Operaciones & Huéspedes</h3>
+              <h3 class="panel-title">Operaciones de Huéspedes & Suites</h3>
             </div>
 
-            <button type="button" class="btn-refresh" (click)="loadData()" [disabled]="isLoading()">
-              <span class="material-symbols-outlined" [class.spinning]="isLoading()">sync</span>
-              <span>Actualizar</span>
-            </button>
+            <div class="panel-header-actions">
+              <div class="view-mode-switch">
+                <button
+                  type="button"
+                  class="btn-switch-mode"
+                  [class.active]="operationsViewMode() === 'LIST'"
+                  (click)="operationsViewMode.set('LIST')"
+                  title="Vista de lista y tabla de operaciones"
+                >
+                  <span class="material-symbols-outlined">table_rows</span>
+                  <span>Tabla Operativa</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-switch-mode"
+                  [class.active]="operationsViewMode() === 'TAPE_CHART'"
+                  (click)="operationsViewMode.set('TAPE_CHART')"
+                  title="Vista de calendario Tape Chart / Gantt de suites"
+                >
+                  <span class="material-symbols-outlined">calendar_view_week</span>
+                  <span>Tape Chart (Gantt)</span>
+                </button>
+              </div>
+
+              <button type="button" class="btn-refresh" (click)="loadData()" [disabled]="isLoading()">
+                <span class="material-symbols-outlined" [class.spinning]="isLoading()">sync</span>
+                <span>Actualizar</span>
+              </button>
+            </div>
           </div>
 
-          <div class="controls-bar">
+          @if (operationsViewMode() === 'TAPE_CHART') {
+            <app-tape-chart
+              [reservations]="reservations()"
+              [rooms]="rooms()"
+              [isActionProcessing]="isActionProcessing()"
+              (viewDetails)="openVoucher($event)"
+              (printVoucher)="openVoucher($event)"
+              (checkIn)="openCheckInModal($event)"
+              (checkOut)="openCheckOutModal($event)"
+            ></app-tape-chart>
+          } @else {
+            <div class="controls-bar">
             <div class="search-input-wrap">
               <span class="material-symbols-outlined search-icon">search</span>
               <input
@@ -547,6 +549,7 @@
               </table>
             </div>
           }
+        }
         </section>
       }
 
@@ -714,6 +717,17 @@
             </div>
           }
         </section>
+      }
+
+      @if (isAdmin() && activeSection() === 'SUITES_INVENTORY') {
+        <app-suite-inventory
+          [rooms]="rooms()"
+          [roomTypes]="roomTypes()"
+          [isLoading]="isLoadingRooms()"
+          (refreshRooms)="loadRooms()"
+          (refreshRoomTypes)="loadRoomTypes()"
+          (notify)="onNotifyFromInventory($event)"
+        ></app-suite-inventory>
       }
 
       @if (isAdmin() && activeSection() === 'STAFF') {
@@ -1262,126 +1276,11 @@
     </div>
   }
 
-  @if (isVoucherModalOpen() && selectedVoucher()) {
-    <div class="modal-backdrop" (click)="closeVoucher()">
-      <div class="voucher-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <button type="button" class="modal-close-btn" (click)="closeVoucher()" aria-label="Cerrar voucher">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-
-        <div class="voucher-header">
-          <div class="voucher-brand">
-            <span class="material-symbols-outlined brand-star">hotel_class</span>
-            <span class="brand-title">Hospentra Voucher Oficial</span>
-          </div>
-          <span class="voucher-badge">COMPROBANTE CORPORATIVO DE RECEPCIÓN</span>
-        </div>
-
-        <div class="voucher-seal-wrapper">
-          @if (selectedVoucher()?.paymentMethod === 'CREDIT_CARD') {
-            <div class="pms-voucher-seal paid-online">
-              <span class="material-symbols-outlined seal-icon">verified</span>
-              <div>
-                <span class="seal-title">PAGADA EN LÍNEA</span>
-                <span class="seal-sub">COMPROBANTE LIQUIDADO • AUTH: {{ selectedVoucher()?.authCode || 'AUTH-901844' }}</span>
-              </div>
-            </div>
-          } @else {
-            <div class="pms-voucher-seal pay-checkin">
-              <span class="material-symbols-outlined seal-icon">storefront</span>
-              <div>
-                <span class="seal-title">LIQUIDACIÓN AL CHECK-IN</span>
-                <span class="seal-sub">COBRO EN FRONT DESK</span>
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="voucher-code-strip">
-          <span class="strip-label">Código de Confirmación:</span>
-          <span class="strip-code">HOSP-{{ selectedVoucher()?.id }}-2026</span>
-        </div>
-
-        <div class="voucher-body">
-          <div class="voucher-field">
-            <span class="field-title">Titular de la Reserva</span>
-            <strong class="field-val">{{ selectedVoucher()?.guest?.firstName }} {{ selectedVoucher()?.guest?.lastName }}</strong>
-            <span class="field-sub">{{ selectedVoucher()?.guest?.email }} • Tel: {{ selectedVoucher()?.guest?.phone || 'Sin registrar' }}</span>
-          </div>
-
-          <div class="voucher-field">
-            <span class="field-title">Suite Asignada</span>
-            <strong class="field-val">{{ selectedVoucher()?.room?.roomType?.name }}</strong>
-            <span class="field-sub">Habitación {{ selectedVoucher()?.room?.roomNumber }} • Categoría Boutique</span>
-          </div>
-
-          <div class="voucher-dates-row">
-            <div class="v-date">
-              <span class="field-title">Check-in</span>
-              <strong class="field-val">{{ selectedVoucher()?.checkInDate }}</strong>
-              <span class="field-sub">Desde 15:00 hrs</span>
-            </div>
-            <div class="v-date">
-              <span class="field-title">Check-out</span>
-              <strong class="field-val">{{ selectedVoucher()?.checkOutDate }}</strong>
-              <span class="field-sub">Hasta 12:00 hrs</span>
-            </div>
-          </div>
-
-          <div class="voucher-field">
-            <span class="field-title">Instrucción de Cobro en PMS</span>
-            @if (selectedVoucher()?.paymentMethod === 'CREDIT_CARD') {
-              <strong class="field-val text-emerald">Liquidada con Tarjeta Online ({{ selectedVoucher()?.cardBrand || 'VISA' }} •••• {{ selectedVoucher()?.cardLast4 || '4242' }})</strong>
-              <span class="field-sub">No realizar cobro al check-in. Saldo a cobrar: $0.00 USD.</span>
-            } @else {
-              <strong class="field-val text-amber">Cobro en Recepción Requerido</strong>
-              <span class="field-sub">Cobrar ${{ selectedVoucher()?.totalPrice | number:'1.2-2' }} USD al momento de entregar llaves.</span>
-            }
-          </div>
-
-          <div class="voucher-price-row">
-            <span>Importe de la Estancia (Base):</span>
-            <strong class="v-price">${{ selectedVoucher()?.totalPrice | number:'1.2-2' }} USD</strong>
-          </div>
-
-          @if (voucherOrders().length > 0) {
-            <div class="voucher-field folio-extras-box">
-              <span class="field-title">Consumos de Habitación & Gastronomía (Folio Adicional)</span>
-              @for (order of voucherOrders(); track order.id) {
-                <div class="voucher-order-item">
-                  <span class="v-order-label">CMD-{{ order.id }} • {{ order.items.length }} ítem(s):</span>
-                  <span class="v-order-val">${{ order.totalAmount | number:'1.2-2' }} USD</span>
-                </div>
-              }
-              <div class="voucher-extras-sum">
-                <span>Subtotal Consumos:</span>
-                <strong>${{ voucherExtrasTotal() | number:'1.2-2' }} USD</strong>
-              </div>
-            </div>
-
-            <div class="voucher-price-row grand-total-row">
-              <span>Total Consolidado con Consumos:</span>
-              <strong class="v-price-gold">${{ voucherGrandTotal() | number:'1.2-2' }} USD</strong>
-            </div>
-          }
-
-          <div class="voucher-status-chip">
-            <span>Estado Actual: <strong>{{ getStatusLabel(selectedVoucher()!.status) }}</strong></span>
-          </div>
-        </div>
-
-        <div class="voucher-actions-row">
-          <button type="button" class="btn-voucher-print" (click)="printVoucher()">
-            <span class="material-symbols-outlined">print</span>
-            <span>Imprimir / Guardar PDF</span>
-          </button>
-          <button type="button" class="btn-voucher-close" (click)="closeVoucher()">
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+  <app-voucher-modal
+    [reservation]="isVoucherModalOpen() ? selectedVoucher() : null"
+    [folioOrders]="voucherOrders()"
+    (close)="closeVoucher()"
+  ></app-voucher-modal>
 
   @if (isCancelModalOpen() && reservationToCancel()) {
     <div class="modal-backdrop" (click)="closeCancelDialog()">
@@ -1406,255 +1305,24 @@
     </div>
   }
 
-  @if (isTherapistsModalOpen()) {
-    <div class="modal-backdrop" (click)="closeTherapistsDirectory()">
-      <div class="therapists-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <button type="button" class="modal-close-btn" (click)="closeTherapistsDirectory()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+  <app-therapist-directory-modal
+    [isOpen]="isTherapistsModalOpen()"
+    [therapists]="therapists()"
+    [isSaving]="isSavingTherapist()"
+    (close)="closeTherapistsDirectory()"
+    (toggleStatus)="toggleTherapistStatus($event)"
+    (delete)="deleteTherapist($event)"
+    (create)="saveTherapistFromChild($event)"
+  ></app-therapist-directory-modal>
 
-        <div class="th-modal-header">
-          <div class="th-header-icon">
-            <span class="material-symbols-outlined">spa</span>
-          </div>
-          <div class="th-header-info">
-            <h3 class="th-modal-title">Directorio de Especialistas & Terapeutas de Spa</h3>
-            <p class="th-modal-subtitle">Gestione a los terapeutas autorizados del hotel para asignación de masajes y tratamientos.</p>
-          </div>
-          <button type="button" class="btn-add-th" (click)="openCreateTherapistModal()">
-            <span class="material-symbols-outlined">person_add</span>
-            <span>Agregar Terapeuta</span>
-          </button>
-        </div>
-
-        <div class="th-table-wrap">
-          @if (therapists().length === 0) {
-            <div class="th-empty-state">
-              <span class="material-symbols-outlined">spa</span>
-              <p>No hay terapeutas registrados en el directorio.</p>
-            </div>
-          } @else {
-            <table class="corp-table th-table">
-              <thead>
-                <tr>
-                  <th>Especialista</th>
-                  <th>Especialidad</th>
-                  <th>Contacto / WhatsApp</th>
-                  <th>Disponibilidad</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (th of therapists(); track th.id) {
-                  <tr [class.inactive-row]="!th.active">
-                    <td>
-                      <div class="th-name-cell">
-                        <div class="th-avatar">
-                          <span class="material-symbols-outlined">spa</span>
-                        </div>
-                        <span class="th-name">{{ th.name }}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="th-spec">{{ th.specialty }}</span>
-                    </td>
-                    <td>
-                      @if (th.phone) {
-                        <a [href]="'tel:' + th.phone" class="th-phone-link">
-                          <span class="material-symbols-outlined">call</span>
-                          <span>{{ th.phone }}</span>
-                        </a>
-                      } @else {
-                        <span class="th-no-phone">Sin teléfono</span>
-                      }
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        class="status-toggle-btn"
-                        [class.active]="th.active"
-                        (click)="toggleTherapistStatus(th)"
-                        [title]="th.active ? 'Haga clic para marcar Inactivo (descanso/vacaciones)' : 'Haga clic para activar'"
-                      >
-                        <span class="status-dot"></span>
-                        <span>{{ th.active ? 'Activo (En Guardia)' : 'Inactivo (Descanso)' }}</span>
-                      </button>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        class="btn-th-delete"
-                        (click)="deleteTherapist(th.id)"
-                        title="Eliminar especialista"
-                      >
-                        <span class="material-symbols-outlined">delete</span>
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (isTherapistFormModalOpen()) {
-    <div class="modal-backdrop sub-modal" (click)="closeTherapistFormModal()">
-      <div class="therapist-form-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <div class="th-form-header">
-          <span class="material-symbols-outlined">person_add</span>
-          <h3>Registrar Nuevo Terapeuta en Directorio</h3>
-        </div>
-
-        <div class="th-form-grid">
-          <div class="form-group">
-            <label for="thName">Nombre Completo del Especialista *</label>
-            <input
-              id="thName"
-              type="text"
-              class="form-control"
-              [(ngModel)]="therapistForm().name"
-              placeholder="Ej. Lucía Morales"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="thSpec">Especialidad / Tratamientos *</label>
-            <input
-              id="thSpec"
-              type="text"
-              class="form-control"
-              [(ngModel)]="therapistForm().specialty"
-              placeholder="Ej. Masajes Holísticos & Piedras Calientes"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="thPhone">Teléfono de Contacto Directo / WhatsApp</label>
-            <input
-              id="thPhone"
-              type="text"
-              class="form-control"
-              [(ngModel)]="therapistForm().phone"
-              placeholder="Ej. +52 998 555 1234"
-            />
-          </div>
-        </div>
-
-        <div class="th-form-actions-row">
-          <button type="button" class="btn-cancel" (click)="closeTherapistFormModal()" [disabled]="isSavingTherapist()">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            class="btn-save-th"
-            (click)="saveTherapist()"
-            [disabled]="isSavingTherapist() || !therapistForm().name.trim() || !therapistForm().specialty.trim()"
-          >
-            {{ isSavingTherapist() ? 'Guardando...' : 'Guardar Terapeuta' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (isAssignModalOpen() && orderToAssign()) {
-    <div class="modal-backdrop" (click)="closeAssignModal()">
-      <div class="assign-therapist-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <button type="button" class="modal-close-btn" (click)="closeAssignModal()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-
-        <div class="assign-header">
-          <span class="material-symbols-outlined assign-icon">spa</span>
-          <div>
-            <h3 class="assign-title">Asignar Terapeuta a Solicitud de Spa</h3>
-            <p class="assign-subtitle">Comanda #CMD-{{ orderToAssign()?.id }} • Suite {{ orderToAssign()?.roomNumber }} • {{ orderToAssign()?.guestName }}</p>
-          </div>
-        </div>
-
-        <div class="order-context-box">
-          <div class="ctx-item">
-            <span class="ctx-lbl">Servicio Solicitado:</span>
-            <strong class="ctx-val">
-              @for (it of orderToAssign()?.items; track it.id) {
-                {{ it.quantity }}x {{ it.serviceName }}
-              }
-            </strong>
-          </div>
-          <div class="ctx-item">
-            <span class="ctx-lbl">Ubicación del Servicio:</span>
-            <strong class="ctx-val">{{ orderToAssign()?.serviceLocation === 'SPA_CENTER' ? 'En Cabina de Spa del Hotel' : 'En Suite (Hab. ' + orderToAssign()?.roomNumber + ')' }}</strong>
-          </div>
-          <div class="ctx-item">
-            <span class="ctx-lbl">Horario Solicitado:</span>
-            <strong class="ctx-val gold">{{ orderToAssign()?.scheduledTime || 'Atención Inmediata' }}</strong>
-          </div>
-          @if (orderToAssign()?.notes) {
-            <div class="ctx-item full">
-              <span class="ctx-lbl">Instrucciones del Huésped:</span>
-              <p class="ctx-notes">"{{ orderToAssign()?.notes }}"</p>
-            </div>
-          }
-        </div>
-
-        <div class="select-therapist-wrap">
-          <label class="lbl-select-th">Seleccione el especialista activo que atenderá el servicio:</label>
-
-          @if (activeTherapists().length === 0) {
-            <div class="no-th-alert">
-              <span class="material-symbols-outlined">warning</span>
-              <p>No hay terapeutas activos en el directorio en este momento.</p>
-              <button type="button" class="btn-quick-add-th" (click)="openCreateTherapistModal()">
-                + Agregar Terapeuta Ahora
-              </button>
-            </div>
-          } @else {
-            <div class="th-cards-grid">
-              @for (th of activeTherapists(); track th.id) {
-                <div
-                  class="th-select-card"
-                  [class.selected]="selectedTherapistId() === th.id"
-                  (click)="selectedTherapistId.set(th.id)"
-                >
-                  <div class="th-card-avatar">
-                    <span class="material-symbols-outlined">spa</span>
-                  </div>
-                  <div class="th-card-info">
-                    <strong class="th-card-name">{{ th.name }}</strong>
-                    <span class="th-card-spec">{{ th.specialty }}</span>
-                    @if (th.phone) {
-                      <span class="th-card-phone">
-                        <span class="material-symbols-outlined">call</span>
-                        <span>{{ th.phone }}</span>
-                      </span>
-                    }
-                  </div>
-                  <div class="select-radio-indicator">
-                    <span class="radio-circle" [class.checked]="selectedTherapistId() === th.id"></span>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <div class="assign-actions-row">
-          <button type="button" class="btn-cancel" (click)="closeAssignModal()" [disabled]="isAssigningTherapist()">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            class="btn-confirm-assign"
-            (click)="confirmAssignTherapist()"
-            [disabled]="isAssigningTherapist() || !selectedTherapistId()"
-          >
-            {{ isAssigningTherapist() ? 'Asignando...' : 'Confirmar y Asignar Terapeuta' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+  <app-assign-therapist-modal
+    [isOpen]="isAssignModalOpen()"
+    [order]="orderToAssign()"
+    [activeTherapists]="activeTherapists()"
+    [busyTherapistIds]="busyTherapistIds()"
+    [isAssigning]="isAssigningTherapist()"
+    (close)="closeAssignModal()"
+    (assign)="confirmAssignFromChild($event)"
+    (openDirectory)="openTherapistsDirectory()"
+  ></app-assign-therapist-modal>
 </div>

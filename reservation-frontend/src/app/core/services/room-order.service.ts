@@ -39,4 +39,10 @@ export class RoomOrderService {
   assignTherapist(orderId: number, therapistId: number): Observable<RoomOrder> {
     return this.http.patch<RoomOrder>(`${this.apiUrl}/${orderId}/assign-therapist`, { therapistId });
   }
+
+  getBusyTherapists(scheduledTime: string): Observable<number[]> {
+    return this.http.get<number[]>(`${this.apiUrl}/busy-therapists`, {
+      params: { scheduledTime }
+    });
+  }
 }

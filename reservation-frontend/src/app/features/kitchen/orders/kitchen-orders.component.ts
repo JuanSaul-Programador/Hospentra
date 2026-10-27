@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SseService } from '../../../core/services/sse.service';
 import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 
 @Component({
@@ -15,6 +17,7 @@ import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 export class KitchenOrdersComponent implements OnInit, OnDestroy {
   private readonly roomOrderService = inject(RoomOrderService);
   readonly authService = inject(AuthService);
+  readonly sseService = inject(SseService);
   private readonly router = inject(Router);
 
   readonly orders = signal<RoomOrder[]>([]);
@@ -23,7 +26,14 @@ export class KitchenOrdersComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
 
+  readonly soundEnabled = signal<boolean>(typeof window !== 'undefined' ? localStorage.getItem('hospentra_kds_sound') !== 'false' : true);
+  readonly hasSoundChimed = signal<boolean>(false);
+
   private pollInterval: any = null;
+  private sseSub: Subscription | null = null;
+  private audioCtx: AudioContext | null = null;
+  private previousReceivedIds = new Set<number>();
+  private isFirstLoad = true;
 
   readonly receivedOrders = computed(() =>
     this.orders().filter(o => o.status === 'RECEIVED')
@@ -43,15 +53,116 @@ export class KitchenOrdersComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadOrders();
+    this.sseService.connect();
+
+    this.sseSub = new Subscription();
+
+    this.sseSub.add(
+      this.sseService.orderCreated$.subscribe({
+        next: (event) => {
+          this.playChime();
+          this.showToast(event.message || '¡Nueva comanda recibida en cocina!');
+          this.loadOrders(false);
+        }
+      })
+    );
+
+    this.sseSub.add(
+      this.sseService.orderStatusChanged$.subscribe({
+        next: (event) => {
+          const updatedOrder = event.payload as RoomOrder;
+          if (updatedOrder && updatedOrder.id) {
+            this.orders.update(list => list.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+          } else {
+            this.loadOrders(false);
+          }
+        }
+      })
+    );
+
     this.pollInterval = setInterval(() => {
       this.loadOrders(false);
-    }, 10000);
+    }, 60000);
   }
 
   ngOnDestroy(): void {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
     }
+    if (this.sseSub) {
+      this.sseSub.unsubscribe();
+    }
+    if (this.audioCtx && this.audioCtx.state !== 'closed') {
+      this.audioCtx.close().catch(() => {});
+    }
+  }
+
+  toggleSound(): void {
+    const nextState = !this.soundEnabled();
+    this.soundEnabled.set(nextState);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospentra_kds_sound', String(nextState));
+    }
+    if (nextState) {
+      this.playChime();
+      this.showToast('Alertas sonoras activadas en terminal de cocina.');
+    } else {
+      this.showToast('Alertas sonoras silenciadas.');
+    }
+  }
+
+  private initAudioContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!this.audioCtx && AudioContextClass) {
+        this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      return this.audioCtx;
+    } catch {
+      return null;
+    }
+  }
+
+  playChime(): void {
+    const ctx = this.initAudioContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0, now);
+      gain1.gain.linearRampToValueAtTime(0.28, now + 0.03);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.45);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, now + 0.12);
+      gain2.gain.setValueAtTime(0, now + 0.12);
+      gain2.gain.linearRampToValueAtTime(0.35, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.0008, now + 0.85);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.85);
+
+      this.hasSoundChimed.set(true);
+      setTimeout(() => {
+        this.hasSoundChimed.set(false);
+      }, 1500);
+    } catch {}
   }
 
   loadOrders(showSpinner: boolean = true): void {
@@ -62,8 +173,23 @@ export class KitchenOrdersComponent implements OnInit, OnDestroy {
 
     this.roomOrderService.getActiveKitchenOrders().subscribe({
       next: (data) => {
-        this.orders.set(data || []);
+        const orderList = data || [];
+        this.orders.set(orderList);
         this.isLoading.set(false);
+
+        const currentReceived = orderList.filter(o => o.status === 'RECEIVED');
+        const currentReceivedIds = new Set(currentReceived.map(o => o.id));
+
+        if (!this.isFirstLoad && this.soundEnabled()) {
+          const hasNewIncoming = Array.from(currentReceivedIds).some(id => !this.previousReceivedIds.has(id));
+          if (hasNewIncoming) {
+            this.playChime();
+            this.showToast('¡Nueva comanda recibida en cocina! Revisar columna de inicio.');
+          }
+        }
+
+        this.previousReceivedIds = currentReceivedIds;
+        this.isFirstLoad = false;
       },
       error: () => {
         this.errorMessage.set('Error al sincronizar comandas de cocina con el servidor.');

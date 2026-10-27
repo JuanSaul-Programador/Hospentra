@@ -6,16 +6,36 @@
     </a>
 
     <nav class="navbar-nav desktop-only">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">Inicio</a>
-      <a href="#catalogo" class="nav-link">Habitaciones</a>
-      <a href="#servicios" class="nav-link">Servicios</a>
-      <a href="#contacto" class="nav-link">Contacto</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">{{ i18n.t('nav.home') }}</a>
+      <a href="#catalogo" class="nav-link">{{ i18n.t('nav.rooms') }}</a>
+      <a href="#servicios" class="nav-link">{{ i18n.t('nav.amenities') }}</a>
+      <a href="#contacto" class="nav-link">{{ i18n.t('nav.contact') }}</a>
     </nav>
 
     <div class="navbar-actions desktop-only">
+      <div class="lang-switcher">
+        <button 
+          type="button" 
+          class="lang-btn" 
+          [class.active]="i18n.currentLang() === 'es'" 
+          (click)="i18n.setLanguage('es')"
+          title="Español">
+          ES
+        </button>
+        <span class="lang-divider">/</span>
+        <button 
+          type="button" 
+          class="lang-btn" 
+          [class.active]="i18n.currentLang() === 'en'" 
+          (click)="i18n.setLanguage('en')"
+          title="English">
+          EN
+        </button>
+      </div>
+
       @if (!authService.isAuthenticated()) {
-        <a routerLink="/login" class="btn btn-ghost">Iniciar Sesión</a>
-        <a routerLink="/register" class="btn btn-secondary">Registrarse</a>
+        <a routerLink="/login" class="btn btn-ghost">{{ i18n.t('nav.signIn') }}</a>
+        <a routerLink="/register" class="btn btn-secondary">{{ i18n.t('nav.register') }}</a>
       } @else {
         <div class="user-chip-container">
           <button class="user-chip" (click)="toggleUserMenu()" type="button">
@@ -38,25 +58,25 @@
               @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
                 <a routerLink="/admin/dashboard" class="dropdown-item" (click)="closeMenus()">
                   <span class="material-symbols-outlined">admin_panel_settings</span>
-                  Panel de Gestión PMS
+                  {{ i18n.t('nav.pmsPanel') }}
                 </a>
               }
               @if (authService.userRole() === 'ROLE_KITCHEN') {
                 <a routerLink="/kitchen/orders" class="dropdown-item" (click)="closeMenus()">
                   <span class="material-symbols-outlined">skillet</span>
-                  Terminal KDS Cocina
+                  {{ i18n.t('nav.kdsTerminal') }}
                 </a>
               }
               @if (authService.userRole() === 'ROLE_CUSTOMER') {
                 <a routerLink="/my-reservations" class="dropdown-item" (click)="closeMenus()">
                   <span class="material-symbols-outlined">luggage</span>
-                  Mis Reservas
+                  {{ i18n.t('nav.myReservations') }}
                 </a>
               }
               <div class="dropdown-divider"></div>
               <button class="dropdown-item logout" (click)="logout()" type="button">
                 <span class="material-symbols-outlined">logout</span>
-                Cerrar Sesión
+                {{ i18n.t('nav.signOut') }}
               </button>
             </div>
           }
@@ -71,36 +91,55 @@
 
   @if (isMobileMenuOpen()) {
     <div class="mobile-drawer">
+      <div class="lang-switcher mobile-switcher">
+        <button 
+          type="button" 
+          class="lang-btn" 
+          [class.active]="i18n.currentLang() === 'es'" 
+          (click)="i18n.setLanguage('es')"
+          title="Español">
+          ES
+        </button>
+        <span class="lang-divider">/</span>
+        <button 
+          type="button" 
+          class="lang-btn" 
+          [class.active]="i18n.currentLang() === 'en'" 
+          (click)="i18n.setLanguage('en')"
+          title="English">
+          EN
+        </button>
+      </div>
       <nav class="mobile-nav">
-        <a routerLink="/" class="mobile-nav-link" (click)="closeMenus()">Inicio</a>
-        <a href="#catalogo" class="mobile-nav-link" (click)="closeMenus()">Habitaciones</a>
-        <a href="#servicios" class="mobile-nav-link" (click)="closeMenus()">Servicios</a>
-        <a href="#contacto" class="mobile-nav-link" (click)="closeMenus()">Contacto</a>
+        <a routerLink="/" class="mobile-nav-link" (click)="closeMenus()">{{ i18n.t('nav.home') }}</a>
+        <a href="#catalogo" class="mobile-nav-link" (click)="closeMenus()">{{ i18n.t('nav.rooms') }}</a>
+        <a href="#servicios" class="mobile-nav-link" (click)="closeMenus()">{{ i18n.t('nav.amenities') }}</a>
+        <a href="#contacto" class="mobile-nav-link" (click)="closeMenus()">{{ i18n.t('nav.contact') }}</a>
         @if (authService.isAuthenticated()) {
           @if (authService.userRole() === 'ROLE_ADMIN' || authService.userRole() === 'ROLE_RECEPTIONIST') {
             <a routerLink="/admin/dashboard" class="mobile-nav-link" (click)="closeMenus()">
               <span class="material-symbols-outlined">admin_panel_settings</span>
-              Panel de Gestión PMS
+              {{ i18n.t('nav.pmsPanel') }}
             </a>
           }
           @if (authService.userRole() === 'ROLE_KITCHEN') {
             <a routerLink="/kitchen/orders" class="mobile-nav-link" (click)="closeMenus()">
               <span class="material-symbols-outlined">skillet</span>
-              Terminal KDS Cocina
+              {{ i18n.t('nav.kdsTerminal') }}
             </a>
           }
           @if (authService.userRole() === 'ROLE_CUSTOMER') {
             <a routerLink="/my-reservations" class="mobile-nav-link" (click)="closeMenus()">
               <span class="material-symbols-outlined">luggage</span>
-              Mis Reservas
+              {{ i18n.t('nav.myReservations') }}
             </a>
           }
         }
       </nav>
       <div class="mobile-actions">
         @if (!authService.isAuthenticated()) {
-          <a routerLink="/login" class="btn btn-ghost w-full" (click)="closeMenus()">Iniciar Sesión</a>
-          <a routerLink="/register" class="btn btn-secondary w-full" (click)="closeMenus()">Registrarse</a>
+          <a routerLink="/login" class="btn btn-ghost w-full" (click)="closeMenus()">{{ i18n.t('nav.signIn') }}</a>
+          <a routerLink="/register" class="btn btn-secondary w-full" (click)="closeMenus()">{{ i18n.t('nav.register') }}</a>
         } @else {
           <div class="mobile-user-info">
             <p class="mobile-user-name">{{ authService.currentUser()?.username }}</p>
@@ -108,7 +147,7 @@
           </div>
           <button class="btn btn-outline w-full" (click)="logout()" type="button">
             <span class="material-symbols-outlined">logout</span>
-            Cerrar Sesión
+            {{ i18n.t('nav.signOut') }}
           </button>
         }
       </div>

@@ -112,6 +112,105 @@
   }
 }
 
+.live-stream-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+
+  &.connected {
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #34d399;
+  }
+
+  .live-pulse-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: #64748b;
+
+    &.active {
+      background-color: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+  }
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.btn-kds-sound {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &.sound-active {
+    background-color: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+
+    &:hover {
+      background-color: rgba(16, 185, 129, 0.2);
+      border-color: #34d399;
+      color: #ffffff;
+    }
+
+    .material-symbols-outlined {
+      color: #34d399;
+    }
+  }
+
+  &.sound-muted {
+    background-color: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+    }
+
+    .material-symbols-outlined {
+      color: #f87171;
+    }
+  }
+
+  .material-symbols-outlined {
+    font-size: 1.125rem;
+
+    &.bell-ringing {
+      animation: bellWiggle 0.5s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes bellWiggle {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(-16deg); }
+  40% { transform: rotate(14deg); }
+  60% { transform: rotate(-10deg); }
+  80% { transform: rotate(8deg); }
+  100% { transform: rotate(0); }
+}
+
 .btn-kds-refresh,
 .btn-kds-link {
   display: inline-flex;

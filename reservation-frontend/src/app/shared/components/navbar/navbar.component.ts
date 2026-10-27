@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-navbar',
@@ -12,6 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class NavbarComponent {
   readonly authService = inject(AuthService);
+  readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
   readonly isMobileMenuOpen = signal(false);
@@ -39,11 +41,11 @@ export class NavbarComponent {
   getRoleLabel(role: string | null): string {
     switch (role) {
       case 'ROLE_ADMIN':
-        return 'Administrador';
+        return this.i18n.t('nav.admin');
       case 'ROLE_RECEPTIONIST':
-        return 'Recepción';
+        return this.i18n.t('nav.receptionist');
       case 'ROLE_CUSTOMER':
-        return 'Huésped';
+        return this.i18n.t('nav.customer');
       default:
         return '';
     }

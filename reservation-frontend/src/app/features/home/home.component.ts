@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { RoomService } from '../../core/services/room.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { Room, RoomType } from '../../core/models/room.model';
 import { AuthModalComponent } from '../../shared/components/auth-modal/auth-modal.component';
 
@@ -17,6 +18,7 @@ import { AuthModalComponent } from '../../shared/components/auth-modal/auth-moda
 export class HomeComponent implements OnInit {
   private readonly roomService = inject(RoomService);
   readonly authService = inject(AuthService);
+  readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
   readonly rooms = signal<Room[]>([]);
@@ -48,7 +50,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 1,
         name: 'Suite Royal Vista al Mar',
+        nameEn: 'Royal Ocean View Suite',
         description: 'Espaciosa suite con ventanales de piso a techo frente al océano, terraza privada con tina de hidromasaje y servicio de mayordomo.',
+        descriptionEn: 'Spacious suite with floor-to-ceiling oceanfront windows, natural oak finishes, and private terrace with hot tub.',
         capacity: 3,
         pricePerNight: 380.00
       }
@@ -60,7 +64,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 2,
         name: 'Habitación Doble Deluxe Jardín',
+        nameEn: 'Deluxe Garden Double Room',
         description: 'Diseño contemporáneo con vistas a los jardines zen del hotel, aislamiento acústico total y amenities botánicos orgánicos.',
+        descriptionEn: 'Contemporary boutique design overlooking tranquil zen gardens, acoustic soundproofing, and organic botanic amenities.',
         capacity: 2,
         pricePerNight: 250.00
       }
@@ -72,7 +78,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 3,
         name: 'Penthouse Panorámico Hospentra',
+        nameEn: 'Panoramic Hospentra Penthouse',
         description: 'El máximo exponente del lujo boutique con 360 grados de horizonte, sala de estar independiente y acceso a lounge VIP.',
+        descriptionEn: 'The pinnacle of boutique luxury with 360-degree horizon views, separate living sanctuary, and VIP lounge privileges.',
         capacity: 4,
         pricePerNight: 620.00
       }
@@ -84,7 +92,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 4,
         name: 'Villa Serena con Alberca Privada',
+        nameEn: 'Serena Private Pool Villa',
         description: 'Refugio idílico rodeado de palmeras y vegetación tropical, máxima privacidad con alberca climatizada de agua salada.',
+        descriptionEn: 'Secluded retreat surrounded by tropical palms, absolute privacy featuring a private heated saltwater plunge pool.',
         capacity: 4,
         pricePerNight: 540.00
       }
@@ -96,7 +106,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 5,
         name: 'Studio Loft Arquitectónico',
+        nameEn: 'Architectural Studio Loft',
         description: 'Estética minimalista con doble altura, luz natural envolvente y mobiliario de autor en nogal y concreto pulido.',
+        descriptionEn: 'Minimalist double-height aesthetic with immersive natural daylight and bespoke walnut and polished concrete furnishings.',
         capacity: 2,
         pricePerNight: 290.00
       }
@@ -108,7 +120,9 @@ export class HomeComponent implements OnInit {
       roomType: {
         id: 6,
         name: 'Grand Master Suite Presidencial',
+        nameEn: 'Grand Master Presidential Suite',
         description: 'Exclusividad absoluta con dos niveles, comedor privado para seis comensales, solárium en terraza y cava de vinos.',
+        descriptionEn: 'Uncompromising exclusivity spanning two levels, private six-guest dining room, rooftop solarium, and curated wine cellar.',
         capacity: 6,
         pricePerNight: 850.00
       }
@@ -182,11 +196,12 @@ export class HomeComponent implements OnInit {
   }
 
   getCategoryBadge(name: string): string {
-    if (name.toLowerCase().includes('suite')) return 'Suite de Lujo';
-    if (name.toLowerCase().includes('villa')) return 'Villa Privada';
-    if (name.toLowerCase().includes('penthouse')) return 'Colección Signature';
-    if (name.toLowerCase().includes('loft')) return 'Edición Urbana';
-    return 'Residencia Boutique';
+    const isEn = this.i18n.currentLang() === 'en';
+    if (name.toLowerCase().includes('suite')) return isEn ? 'Luxury Suite' : 'Suite de Lujo';
+    if (name.toLowerCase().includes('villa')) return isEn ? 'Private Villa' : 'Villa Privada';
+    if (name.toLowerCase().includes('penthouse')) return isEn ? 'Signature Collection' : 'Colección Signature';
+    if (name.toLowerCase().includes('loft')) return isEn ? 'Urban Edition' : 'Edición Urbana';
+    return isEn ? 'Boutique Residence' : 'Residencia Boutique';
   }
 
   onFilterChange(category: string): void {

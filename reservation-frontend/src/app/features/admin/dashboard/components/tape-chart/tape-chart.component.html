@@ -1,0 +1,230 @@
+<div class="tape-chart-root" (click)="closePopover()">
+  <div class="tape-header">
+    <div class="tape-title-group">
+      <div class="tape-icon-wrap">
+        <span class="material-symbols-outlined">calendar_view_week</span>
+      </div>
+      <div>
+        <h3 class="tape-main-title">Tape Chart • Cronograma Gantt de Ocupación</h3>
+        <p class="tape-subtitle">Vista temporal continua de ocupación, check-ins y check-outs por suite</p>
+      </div>
+    </div>
+
+    <div class="tape-toolbar">
+      <div class="tape-nav-controls">
+        <button type="button" class="btn-tape-nav" (click)="prevPeriod()" title="Retroceder 7 días">
+          <span class="material-symbols-outlined">chevron_left</span>
+          <span>7 Días</span>
+        </button>
+        <button type="button" class="btn-tape-today" (click)="goToToday()" title="Ir a la fecha de hoy">
+          <span class="material-symbols-outlined">today</span>
+          <span>Hoy</span>
+        </button>
+        <button type="button" class="btn-tape-nav" (click)="nextPeriod()" title="Avanzar 7 días">
+          <span>7 Días</span>
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="tape-range-badge">
+        <span class="material-symbols-outlined">date_range</span>
+        <span>{{ rangeLabel() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tape-legend-bar">
+    <span class="legend-title">Estados de Estancia:</span>
+    <div class="legend-items">
+      <span class="legend-item"><span class="legend-dot inhouse"></span>En Casa (Check-In)</span>
+      <span class="legend-item"><span class="legend-dot confirmed"></span>Confirmada (Por Ingresar)</span>
+      <span class="legend-item"><span class="legend-dot pending"></span>Pendiente de Pago</span>
+      <span class="legend-item"><span class="legend-dot completed"></span>Completada</span>
+    </div>
+  </div>
+
+  <div class="tape-grid-wrapper">
+    <div class="tape-grid-table">
+      <div class="tape-grid-header-row">
+        <div class="cell-room-header">
+          <span class="material-symbols-outlined">hotel</span>
+          <span>Suite / Habitación</span>
+        </div>
+        <div class="days-header-strip">
+          @for (day of visibleDays(); track day.dateStr) {
+            <div class="cell-day-header" [class.today]="day.isToday" [class.weekend]="day.isWeekend">
+              <span class="day-name">{{ day.dayName }}</span>
+              <span class="day-number">{{ day.dayNumber }}</span>
+              <span class="day-month">{{ day.monthName }}</span>
+              @if (day.isToday) {
+                <span class="today-marker">HOY</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="tape-grid-body">
+        @for (row of roomRows(); track row.room.id) {
+          <div class="tape-grid-room-row">
+            <div class="cell-room-info">
+              <div class="room-number-badge">
+                <span class="room-num">Suite {{ row.room.roomNumber }}</span>
+                <span class="room-type-tag">{{ row.room.roomType.name }}</span>
+              </div>
+              <div class="room-meta-sub">
+                <span class="room-rate">${{ row.room.roomType.pricePerNight | number:'1.0-0' }}/noche</span>
+                <span class="room-status-dot" [class]="'dot-' + row.room.status.toLowerCase()" [title]="'Estado: ' + row.room.status"></span>
+              </div>
+            </div>
+
+            <div class="cell-timeline-track">
+              <div class="grid-columns-bg">
+                @for (day of visibleDays(); track day.dateStr) {
+                  <div class="bg-day-col" [class.today-bg]="day.isToday" [class.weekend-bg]="day.isWeekend"></div>
+                }
+              </div>
+
+              <div class="blocks-container">
+                @for (block of row.blocks; track block.reservation.id) {
+                  <div
+                    class="gantt-reservation-block"
+                    [class]="block.statusClass"
+                    [class.clipped-start]="block.isStartClipped"
+                    [class.clipped-end]="block.isEndClipped"
+                    [class.is-selected]="activeBlockPopover()?.id === block.reservation.id"
+                    [style.grid-column]="(block.startCol + 1) + ' / span ' + block.colSpan"
+                    (click)="onBlockClick($event, block.reservation)"
+                    [title]="block.reservation.guest.firstName + ' ' + block.reservation.guest.lastName + ' • ' + block.nightsTotal + ' noches • ' + block.statusLabel"
+                  >
+                    @if (block.isStartClipped) {
+                      <span class="clip-indicator clip-left">‹</span>
+                    }
+
+                    <div class="block-content">
+                      <div class="block-guest-name">
+                        <span class="material-symbols-outlined block-icon">
+                          {{ block.reservation.status === 'CHECKED_IN' ? 'key' : 'person' }}
+                        </span>
+                        <strong class="name-text">{{ block.reservation.guest.firstName }} {{ block.reservation.guest.lastName }}</strong>
+                      </div>
+                      <div class="block-meta">
+                        <span class="block-code">#{{ block.reservation.id }}</span>
+                        <span class="block-nights">{{ block.nightsTotal }}n</span>
+                      </div>
+                    </div>
+
+                    @if (block.isEndClipped) {
+                      <span class="clip-indicator clip-right">›</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="tape-grid-footer-row">
+        <div class="cell-footer-label">
+          <span class="material-symbols-outlined">analytics</span>
+          <span>Ocupación Diaria</span>
+        </div>
+        <div class="days-occupancy-strip">
+          @for (occ of dailyOccupancy(); track occ.dateStr) {
+            <div class="cell-day-occupancy">
+              <span class="occ-percent" [class.high]="occ.occupancyPercent >= 80" [class.mid]="occ.occupancyPercent >= 50 && occ.occupancyPercent < 80">
+                {{ occ.occupancyPercent }}%
+              </span>
+              <div class="occ-progress-track">
+                <div
+                  class="occ-progress-bar"
+                  [style.width.%]="occ.occupancyPercent"
+                  [class.bar-high]="occ.occupancyPercent >= 80"
+                  [class.bar-mid]="occ.occupancyPercent >= 50 && occ.occupancyPercent < 80"
+                ></div>
+              </div>
+              <span class="occ-count">{{ occ.occupiedRooms }}/{{ rooms.length }} suites</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (activeBlockPopover(); as res) {
+    <div
+      class="tape-popover-card"
+      (click)="$event.stopPropagation()"
+      [style.left.px]="popoverPosition()?.x || 100"
+      [style.top.px]="popoverPosition()?.y || 200"
+    >
+      <div class="popover-header">
+        <div class="pop-title-wrap">
+          <span class="pop-code">HOSP-{{ res.id }}-2026</span>
+          <h4 class="pop-guest-name">{{ res.guest.firstName }} {{ res.guest.lastName }}</h4>
+        </div>
+        <button type="button" class="btn-pop-close" (click)="closePopover()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="popover-body">
+        <div class="pop-info-row">
+          <span class="pop-lbl">Suite:</span>
+          <strong class="pop-val">Suite {{ res.room.roomNumber }} ({{ res.room.roomType.name }})</strong>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Estancia:</span>
+          <span class="pop-val">{{ res.checkInDate }} al {{ res.checkOutDate }}</span>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Importe:</span>
+          <strong class="pop-val gold">${{ res.totalPrice | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Estado:</span>
+          <span class="pop-status-badge" [class]="'badge-' + res.status.toLowerCase()">
+            {{ res.status }}
+          </span>
+        </div>
+      </div>
+
+      <div class="popover-actions">
+        <button type="button" class="btn-pop-action btn-pop-details" (click)="onViewDetails(res)">
+          <span class="material-symbols-outlined">visibility</span>
+          <span>Ver Ficha</span>
+        </button>
+
+        <button type="button" class="btn-pop-action btn-pop-voucher" (click)="onPrintVoucher(res)">
+          <span class="material-symbols-outlined">receipt_long</span>
+          <span>Voucher</span>
+        </button>
+
+        @if (isCheckInEligible(res)) {
+          <button
+            type="button"
+            class="btn-pop-action btn-pop-checkin"
+            (click)="onCheckIn(res)"
+            [disabled]="isActionProcessing"
+          >
+            <span class="material-symbols-outlined">login</span>
+            <span>Check-In</span>
+          </button>
+        }
+
+        @if (isCheckOutEligible(res)) {
+          <button
+            type="button"
+            class="btn-pop-action btn-pop-checkout"
+            (click)="onCheckOut(res)"
+            [disabled]="isActionProcessing"
+          >
+            <span class="material-symbols-outlined">logout</span>
+            <span>Check-Out</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,156 @@
+@if (isOpen) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="therapists-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="onClose()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="th-modal-header">
+        <div class="th-header-icon">
+          <span class="material-symbols-outlined">spa</span>
+        </div>
+        <div class="th-header-info">
+          <h3 class="th-modal-title">Directorio de Especialistas & Terapeutas de Spa</h3>
+          <p class="th-modal-subtitle">Gestione a los terapeutas autorizados del hotel para asignación de masajes y tratamientos.</p>
+        </div>
+        <button type="button" class="btn-add-th" (click)="openFormModal()">
+          <span class="material-symbols-outlined">person_add</span>
+          <span>Agregar Terapeuta</span>
+        </button>
+      </div>
+
+      <div class="th-table-wrap">
+        @if (therapists.length === 0) {
+          <div class="th-empty-state">
+            <span class="material-symbols-outlined">spa</span>
+            <p>No hay terapeutas registrados en el directorio.</p>
+          </div>
+        } @else {
+          <table class="corp-table th-table">
+            <thead>
+              <tr>
+                <th>Especialista</th>
+                <th>Especialidad</th>
+                <th>Contacto / WhatsApp</th>
+                <th>Disponibilidad</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (th of therapists; track th.id) {
+                <tr [class.inactive-row]="!th.active">
+                  <td>
+                    <div class="th-name-cell">
+                      <div class="th-avatar">
+                        <span class="material-symbols-outlined">spa</span>
+                      </div>
+                      <span class="th-name">{{ th.name }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="th-spec">{{ th.specialty }}</span>
+                  </td>
+                  <td>
+                    @if (th.phone) {
+                      <a [href]="'tel:' + th.phone" class="th-phone-link">
+                        <span class="material-symbols-outlined">call</span>
+                        <span>{{ th.phone }}</span>
+                      </a>
+                    } @else {
+                      <span class="th-no-phone">Sin teléfono</span>
+                    }
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="status-toggle-btn"
+                      [class.active]="th.active"
+                      (click)="onToggleStatus(th)"
+                      [title]="th.active ? 'Haga clic para marcar Inactivo (descanso/vacaciones)' : 'Haga clic para activar'"
+                    >
+                      <span class="status-dot"></span>
+                      <span>{{ th.active ? 'Activo (En Guardia)' : 'Inactivo (Descanso)' }}</span>
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn-th-delete"
+                      (click)="onDelete(th.id)"
+                      title="Eliminar especialista"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (isFormModalOpen()) {
+  <div class="modal-backdrop sub-modal" (click)="closeFormModal()">
+    <div class="therapist-form-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="th-form-header">
+        <span class="material-symbols-outlined">person_add</span>
+        <h3>Registrar Nuevo Terapeuta en Directorio</h3>
+      </div>
+
+      <div class="th-form-grid">
+        <div class="form-group">
+          <label for="thName">Nombre Completo del Especialista *</label>
+          <input
+            id="thName"
+            type="text"
+            class="form-control"
+            [ngModel]="formName()"
+            (ngModelChange)="formName.set($event)"
+            placeholder="Ej. Lucía Morales"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="thSpec">Especialidad / Tratamientos *</label>
+          <input
+            id="thSpec"
+            type="text"
+            class="form-control"
+            [ngModel]="formSpecialty()"
+            (ngModelChange)="formSpecialty.set($event)"
+            placeholder="Ej. Masajes Holísticos & Piedras Calientes"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="thPhone">Teléfono de Contacto Directo / WhatsApp</label>
+          <input
+            id="thPhone"
+            type="text"
+            class="form-control"
+            [ngModel]="formPhone()"
+            (ngModelChange)="formPhone.set($event)"
+            placeholder="Ej. +52 998 555 1234"
+          />
+        </div>
+      </div>
+
+      <div class="th-form-actions-row">
+        <button type="button" class="btn-cancel" (click)="closeFormModal()" [disabled]="isSaving">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-save-th"
+          (click)="submitForm()"
+          [disabled]="isSaving || !formName().trim() || !formSpecialty().trim()"
+        >
+          {{ isSaving ? 'Guardando...' : 'Guardar Terapeuta' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,54 @@
+<section class="room-rack-section">
+  <div class="rack-header-row">
+    <div class="rack-title-group">
+      <span class="material-symbols-outlined rack-icon">bed</span>
+      <h3 class="rack-title">Room Rack & Estado de Limpieza (Housekeeping)</h3>
+    </div>
+    <span class="rack-meta">Control de llaves y mantenimiento de suites</span>
+  </div>
+
+  <div class="rooms-grid">
+    @for (room of rooms; track room.id) {
+      <div class="room-rack-card" [ngClass]="'status-' + room.status.toLowerCase()">
+        <div class="room-card-top">
+          <span class="room-number-pill">Hab. {{ room.roomNumber }}</span>
+          <span class="room-status-badge" [ngClass]="'badge-' + room.status.toLowerCase()">
+            @if (room.status === 'AVAILABLE') {
+              <span class="status-dot"></span> Lista / Disponible
+            } @else if (room.status === 'OCCUPIED') {
+              <span class="status-dot"></span> Huésped en Casa
+            } @else {
+              <span class="status-dot"></span> En Limpieza
+            }
+          </span>
+        </div>
+        <h4 class="room-type-title">{{ room.roomType.name }}</h4>
+
+        <div class="room-card-actions">
+          @if (room.status === 'MAINTENANCE') {
+            <button
+              type="button"
+              class="btn-clean-action"
+              (click)="onMarkClean(room.id)"
+              [disabled]="isActionProcessing"
+              title="Marcar suite como limpia y lista para entrega"
+            >
+              <span class="material-symbols-outlined">sanitizer</span>
+              <span>Marcar Limpia y Lista</span>
+            </button>
+          } @else if (room.status === 'AVAILABLE') {
+            <span class="ready-notice">
+              <span class="material-symbols-outlined">check</span>
+              Acondicionada para venta
+            </span>
+          } @else {
+            <span class="inhouse-notice">
+              <span class="material-symbols-outlined">vpn_key</span>
+              Llaves entregadas a huésped
+            </span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

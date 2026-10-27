@@ -1,0 +1,111 @@
+@if (isOpen && order) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="assign-therapist-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="onClose()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="assign-header">
+        <span class="material-symbols-outlined assign-icon">spa</span>
+        <div>
+          <h3 class="assign-title">Asignar Terapeuta a Solicitud de Spa</h3>
+          <p class="assign-subtitle">Comanda #CMD-{{ order.id }} • Suite {{ order.roomNumber }} • {{ order.guestName }}</p>
+        </div>
+      </div>
+
+      <div class="order-context-box">
+        <div class="ctx-item">
+          <span class="ctx-lbl">Servicio Solicitado:</span>
+          <strong class="ctx-val">
+            @for (it of order.items; track it.id) {
+              {{ it.quantity }}x {{ it.serviceName }}
+            }
+          </strong>
+        </div>
+        <div class="ctx-item">
+          <span class="ctx-lbl">Ubicación del Servicio:</span>
+          <strong class="ctx-val">{{ order.serviceLocation === 'SPA_CENTER' ? 'En Cabina de Spa del Hotel' : 'En Suite (Hab. ' + order.roomNumber + ')' }}</strong>
+        </div>
+        <div class="ctx-item">
+          <span class="ctx-lbl">Horario Solicitado:</span>
+          <strong class="ctx-val gold">{{ order.scheduledTime || 'Atención Inmediata' }}</strong>
+        </div>
+        @if (order.notes) {
+          <div class="ctx-item full">
+            <span class="ctx-lbl">Instrucciones del Huésped:</span>
+            <p class="ctx-notes">"{{ order.notes }}"</p>
+          </div>
+        }
+      </div>
+
+      <div class="select-therapist-wrap">
+        <label class="lbl-select-th">Seleccione el especialista activo que atenderá el servicio:</label>
+
+        @if (activeTherapists.length === 0) {
+          <div class="no-th-alert">
+            <span class="material-symbols-outlined">warning</span>
+            <p>No hay terapeutas activos en el directorio en este momento.</p>
+            <button type="button" class="btn-quick-add-th" (click)="onOpenDirectory()">
+              + Abrir Directorio de Terapeutas
+            </button>
+          </div>
+        } @else {
+          <div class="th-cards-grid">
+            @for (th of activeTherapists; track th.id) {
+              <div
+                class="th-select-card"
+                [class.selected]="selectedTherapistId() === th.id"
+                [class.busy]="isBusy(th.id)"
+                (click)="selectTherapist(th.id)"
+                [title]="isBusy(th.id) ? 'Este especialista ya tiene una cita reservada a esta hora' : 'Seleccionar especialista'"
+              >
+                <div class="th-card-avatar">
+                  <span class="material-symbols-outlined">{{ isBusy(th.id) ? 'event_busy' : 'spa' }}</span>
+                </div>
+                <div class="th-card-info">
+                  <div class="th-name-row">
+                    <strong class="th-card-name">{{ th.name }}</strong>
+                    @if (isBusy(th.id)) {
+                      <span class="th-busy-badge">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>Ocupado ({{ order.scheduledTime || 'Mismo horario' }})</span>
+                      </span>
+                    }
+                  </div>
+                  <span class="th-card-spec">{{ th.specialty }}</span>
+                  @if (th.phone) {
+                    <span class="th-card-phone">
+                      <span class="material-symbols-outlined">call</span>
+                      <span>{{ th.phone }}</span>
+                    </span>
+                  }
+                </div>
+                <div class="select-radio-indicator">
+                  @if (isBusy(th.id)) {
+                    <span class="material-symbols-outlined busy-icon">block</span>
+                  } @else {
+                    <span class="radio-circle" [class.checked]="selectedTherapistId() === th.id"></span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="assign-actions-row">
+        <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="isAssigning">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-confirm-assign"
+          (click)="onConfirm()"
+          [disabled]="isAssigning || !selectedTherapistId()"
+        >
+          {{ isAssigning ? 'Asignando...' : 'Confirmar y Asignar Terapeuta' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

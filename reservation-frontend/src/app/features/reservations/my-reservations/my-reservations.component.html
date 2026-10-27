@@ -2,25 +2,25 @@
   <div class="my-res-container">
     <section class="member-header-section">
       <nav class="breadcrumb-nav" aria-label="Ruta de navegación">
-        <a routerLink="/" class="breadcrumb-link">Inicio</a>
+        <a routerLink="/" class="breadcrumb-link">{{ i18n.t('myReservations.breadcrumbHome') }}</a>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-link">Mi Cuenta</span>
+        <span class="breadcrumb-link">{{ i18n.t('myReservations.breadcrumbAccount') }}</span>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current">Mis Reservas</span>
+        <span class="breadcrumb-current">{{ i18n.t('myReservations.breadcrumbReservations') }}</span>
       </nav>
 
       <div class="header-main-row">
         <div class="header-titles">
-          <span class="prestige-tag">Portal del Huésped • Hospentra Collection</span>
-          <h1 class="portal-title">Mis Reservas & Itinerarios</h1>
+          <span class="prestige-tag">{{ i18n.t('myReservations.portalPrestige') }}</span>
+          <h1 class="portal-title">{{ i18n.t('myReservations.pageTitle') }}</h1>
           <p class="portal-desc">
-            Gestione sus próximas estancias boutique, solicitudes de concierge y consulte su historial de reservas con atención personalizada.
+            {{ i18n.t('myReservations.pageSubtitle') }}
           </p>
         </div>
 
         <button type="button" class="btn btn-outline concierge-quick-btn" (click)="openConcierge()">
           <span class="material-symbols-outlined">support_agent</span>
-          <span>Mayordomo Personal</span>
+          <span>{{ i18n.t('myReservations.butlerBtn') }}</span>
         </button>
       </div>
 
@@ -39,7 +39,7 @@
               <span class="user-fullname">{{ authService.currentUser()?.username }}</span>
               <span class="elite-badge">{{ authService.currentUser()?.role || 'CLIENTE' }}</span>
             </div>
-            <span class="member-subtitle">{{ authService.currentUser()?.email }} • Cuenta Verificada</span>
+            <span class="member-subtitle">{{ authService.currentUser()?.email }} • {{ i18n.t('myReservations.verifiedAccount') }}</span>
           </div>
         </div>
 
@@ -47,16 +47,16 @@
           <div class="stat-box points">
             <span class="material-symbols-outlined stat-icon gold">book_online</span>
             <div class="stat-content">
-              <span class="stat-label">Total Reservas</span>
-              <span class="stat-value">{{ reservations().length }} <span class="stat-unit">estancias</span></span>
+              <span class="stat-label">{{ i18n.t('myReservations.totalReservations') }}</span>
+              <span class="stat-value">{{ reservations().length }} <span class="stat-unit">{{ i18n.t('myReservations.staysUnit') }}</span></span>
             </div>
           </div>
 
           <div class="stat-box perk">
             <span class="material-symbols-outlined stat-icon">calendar_month</span>
             <div class="stat-content">
-              <span class="stat-label">Próximas Llegadas</span>
-              <span class="stat-value perk-text">{{ upcomingReservations().length }} programadas</span>
+              <span class="stat-label">{{ i18n.t('myReservations.upcomingArrivals') }}</span>
+              <span class="stat-value perk-text">{{ upcomingReservations().length }} {{ i18n.t('myReservations.scheduledUnit') }}</span>
             </div>
           </div>
         </div>
@@ -71,7 +71,7 @@
           [class.active]="activeTab() === 'upcoming'"
           (click)="switchTab('upcoming')"
         >
-          <span>Próximas Estancias</span>
+          <span>{{ i18n.t('myReservations.tabUpcoming') }}</span>
           <span class="tab-counter">{{ upcomingReservations().length }}</span>
         </button>
         <button
@@ -80,7 +80,7 @@
           [class.active]="activeTab() === 'history'"
           (click)="switchTab('history')"
         >
-          <span>Historial de Estancias</span>
+          <span>{{ i18n.t('myReservations.tabHistory') }}</span>
           <span class="tab-counter">{{ historyReservations().length }}</span>
         </button>
         <button
@@ -89,14 +89,14 @@
           [class.active]="activeTab() === 'canceled'"
           (click)="switchTab('canceled')"
         >
-          <span>Canceladas</span>
+          <span>{{ i18n.t('myReservations.tabCanceled') }}</span>
           <span class="tab-counter">{{ canceledReservations().length }}</span>
         </button>
       </div>
 
       <button type="button" class="btn btn-outline print-btn" (click)="printHistory()">
         <span class="material-symbols-outlined">picture_as_pdf</span>
-        <span>Imprimir Historial</span>
+        <span>{{ i18n.t('myReservations.printHistory') }}</span>
       </button>
     </section>
 
@@ -134,23 +134,23 @@
                     @if (res.paymentMethod === 'CREDIT_CARD') {
                       <span class="payment-method-pill online">
                         <span class="material-symbols-outlined icon-mini">credit_card</span>
-                        Pagada en Línea (•••• {{ res.cardLast4 || '4242' }})
+                        {{ i18n.t('myReservations.paidOnlineBadge', { last4: res.cardLast4 || '4242' }) }}
                       </span>
                     } @else {
                       <span class="payment-method-pill checkin">
                         <span class="material-symbols-outlined icon-mini">storefront</span>
-                        Liquidación al Check-in
+                        {{ i18n.t('myReservations.payAtCheckInBadge') }}
                       </span>
                     }
 
                     <span class="prestige-tag-pill">
                       <span class="material-symbols-outlined">workspace_premium</span>
-                      Reserva Directa
+                      {{ i18n.t('myReservations.directBookingBadge') }}
                     </span>
                   </div>
 
                   <div class="code-box">
-                    <span class="code-label">Localizador:</span>
+                    <span class="code-label">{{ i18n.t('myReservations.locator') }}</span>
                     <span class="code-val">HOSP-{{ res.id }}-2026</span>
                     <button
                       type="button"
@@ -173,7 +173,7 @@
                     <div class="media-frame">
                       <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="media-img" />
                       <div class="media-badges">
-                        <span class="room-num-badge">Habitación {{ res.room.roomNumber }}</span>
+                        <span class="room-num-badge">{{ i18n.t('myReservations.roomBadgeNumber', { n: res.room.roomNumber }) }}</span>
                         <span class="rating-badge">
                           <span class="material-symbols-outlined star-icon">star</span>
                           4.98
@@ -184,71 +184,70 @@
 
                   <div class="card-details-col">
                     <div class="suite-header">
-                      <span class="suite-category">Suite Boutique</span>
-                      <h3 class="suite-title">{{ res.room.roomType.name }}</h3>
+                      <span class="suite-category">{{ i18n.t('myReservations.suiteBoutiqueTag') }}</span>
+                      <h3 class="suite-title">{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }}</h3>
                       <p class="suite-location">
                         <span class="material-symbols-outlined">location_on</span>
-                        Riviera Maya • Hospentra Sanctuary Retreat
+                        {{ i18n.t('myReservations.retreatLocation') }}
                       </p>
                     </div>
 
                     <div class="dates-summary-box">
                       <div class="date-chip">
-                        <span class="chip-label">Llegada</span>
+                        <span class="chip-label">{{ i18n.t('myReservations.checkInLabel') }}</span>
                         <strong class="chip-val">{{ res.checkInDate }}</strong>
-                        <span class="chip-sub">Check-in desde 15:00</span>
+                        <span class="chip-sub">{{ i18n.t('myReservations.checkInTime') }}</span>
                       </div>
                       <div class="nights-pill">
                         <span class="material-symbols-outlined">nights_stay</span>
-                        <span>{{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches</span>
+                        <span>{{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}</span>
                       </div>
                       <div class="date-chip">
-                        <span class="chip-label">Salida</span>
+                        <span class="chip-label">{{ i18n.t('myReservations.checkOutLabel') }}</span>
                         <strong class="chip-val">{{ res.checkOutDate }}</strong>
-                        <span class="chip-sub">Check-out 12:00 hrs</span>
+                        <span class="chip-sub">{{ i18n.t('myReservations.checkOutTime') }}</span>
                       </div>
                     </div>
 
                     <div class="specs-pills">
                       <span class="spec-item">
                         <span class="material-symbols-outlined">hotel</span>
-                        Cama King Size
+                        {{ i18n.t('myReservations.kingBed') }}
                       </span>
                       <span class="spec-item">
                         <span class="material-symbols-outlined">group</span>
-                        {{ res.room.roomType.capacity }} Huéspedes
+                        {{ i18n.t('myReservations.guestsCount', { n: res.room.roomType.capacity }) }}
                       </span>
                       <span class="spec-item">
                         <span class="material-symbols-outlined">aspect_ratio</span>
-                        75 m²
+                        {{ i18n.t('myReservations.surface') }}
                       </span>
                       <span class="spec-item">
                         <span class="material-symbols-outlined">hot_tub</span>
-                        Tina Hidromasaje
+                        {{ i18n.t('myReservations.hotTub') }}
                       </span>
                     </div>
 
                     <div class="concierge-preferences">
                       <span class="material-symbols-outlined pref-icon">room_service</span>
                       <div class="pref-text">
-                        <strong>Garantía de Estadía Hospentra:</strong>
-                        <span>Atención de concierge personalizada • Desayuno gourmet incluido • Salida extendida prioritaria</span>
+                        <span>{{ i18n.t('myReservations.hospentraGuaranteeNotice') }}</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="card-actions-col">
                     <div class="pricing-card">
-                      <span class="pricing-label">Total Estadía ({{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches)</span>
+                      <span class="pricing-label">{{ i18n.t('myReservations.totalStayTitle', { nights: calculateNights(res.checkInDate, res.checkOutDate) }) }}</span>
                       <div class="pricing-row">
                         <span class="pricing-amount">${{ res.totalPrice | number:'1.2-2' }}</span>
                         <span class="pricing-currency">USD</span>
                       </div>
                       <p class="pricing-notice">
                         @if (res.paymentMethod === 'CREDIT_CARD') {
-                          Cobrado con tarjeta online. Saldo al check-in: $0.00 USD.
+                          {{ i18n.t('myReservations.paidCardMeta') }}
                         } @else {
-                          Impuestos incluidos. A liquidar al registro en destino.
+                          {{ i18n.t('myReservations.receptionCardMeta') }}
                         }
                       </p>
                     </div>
@@ -257,25 +256,25 @@
                       @if (res.status === 'CHECKED_IN') {
                         <button type="button" class="btn btn-room-service w-full" (click)="openRoomServiceModal(res)">
                           <span class="material-symbols-outlined">skillet</span>
-                          <span>Pedir Room Service a Suite</span>
+                          <span>{{ i18n.t('myReservations.roomServiceBtn') }}</span>
                         </button>
                       }
 
                       <button type="button" class="btn btn-primary w-full" (click)="openVoucher(res)">
                         <span class="material-symbols-outlined">qr_code_2</span>
-                        <span>Ver Voucher Digital</span>
+                        <span>{{ i18n.t('myReservations.voucherBtn') }}</span>
                       </button>
 
                       <button type="button" class="btn btn-outline w-full" (click)="openConcierge()">
                         <span class="material-symbols-outlined">concierge</span>
-                        <span>Petición al Concierge</span>
+                        <span>{{ i18n.t('myReservations.conciergeBtn') }}</span>
                       </button>
 
                       <div class="cancel-link-row">
                         <button type="button" class="cancel-link" (click)="openCancelDialog(res)">
-                          Cancelar Reserva
+                          {{ i18n.t('myReservations.cancelBtn') }}
                         </button>
-                        <span class="cancel-guarantee">Política flexible 48h</span>
+                        <span class="cancel-guarantee">{{ i18n.t('myReservations.flexibleNotice') }}</span>
                       </div>
                     </div>
                   </div>
@@ -291,8 +290,8 @@
           @if (historyReservations().length === 0) {
             <div class="empty-state-card">
               <span class="material-symbols-outlined empty-icon">history_edu</span>
-              <h3 class="empty-title">Aún no tiene estancias pasadas</h3>
-              <p class="empty-desc">Todas las experiencias y estancias completadas se guardarán en este historial permanente.</p>
+              <h3 class="empty-title">{{ i18n.t('myReservations.historyEmptyTitle') }}</h3>
+              <p class="empty-desc">{{ i18n.t('myReservations.historyEmptyDesc') }}</p>
             </div>
           } @else {
             @for (res of historyReservations(); track res.id) {
@@ -302,23 +301,23 @@
                 </div>
                 <div class="history-content">
                   <div class="history-header">
-                    <span class="status-pill completed">✓ Estancia Completada</span>
-                    <span class="history-code">Cód: HOSP-{{ res.id }}-2026</span>
+                    <span class="status-pill completed">{{ i18n.t('myReservations.historyCompletedBadge') }}</span>
+                    <span class="history-code">{{ i18n.t('myReservations.historyCode', { id: res.id }) }}</span>
                   </div>
-                  <h4 class="history-suite-name">{{ res.room.roomType.name }}</h4>
+                  <h4 class="history-suite-name">{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }}</h4>
                   <p class="history-dates">
-                    {{ res.checkInDate }} al {{ res.checkOutDate }} ({{ calculateNights(res.checkInDate, res.checkOutDate) }} Noches) • Riviera Maya
+                    {{ res.checkInDate }} {{ i18n.t('myReservations.historyDatesTo') }} {{ res.checkOutDate }} ({{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}) • {{ i18n.t('myReservations.historyLocation') }}
                   </p>
                   <div class="history-financials">
-                    <span>Total liquidado: <strong>${{ res.totalPrice | number:'1.2-2' }} USD</strong></span>
-                    <span class="gold-eval">★ Calificación: 5.0 Excelente</span>
+                    <span>{{ i18n.t('myReservations.historySettledTotal') }} <strong>${{ res.totalPrice | number:'1.2-2' }} USD</strong></span>
+                    <span class="gold-eval">{{ i18n.t('myReservations.historyRating') }}</span>
                   </div>
                 </div>
                 <div class="history-actions">
-                  <a routerLink="/" class="btn btn-primary">Volver a Reservar</a>
+                  <a routerLink="/" class="btn btn-primary">{{ i18n.t('myReservations.historyRebookBtn') }}</a>
                   <button type="button" class="btn btn-outline" (click)="openVoucher(res)">
                     <span class="material-symbols-outlined">receipt_long</span>
-                    <span>Descargar Voucher</span>
+                    <span>{{ i18n.t('myReservations.historyVoucherBtn') }}</span>
                   </button>
                 </div>
               </article>
@@ -332,8 +331,8 @@
           @if (canceledReservations().length === 0) {
             <div class="empty-state-card">
               <span class="material-symbols-outlined empty-icon">event_busy</span>
-              <h3 class="empty-title">No tiene estancias canceladas</h3>
-              <p class="empty-desc">Todas sus solicitudes programadas permanecen activas o han sido disfrutadas conforme a los itinerarios de autor.</p>
+              <h3 class="empty-title">{{ i18n.t('myReservations.canceledEmptyTitle') }}</h3>
+              <p class="empty-desc">{{ i18n.t('myReservations.canceledEmptyDesc') }}</p>
             </div>
           } @else {
             @for (res of canceledReservations(); track res.id) {
@@ -343,11 +342,11 @@
                 </div>
                 <div class="history-content">
                   <div class="history-header">
-                    <span class="status-pill canceled-pill">Reserva Cancelada</span>
-                    <span class="history-code">Cód: HOSP-{{ res.id }}-2026</span>
+                    <span class="status-pill canceled-pill">{{ i18n.t('myReservations.canceledBadge') }}</span>
+                    <span class="history-code">{{ i18n.t('myReservations.historyCode', { id: res.id }) }}</span>
                   </div>
-                  <h4 class="history-suite-name">{{ res.room.roomType.name }}</h4>
-                  <p class="history-dates">{{ res.checkInDate }} al {{ res.checkOutDate }}</p>
+                  <h4 class="history-suite-name">{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }}</h4>
+                  <p class="history-dates">{{ res.checkInDate }} {{ i18n.t('myReservations.historyDatesTo') }} {{ res.checkOutDate }}</p>
 
                   <div class="refund-resolution-box">
                     @if (res.paymentMethod === 'CREDIT_CARD') {
@@ -355,16 +354,16 @@
                         <div class="refund-tag-line partial">
                           <span class="material-symbols-outlined">warning</span>
                           <div>
-                            <strong>Cancelación tardía (<48h)</strong>
-                            <p>Se retiene la primera noche (${{ res.penaltyAmount || 380 | number:'1.2-2' }} USD) por política boutique y se reembolsa el saldo restante (${{ res.refundAmount || 0 | number:'1.2-2' }} USD) a su tarjeta •••• {{ res.cardLast4 || '4242' }}.</p>
+                            <strong>{{ i18n.t('myReservations.canceledLateTitle') }}</strong>
+                            <p>{{ i18n.t('myReservations.canceledLateDesc', { penalty: (res.penaltyAmount || 380 | number:'1.2-2') || '380.00', refund: (res.refundAmount || 0 | number:'1.2-2') || '0.00', last4: res.cardLast4 || '4242' }) }}</p>
                           </div>
                         </div>
                       } @else {
                         <div class="refund-tag-line full">
                           <span class="material-symbols-outlined">verified</span>
                           <div>
-                            <strong>Reembolso del 100% procesado</strong>
-                            <p>Monto de ${{ res.totalPrice | number:'1.2-2' }} USD abonado a su tarjeta •••• {{ res.cardLast4 || '4242' }}.</p>
+                            <strong>{{ i18n.t('myReservations.canceledFullTitle') }}</strong>
+                            <p>{{ i18n.t('myReservations.canceledFullDesc', { total: (res.totalPrice | number:'1.2-2') || '0.00', last4: res.cardLast4 || '4242' }) }}</p>
                           </div>
                         </div>
                       }
@@ -372,15 +371,15 @@
                       <div class="refund-tag-line free">
                         <span class="material-symbols-outlined">check_circle</span>
                         <div>
-                          <strong>Cancelación flexible sin cargos</strong>
-                          <p>Reserva registrada para liquidación al check-in. No se efectuó ningún cobro.</p>
+                          <strong>{{ i18n.t('myReservations.canceledFreeTitle') }}</strong>
+                          <p>{{ i18n.t('myReservations.canceledFreeDesc') }}</p>
                         </div>
                       </div>
                     }
                   </div>
                 </div>
                 <div class="history-actions">
-                  <a routerLink="/" class="btn btn-outline">Reservar en Nuevas Fechas</a>
+                  <a routerLink="/" class="btn btn-outline">{{ i18n.t('myReservations.canceledRebookBtn') }}</a>
                 </div>
               </article>
             }
@@ -393,21 +392,21 @@
       <div class="support-content">
         <div class="support-title-row">
           <span class="material-symbols-outlined banner-icon">concierge</span>
-          <span class="support-label">Atención Privada & Mayordomía 24/7</span>
+          <span class="support-label">{{ i18n.t('myReservations.calloutPrestige') }}</span>
         </div>
-        <h3 class="support-headline">¿Requiere coordinar un traslado privado o petición especial?</h3>
+        <h3 class="support-headline">{{ i18n.t('myReservations.calloutTitle') }}</h3>
         <p class="support-desc">
-          Nuestro equipo de concierge está a su disposición en todo momento para vuelos chárter, helicóptero, reservas gastronómicas de autor y experiencias privadas.
+          {{ i18n.t('myReservations.calloutDesc') }}
         </p>
       </div>
       <div class="support-actions">
         <button type="button" class="btn btn-secondary" (click)="openConcierge()">
           <span class="material-symbols-outlined">call</span>
-          <span>Llamar a Recepción</span>
+          <span>{{ i18n.t('myReservations.callReception') }}</span>
         </button>
         <button type="button" class="btn btn-outline-white" (click)="openConcierge()">
           <span class="material-symbols-outlined">chat</span>
-          <span>WhatsApp Concierge</span>
+          <span>{{ i18n.t('myReservations.whatsappConcierge') }}</span>
         </button>
       </div>
     </section>
@@ -423,9 +422,9 @@
         <div class="voucher-header">
           <div class="voucher-brand">
             <span class="material-symbols-outlined brand-star">hotel_class</span>
-            <span class="brand-title">Hospentra Itinerario Oficial</span>
+            <span class="brand-title">{{ i18n.t('myReservations.voucherOfficialBrand') }}</span>
           </div>
-          <span class="voucher-badge">VOUCHER DIGITAL OFICIAL</span>
+          <span class="voucher-badge">{{ i18n.t('myReservations.voucherDigitalBadge') }}</span>
         </div>
 
         <div class="voucher-seal-wrapper">
@@ -433,77 +432,77 @@
             <div class="voucher-seal paid-online">
               <span class="material-symbols-outlined seal-icon">verified</span>
               <div class="seal-text-group">
-                <span class="seal-main">PAGADA EN LÍNEA</span>
-                <span class="seal-sub">COMPROBANTE LIQUIDADO</span>
-                <span class="seal-auth">AUTH: {{ selectedVoucherReservation()?.authCode || 'AUTH-901844' }}</span>
+                <span class="seal-main">{{ i18n.t('myReservations.voucherPaidOnline') }}</span>
+                <span class="seal-sub">{{ i18n.t('myReservations.voucherSettledReceipt') }}</span>
+                <span class="seal-auth">{{ i18n.t('myReservations.voucherAuth', { code: selectedVoucherReservation()?.authCode || 'AUTH-901844' }) }}</span>
               </div>
             </div>
           } @else {
             <div class="voucher-seal pay-checkin">
               <span class="material-symbols-outlined seal-icon">storefront</span>
               <div class="seal-text-group">
-                <span class="seal-main">LIQUIDACIÓN AL CHECK-IN</span>
-                <span class="seal-sub">PAGO PRESENCIAL EN DESTINO</span>
-                <span class="seal-auth">COBRO EN FRONT DESK</span>
+                <span class="seal-main">{{ i18n.t('myReservations.voucherPayCheckin') }}</span>
+                <span class="seal-sub">{{ i18n.t('myReservations.voucherOnsitePayment') }}</span>
+                <span class="seal-auth">{{ i18n.t('myReservations.voucherFrontDeskCollect') }}</span>
               </div>
             </div>
           }
         </div>
 
         <div class="voucher-code-strip">
-          <span class="strip-label">Código de Confirmación:</span>
+          <span class="strip-label">{{ i18n.t('myReservations.voucherCodeStrip') }}</span>
           <span class="strip-code">HOSP-{{ selectedVoucherReservation()?.id }}-2026</span>
         </div>
 
         <div class="voucher-body">
           <div class="voucher-field">
-            <span class="field-title">Titular de la Reserva</span>
+            <span class="field-title">{{ i18n.t('myReservations.voucherGuestTitle') }}</span>
             <strong class="field-val">{{ selectedVoucherReservation()?.guest?.firstName }} {{ selectedVoucherReservation()?.guest?.lastName }}</strong>
-            <span class="field-sub">{{ selectedVoucherReservation()?.guest?.email }} • Tel: {{ selectedVoucherReservation()?.guest?.phone || 'Sin registrar' }}</span>
+            <span class="field-sub">{{ selectedVoucherReservation()?.guest?.email }} • Tel: {{ selectedVoucherReservation()?.guest?.phone || i18n.t('myReservations.voucherUnregistered') }}</span>
           </div>
 
           <div class="voucher-field">
-            <span class="field-title">Suite Reservada</span>
-            <strong class="field-val">{{ selectedVoucherReservation()?.room?.roomType?.name }}</strong>
-            <span class="field-sub">Habitación {{ selectedVoucherReservation()?.room?.roomNumber }} • Categoría Boutique 5 Diamantes</span>
+            <span class="field-title">{{ i18n.t('myReservations.voucherSuiteTitle') }}</span>
+            <strong class="field-val">{{ (i18n.currentLang() === 'en' && selectedVoucherReservation()?.room?.roomType?.nameEn) ? selectedVoucherReservation()?.room?.roomType?.nameEn : selectedVoucherReservation()?.room?.roomType?.name }}</strong>
+            <span class="field-sub">{{ i18n.t('catalog.roomLabel', { n: selectedVoucherReservation()?.room?.roomNumber || '' }) }} • {{ i18n.t('myReservations.voucherBoutiqueCategory') }}</span>
           </div>
 
           <div class="voucher-dates-row">
             <div class="v-date">
-              <span class="field-title">Check-in</span>
+              <span class="field-title">{{ i18n.t('myReservations.checkInLabel') }}</span>
               <strong class="field-val">{{ selectedVoucherReservation()?.checkInDate }}</strong>
               <span class="field-sub">15:00 hrs</span>
             </div>
             <div class="v-date">
-              <span class="field-title">Check-out</span>
+              <span class="field-title">{{ i18n.t('myReservations.checkOutLabel') }}</span>
               <strong class="field-val">{{ selectedVoucherReservation()?.checkOutDate }}</strong>
               <span class="field-sub">12:00 hrs</span>
             </div>
           </div>
 
           <div class="voucher-field">
-            <span class="field-title">Modalidad de Pago Registrada</span>
+            <span class="field-title">{{ i18n.t('myReservations.voucherPaymentMode') }}</span>
             @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
-              <strong class="field-val">Tarjeta de Crédito Online ({{ selectedVoucherReservation()?.cardBrand || 'VISA' }} •••• {{ selectedVoucherReservation()?.cardLast4 || '4242' }})</strong>
-              <span class="field-sub text-emerald">Transacción autorizada y liquidada vía pasarela SSL 256-Bit</span>
+              <strong class="field-val">{{ i18n.t('myReservations.voucherCardDesc', { brand: selectedVoucherReservation()?.cardBrand || 'VISA', last4: selectedVoucherReservation()?.cardLast4 || '4242' }) }}</strong>
+              <span class="field-sub text-emerald">{{ i18n.t('myReservations.voucherCardSub') }}</span>
             } @else {
-              <strong class="field-val">Liquidación Directa en Recepción</strong>
-              <span class="field-sub text-amber">Pago presencial al momento del check-in (efectivo o tarjeta)</span>
+              <strong class="field-val">{{ i18n.t('myReservations.voucherReceptionDesc') }}</strong>
+              <span class="field-sub text-amber">{{ i18n.t('myReservations.voucherReceptionSub') }}</span>
             }
           </div>
 
           @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
             <div class="voucher-price-row paid">
-              <span>Total Pagado en Línea:</span>
+              <span>{{ i18n.t('myReservations.voucherTotalPaidOnline') }}</span>
               <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
             </div>
             <div class="voucher-balance-line">
-              <span>Saldo pendiente de liquidar al check-in:</span>
-              <strong class="balance-zero">$0.00 USD (Liquidado)</strong>
+              <span>{{ i18n.t('myReservations.voucherBalanceCheckin') }}</span>
+              <strong class="balance-zero">{{ i18n.t('myReservations.voucherBalanceZero') }}</strong>
             </div>
           } @else {
             <div class="voucher-price-row">
-              <span>Total a Liquidar en Recepción:</span>
+              <span>{{ i18n.t('myReservations.voucherTotalToSettle') }}</span>
               <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
             </div>
           }
@@ -517,10 +516,10 @@
         <div class="voucher-actions-row">
           <button type="button" class="btn btn-outline voucher-print-btn" (click)="printVoucher()">
             <span class="material-symbols-outlined">picture_as_pdf</span>
-            <span>Imprimir / Guardar PDF</span>
+            <span>{{ i18n.t('myReservations.voucherPrintBtn') }}</span>
           </button>
           <button type="button" class="btn btn-primary" (click)="closeVoucher()">
-            Cerrar Voucher
+            {{ i18n.t('myReservations.voucherCloseBtn') }}
           </button>
         </div>
       </div>
@@ -533,16 +532,16 @@
         <div class="cancel-warn-icon">
           <span class="material-symbols-outlined">event_busy</span>
         </div>
-        <h3 class="cancel-dialog-title">¿Desea cancelar esta reserva?</h3>
+        <h3 class="cancel-dialog-title">{{ i18n.t('myReservations.cancelModalTitle') }}</h3>
         <p class="cancel-dialog-desc">
-          Suite: <strong>{{ reservationToCancel()?.room?.roomType?.name }}</strong><br />
-          Fechas: <strong>{{ reservationToCancel()?.checkInDate }}</strong> al <strong>{{ reservationToCancel()?.checkOutDate }}</strong>
+          {{ i18n.t('myReservations.cancelSuiteLabel') }} <strong>{{ (i18n.currentLang() === 'en' && reservationToCancel()?.room?.roomType?.nameEn) ? reservationToCancel()?.room?.roomType?.nameEn : reservationToCancel()?.room?.roomType?.name }}</strong><br />
+          {{ i18n.t('myReservations.cancelDatesLabel') }} <strong>{{ reservationToCancel()?.checkInDate }}</strong> {{ i18n.t('myReservations.cancelToWord') }} <strong>{{ reservationToCancel()?.checkOutDate }}</strong>
         </p>
 
         <div class="refund-policy-box">
           <div class="countdown-badge">
             <span class="material-symbols-outlined icon-small">schedule</span>
-            <span>Tiempo restante hasta check-in: {{ activeCancelCalculation()?.hoursUntilCheckIn }} horas</span>
+            <span>{{ i18n.t('myReservations.cancelTimeRemaining', { hours: activeCancelCalculation()?.hoursUntilCheckIn ?? 0 }) }}</span>
           </div>
 
           @if (reservationToCancel()?.paymentMethod === 'CREDIT_CARD') {
@@ -550,25 +549,25 @@
               <div class="refund-calc-card full">
                 <div class="calc-headline">
                   <span class="material-symbols-outlined icon-success">verified</span>
-                  <strong>Reembolso del 100% procesado a su tarjeta •••• {{ reservationToCancel()?.cardLast4 || '4242' }}</strong>
+                  <strong>{{ i18n.t('myReservations.cancelFullTitle', { last4: reservationToCancel()?.cardLast4 || '4242' }) }}</strong>
                 </div>
                 <p class="calc-desc">
-                  Su cancelación se realiza con más de 48 horas de anticipación. Se devolverá la totalidad del importe abonado (<strong>${{ reservationToCancel()?.totalPrice | number:'1.2-2' }} USD</strong>).
+                  {{ i18n.t('myReservations.cancelFullDesc', { total: (reservationToCancel()?.totalPrice | number:'1.2-2') || '0.00' }) }}
                 </p>
               </div>
             } @else {
               <div class="refund-calc-card partial">
                 <div class="calc-headline">
                   <span class="material-symbols-outlined icon-warn">warning</span>
-                  <strong>Cancelación tardía: Se retiene la primera noche por política de hotel boutique y se reembolsa el saldo restante</strong>
+                  <strong>{{ i18n.t('myReservations.cancelPartialTitle') }}</strong>
                 </div>
                 <div class="calc-breakdown-table">
                   <div class="table-row">
-                    <span>Retención 1ª noche (Penalización):</span>
+                    <span>{{ i18n.t('myReservations.cancelPartialRetention') }}</span>
                     <strong class="retention-val">-${{ activeCancelCalculation()?.penaltyAmount | number:'1.2-2' }} USD</strong>
                   </div>
                   <div class="table-row refund">
-                    <span>Monto a reembolsar a su tarjeta:</span>
+                    <span>{{ i18n.t('myReservations.cancelPartialRefund') }}</span>
                     <strong class="refund-val">+${{ activeCancelCalculation()?.refundAmount | number:'1.2-2' }} USD</strong>
                   </div>
                 </div>
@@ -578,10 +577,10 @@
             <div class="refund-calc-card free">
               <div class="calc-headline">
                 <span class="material-symbols-outlined icon-success">task_alt</span>
-                <strong>Cancelación flexible sin cargos: No se efectuó ningún cobro</strong>
+                <strong>{{ i18n.t('myReservations.cancelFreeTitle') }}</strong>
               </div>
               <p class="calc-desc">
-                Su reserva fue solicitada bajo la modalidad de liquidación en recepción. Su habitación se liberará de inmediato sin penalización económica.
+                {{ i18n.t('myReservations.cancelFreeDesc') }}
               </p>
             </div>
           }
@@ -589,10 +588,10 @@
 
         <div class="dialog-actions-row">
           <button type="button" class="btn btn-outline" (click)="closeCancelDialog()" [disabled]="isCancelling()">
-            Mantener mi Reserva
+            {{ i18n.t('myReservations.cancelKeepBtn') }}
           </button>
           <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="isCancelling()">
-            {{ isCancelling() ? 'Procesando cancelación...' : 'Confirmar Cancelación' }}
+            {{ isCancelling() ? i18n.t('myReservations.cancelProcessingBtn') : i18n.t('myReservations.cancelConfirmBtn') }}
           </button>
         </div>
       </div>
@@ -608,24 +607,24 @@
           </span>
         </div>
 
-        <span class="prestige-tag">Comprobante de Cancelación</span>
-        <h3 class="result-title">Reserva Cancelada con Éxito</h3>
+        <span class="prestige-tag">{{ i18n.t('myReservations.cancelResultPrestige') }}</span>
+        <h3 class="result-title">{{ i18n.t('myReservations.cancelResultSuccess') }}</h3>
 
         <div class="result-statement-card" [class]="cancelResult()?.badgeType">
           <p class="statement-msg">{{ cancelResult()?.policyMessage }}</p>
           @if (cancelResult()?.badgeType === 'full') {
             <div class="statement-amount-box">
-              <span class="lbl">Reembolso Total Emitido:</span>
+              <span class="lbl">{{ i18n.t('myReservations.cancelResultFullTotal') }}</span>
               <strong class="val">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
             </div>
           } @else if (cancelResult()?.badgeType === 'partial') {
             <div class="statement-breakdown-box">
               <div class="row">
-                <span>Retención 1ª noche:</span>
+                <span>{{ i18n.t('myReservations.cancelResultPartialRet') }}</span>
                 <strong class="text-amber">${{ cancelResult()?.penaltyAmount | number:'1.2-2' }} USD</strong>
               </div>
               <div class="row">
-                <span>Reembolso devuelto a tarjeta:</span>
+                <span>{{ i18n.t('myReservations.cancelResultPartialRef') }}</span>
                 <strong class="text-green">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
               </div>
             </div>
@@ -633,7 +632,7 @@
         </div>
 
         <button type="button" class="btn btn-primary w-full" (click)="closeCancelResultModal()">
-          Entendido y Ver Canceladas
+          {{ i18n.t('myReservations.cancelResultDismissBtn') }}
         </button>
       </div>
     </div>
@@ -649,16 +648,16 @@
         <div class="concierge-icon-circle">
           <span class="material-symbols-outlined">concierge</span>
         </div>
-        <h3 class="concierge-title">Mayordomía & Asistencia 24/7</h3>
+        <h3 class="concierge-title">{{ i18n.t('myReservations.conciergeModalTitle') }}</h3>
         <p class="concierge-desc">
-          Su concierge personal asignado está listo para coordinar cada detalle de su próxima visita.
+          {{ i18n.t('myReservations.conciergeModalDesc') }}
         </p>
 
         <div class="concierge-contacts-box">
           <div class="contact-card">
             <span class="material-symbols-outlined">call</span>
             <div>
-              <strong>Recepción Sanctuary</strong>
+              <strong>{{ i18n.t('myReservations.conciergeReceptionLabel') }}</strong>
               <p>+51 1 800 4677</p>
             </div>
           </div>
@@ -672,7 +671,7 @@
         </div>
 
         <button type="button" class="btn btn-primary w-full" (click)="closeConcierge()">
-          Entendido
+          {{ i18n.t('myReservations.conciergeDismissBtn') }}
         </button>
       </div>
     </div>
@@ -688,10 +687,10 @@
         <div class="rs-header">
           <div class="rs-badge">
             <span class="material-symbols-outlined">room_service</span>
-            <span>Experiencias & Room Service en Suite</span>
+            <span>{{ i18n.t('roomService.rsHeaderBadge') }}</span>
           </div>
-          <h3 class="rs-title">Carta Boutique — Habitación {{ activeCheckedInReservation()?.room?.roomNumber }}</h3>
-          <p class="rs-subtitle">Ordene gastronomía de autor y coctelería a cocina, o reserve experiencias de bienestar & spa a concierge. Los cargos se suman al folio de su suite.</p>
+          <h3 class="rs-title">{{ i18n.t('roomService.rsCardTitle', { room: activeCheckedInReservation()?.room?.roomNumber || '' }) }}</h3>
+          <p class="rs-subtitle">{{ i18n.t('roomService.rsCardSubtitle') }}</p>
         </div>
 
         @if (orderSuccessMessage()) {
@@ -709,7 +708,7 @@
             (click)="rsActiveView.set('MENU')"
           >
             <span class="material-symbols-outlined">restaurant_menu</span>
-            <span>Carta de Servicios</span>
+            <span>{{ i18n.t('roomService.tabMenu') }}</span>
           </button>
           <button
             type="button"
@@ -718,7 +717,7 @@
             (click)="rsActiveView.set('ORDERS')"
           >
             <span class="material-symbols-outlined">receipt_long</span>
-            <span>Seguimiento de Mis Pedidos</span>
+            <span>{{ i18n.t('roomService.tabOrders') }}</span>
             @if (activeReservationOrders().length > 0) {
               <span class="tab-badge">{{ activeReservationOrders().length }}</span>
             }
@@ -734,7 +733,7 @@
               (click)="selectedCategory.set('ALL')"
             >
               <span class="material-symbols-outlined cat-icon">apps</span>
-              <span>Todos</span>
+              <span>{{ i18n.t('roomService.catAll') }}</span>
             </button>
             <button
               type="button"
@@ -743,7 +742,7 @@
               (click)="selectedCategory.set('GASTRONOMY')"
             >
               <span class="material-symbols-outlined cat-icon">restaurant</span>
-              <span>Gastronomía</span>
+              <span>{{ i18n.t('roomService.catGastro') }}</span>
             </button>
             <button
               type="button"
@@ -752,7 +751,7 @@
               (click)="selectedCategory.set('BAR_WINE')"
             >
               <span class="material-symbols-outlined cat-icon">wine_bar</span>
-              <span>Cava & Bar</span>
+              <span>{{ i18n.t('roomService.catWine') }}</span>
             </button>
             <button
               type="button"
@@ -761,7 +760,7 @@
               (click)="selectedCategory.set('WELLNESS_SPA')"
             >
               <span class="material-symbols-outlined cat-icon">spa</span>
-              <span>Wellness & Spa</span>
+              <span>{{ i18n.t('roomService.catSpa') }}</span>
             </button>
           </div>
 
@@ -776,17 +775,17 @@
                     </span>
                   </div>
                   <div class="item-title-row">
-                    <h4 class="item-name">{{ item.name }}</h4>
+                    <h4 class="item-name">{{ (i18n.currentLang() === 'en' && item.nameEn) ? item.nameEn : item.name }}</h4>
                     <span class="item-price">${{ item.price | number:'1.2-2' }} USD</span>
                   </div>
-                  <p class="item-desc">{{ item.description }}</p>
+                  <p class="item-desc">{{ (i18n.currentLang() === 'en' && item.descriptionEn) ? item.descriptionEn : item.description }}</p>
                 </div>
 
                 <div class="item-stepper">
                   @if ((cartQuantities()[item.id] || 0) === 0) {
                     <button type="button" class="btn-add-item" (click)="increaseCart(item.id)">
                       <span class="material-symbols-outlined">add</span>
-                      <span>Agregar</span>
+                      <span>{{ i18n.t('roomService.addCart') }}</span>
                     </button>
                   } @else {
                     <div class="stepper-controls">
@@ -809,20 +808,20 @@
               <div class="destination-notice" [ngClass]="orderDestinationType().toLowerCase()">
                 @if (orderDestinationType() === 'KITCHEN') {
                   <span class="material-symbols-outlined">skillet</span>
-                  <span>Este pedido se transmitirá directamente a la <strong>Terminal KDS de Cocina & Bar</strong>.</span>
+                  <span>{{ i18n.t('roomService.rsNoticeKitchen') }}</span>
                 } @else if (orderDestinationType() === 'SPA') {
                   <span class="material-symbols-outlined">spa</span>
-                  <span>Esta solicitud se transmitirá a <strong>Recepción & Concierge</strong> para coordinar su terapeuta de spa.</span>
+                  <span>{{ i18n.t('roomService.rsNoticeSpa') }}</span>
                 } @else {
                   <span class="material-symbols-outlined">room_service</span>
-                  <span>Pedido combinado: Cocina preparará sus platillos y Concierge coordinará su sesión de Spa.</span>
+                  <span>{{ i18n.t('roomService.rsNoticeMixed') }}</span>
                 }
               </div>
 
               @if (cartHasSpaItems()) {
                 <div class="spa-preferences-card">
                   <div class="pref-group">
-                    <label class="lbl-pref">¿Dónde prefiere recibir el servicio de Spa?</label>
+                    <label class="lbl-pref">{{ i18n.t('roomService.spaLocationLabel') }}</label>
                     <div class="pref-options">
                       <button
                         type="button"
@@ -831,7 +830,7 @@
                         (click)="spaLocation.set('IN_SUITE')"
                       >
                         <span class="material-symbols-outlined">hotel</span>
-                        <span>En mi Suite</span>
+                        <span>{{ i18n.t('roomService.spaLocationSuite') }}</span>
                       </button>
                       <button
                         type="button"
@@ -840,13 +839,13 @@
                         (click)="spaLocation.set('SPA_CENTER')"
                       >
                         <span class="material-symbols-outlined">spa</span>
-                        <span>En Cabina de Spa del Hotel</span>
+                        <span>{{ i18n.t('roomService.spaLocationCenter') }}</span>
                       </button>
                     </div>
                   </div>
 
                   <div class="pref-group">
-                    <label for="spaTimeSelect" class="lbl-pref">Horario preferido para la sesión:</label>
+                    <label for="spaTimeSelect" class="lbl-pref">{{ i18n.t('roomService.spaTimeLabel') }}</label>
                     <select
                       id="spaTimeSelect"
                       [ngModel]="spaScheduledTime()"
@@ -863,13 +862,13 @@
 
               <div class="notes-field-wrap">
                 <label for="rsNotes" class="lbl-notes">
-                  {{ orderDestinationType() === 'SPA' ? 'Instrucciones Especiales para Concierge / Terapeuta:' : 'Instrucciones Especiales para Cocina / Servicio:' }}
+                  {{ orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaLabel') : i18n.t('roomService.rsNotesKitchenLabel') }}
                 </label>
                 <textarea
                   id="rsNotes"
                   [ngModel]="orderNotes()"
                   (ngModelChange)="orderNotes.set($event)"
-                  [placeholder]="orderDestinationType() === 'SPA' ? 'Ej. Preferencia de horario para la sesión, esencias relajantes...' : 'Ej. Término de la carne medio, entregar a las 20:30 hrs, copas de champagne frías...'"
+                  [placeholder]="orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaPlaceholder') : i18n.t('roomService.rsNotesKitchenPlaceholder')"
                   rows="2"
                   class="notes-textarea"
                 ></textarea>
@@ -877,9 +876,9 @@
 
               <div class="order-action-bar">
                 <div class="order-total-block">
-                  <span class="lbl-total">Total a Cargar a la Suite:</span>
+                  <span class="lbl-total">{{ i18n.t('roomService.rsTotalLabel') }}</span>
                   <strong class="val-total">${{ cartTotalAmount() | number:'1.2-2' }} USD</strong>
-                  <span class="sub-total">({{ cartTotalCount() }} producto(s) seleccionado(s))</span>
+                  <span class="sub-total">{{ i18n.t('roomService.rsSelectedCount', { n: cartTotalCount() }) }}</span>
                 </div>
                 <button
                   type="button"
@@ -890,17 +889,17 @@
                 >
                   @if (isSubmittingOrder()) {
                     <span class="btn-spinner"></span>
-                    <span>Procesando...</span>
+                    <span>{{ i18n.t('roomService.sendingBtn') }}</span>
                   } @else {
                     @if (orderDestinationType() === 'SPA') {
                       <span class="material-symbols-outlined">spa</span>
-                      <span>Solicitar Servicio de Spa a Concierge</span>
+                      <span>{{ i18n.t('roomService.rsSubmitSpa') }}</span>
                     } @else if (orderDestinationType() === 'MIXED') {
                       <span class="material-symbols-outlined">room_service</span>
-                      <span>Confirmar Pedido a Suite</span>
+                      <span>{{ i18n.t('roomService.rsSubmitMixed') }}</span>
                     } @else {
                       <span class="material-symbols-outlined">skillet</span>
-                      <span>Enviar Comanda a Cocina & Bar</span>
+                      <span>{{ i18n.t('roomService.rsSubmitKitchen') }}</span>
                     }
                   }
                 </button>
@@ -916,11 +915,11 @@
                 <span class="material-symbols-outlined">account_balance_wallet</span>
               </div>
               <div class="folio-banner-content">
-                <span class="banner-title">Folio Consolidado — Suite {{ activeCheckedInReservation()?.room?.roomNumber }}</span>
-                <p class="banner-desc">Todos los consumos se cargan a su habitación y se abonan de forma unificada en mostrador durante su Check-Out.</p>
+                <span class="banner-title">{{ i18n.t('roomService.rsFolioTitle', { room: activeCheckedInReservation()?.room?.roomNumber || '' }) }}</span>
+                <p class="banner-desc">{{ i18n.t('roomService.rsFolioDesc') }}</p>
               </div>
               <div class="folio-banner-amount">
-                <span class="lbl-accum">Subtotal Acumulado:</span>
+                <span class="lbl-accum">{{ i18n.t('roomService.rsFolioAccum') }}</span>
                 <strong class="val-accum">${{ totalAccumulatedOrdersAmount() | number:'1.2-2' }} USD</strong>
               </div>
             </div>
@@ -928,11 +927,11 @@
             @if (activeReservationOrders().length === 0) {
               <div class="orders-empty-state">
                 <span class="material-symbols-outlined empty-icon">receipt_long</span>
-                <h4>No tiene pedidos o servicios registrados en esta estancia</h4>
-                <p>Explore nuestra carta boutique para ordenar gastronomía, cava o experiencias de bienestar en su suite.</p>
+                <h4>{{ i18n.t('roomService.rsOrdersEmptyTitle') }}</h4>
+                <p>{{ i18n.t('roomService.rsOrdersEmptyDesc') }}</p>
                 <button type="button" class="btn-goto-menu" (click)="rsActiveView.set('MENU')">
                   <span class="material-symbols-outlined">restaurant_menu</span>
-                  <span>Ver Carta de Servicios</span>
+                  <span>{{ i18n.t('roomService.rsOrdersEmptyBtn') }}</span>
                 </button>
               </div>
             } @else {
@@ -942,7 +941,7 @@
                     <div class="track-card-head">
                       <div class="track-meta">
                         <div class="track-code-row">
-                          <strong class="track-code">Comanda #ORD-{{ ord.id }}</strong>
+                          <strong class="track-code">{{ i18n.t('roomService.rsOrderCode', { id: ord.id }) }}</strong>
                           <span class="track-type-badge" [ngClass]="getOrderType(ord).toLowerCase()">
                             <span class="material-symbols-outlined">
                               {{ getOrderType(ord) === 'SPA' ? 'spa' : getOrderType(ord) === 'MIXED' ? 'room_service' : 'skillet' }}
@@ -950,11 +949,11 @@
                             <span>{{ getOrderType(ord) === 'SPA' ? 'Concierge & Spa' : getOrderType(ord) === 'MIXED' ? 'Suite & Spa' : 'Cocina & Bar' }}</span>
                           </span>
                         </div>
-                        <span class="track-time">Solicitado: {{ ord.orderedAt | date:'HH:mm • dd MMM' }}</span>
+                        <span class="track-time">{{ i18n.t('roomService.rsOrderTime', { time: (ord.orderedAt | date:'HH:mm • dd MMM') || '' }) }}</span>
                       </div>
 
                       <div class="track-price-tag">
-                        <span class="lbl-ord-total">Total Comanda:</span>
+                        <span class="lbl-ord-total">{{ i18n.t('roomService.rsOrderTotal') }}</span>
                         <strong class="track-amount">${{ ord.totalAmount | number:'1.2-2' }} USD</strong>
                       </div>
                     </div>
@@ -964,7 +963,7 @@
                         <div class="step-dot">
                           <span class="material-symbols-outlined">receipt</span>
                         </div>
-                        <span class="step-lbl">Recibido</span>
+                        <span class="step-lbl">{{ i18n.t('roomService.stepReceived') }}</span>
                       </div>
                       <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 2"></div>
 
@@ -972,7 +971,7 @@
                         <div class="step-dot">
                           <span class="material-symbols-outlined">{{ getOrderType(ord) === 'SPA' ? 'self_improvement' : 'outdoor_grill' }}</span>
                         </div>
-                        <span class="step-lbl">{{ getOrderType(ord) === 'SPA' ? 'Asignado' : 'En Fogón' }}</span>
+                        <span class="step-lbl">{{ getOrderType(ord) === 'SPA' ? i18n.t('roomService.stepSpaAssigned') : i18n.t('roomService.stepInKitchen') }}</span>
                       </div>
                       <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 3"></div>
 
@@ -980,7 +979,7 @@
                         <div class="step-dot">
                           <span class="material-symbols-outlined">room_service</span>
                         </div>
-                        <span class="step-lbl">En Camino</span>
+                        <span class="step-lbl">{{ i18n.t('roomService.stepOnTheWay') }}</span>
                       </div>
                       <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 4"></div>
 
@@ -988,7 +987,7 @@
                         <div class="step-dot">
                           <span class="material-symbols-outlined">check_circle</span>
                         </div>
-                        <span class="step-lbl">Entregado</span>
+                        <span class="step-lbl">{{ i18n.t('roomService.stepDelivered') }}</span>
                       </div>
                     </div>
 
@@ -1001,7 +1000,7 @@
                       <div class="track-therapist-badge">
                         <span class="material-symbols-outlined icon-therapist">badge</span>
                         <div class="therapist-info">
-                          <span class="lbl-therapist">Terapeuta Oficial Asignado:</span>
+                          <span class="lbl-therapist">{{ i18n.t('roomService.rsTherapistLabel') }}</span>
                           <strong class="val-therapist">{{ ord.therapistName }}</strong>
                         </div>
                       </div>
@@ -1011,19 +1010,19 @@
                       <div class="track-spa-detail-row">
                         <span class="spa-meta-chip">
                           <span class="material-symbols-outlined icon-chip">{{ ord.serviceLocation === 'SPA_CENTER' ? 'spa' : 'hotel' }}</span>
-                          <span>{{ ord.serviceLocation === 'SPA_CENTER' ? 'En Cabina de Spa del Hotel' : 'En mi Suite' }}</span>
+                          <span>{{ ord.serviceLocation === 'SPA_CENTER' ? i18n.t('roomService.rsLocationCenter') : i18n.t('roomService.rsLocationSuite') }}</span>
                         </span>
                         @if (ord.scheduledTime) {
                           <span class="spa-meta-chip time">
                             <span class="material-symbols-outlined icon-chip">schedule</span>
-                            <span>Horario Solicitado: {{ ord.scheduledTime }}</span>
+                            <span>{{ i18n.t('roomService.rsScheduledTimeLabel', { time: ord.scheduledTime }) }}</span>
                           </span>
                         }
                       </div>
                     }
 
                     <div class="track-items-box">
-                      <span class="items-head-lbl">Artículos en esta comanda:</span>
+                      <span class="items-head-lbl">{{ i18n.t('roomService.rsItemsHead') }}</span>
                       <div class="items-pills-row">
                         @for (it of ord.items; track it.id) {
                           <div class="it-pill-card">

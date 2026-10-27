@@ -1,10 +1,13 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
+import { SseService } from '../../../core/services/sse.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { Reservation } from '../../../core/models/reservation.model';
 import { ExtraCategory, ExtraService, OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 
@@ -25,11 +28,15 @@ export interface RefundCalculation {
   templateUrl: './my-reservations.component.html',
   styleUrl: './my-reservations.component.scss'
 })
-export class MyReservationsComponent implements OnInit {
+export class MyReservationsComponent implements OnInit, OnDestroy {
   private readonly reservationService = inject(ReservationService);
   private readonly roomOrderService = inject(RoomOrderService);
   readonly authService = inject(AuthService);
+  readonly sseService = inject(SseService);
+  readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+
+  private sseSub: Subscription | null = null;
 
   readonly activeTab = signal<'upcoming' | 'history' | 'canceled'>('upcoming');
   readonly reservations = signal<Reservation[]>([]);
@@ -163,6 +170,36 @@ export class MyReservationsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadReservations();
+    this.sseService.connect();
+
+    this.sseSub = new Subscription();
+
+    this.sseSub.add(
+      this.sseService.orderStatusChanged$.subscribe({
+        next: (event) => {
+          const updatedOrder = event.payload as RoomOrder;
+          if (updatedOrder && updatedOrder.id) {
+            this.activeReservationOrders.update(orders =>
+              orders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+            );
+          }
+        }
+      })
+    );
+
+    this.sseSub.add(
+      this.sseService.reservationStatusChanged$.subscribe({
+        next: () => {
+          this.loadReservations();
+        }
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    if (this.sseSub) {
+      this.sseSub.unsubscribe();
+    }
   }
 
   loadReservations(): void {
@@ -343,31 +380,33 @@ export class MyReservationsComponent implements OnInit {
   }
 
   getOrderStatusLabel(status: OrderStatus, type: 'KITCHEN' | 'SPA' | 'MIXED'): string {
+    const isEn = this.i18n.currentLang() === 'en';
     if (type === 'SPA') {
       switch (status) {
-        case 'RECEIVED': return 'Solicitud Recibida en Concierge';
-        case 'PREPARING': return 'Terapeuta Asignado';
-        case 'READY_FOR_DELIVERY': return 'En Camino a su Suite';
-        case 'DELIVERED': return 'Sesión Completada en Suite';
-        case 'CANCELLED': return 'Cancelada';
+        case 'RECEIVED': return isEn ? 'Request Received by Concierge' : 'Solicitud Recibida en Concierge';
+        case 'PREPARING': return isEn ? 'Therapist Assigned' : 'Terapeuta Asignado';
+        case 'READY_FOR_DELIVERY': return isEn ? 'On the Way to Suite' : 'En Camino a su Suite';
+        case 'DELIVERED': return isEn ? 'Session Completed' : 'Sesión Completada en Suite';
+        case 'CANCELLED': return isEn ? 'Cancelled' : 'Cancelada';
         default: return status;
       }
     }
     switch (status) {
-      case 'RECEIVED': return 'Recibido en Cocina & Bar';
-      case 'PREPARING': return 'En Fogón / Preparando';
-      case 'READY_FOR_DELIVERY': return 'Listo / En Camino a Suite';
-      case 'DELIVERED': return 'Entregado en Suite';
-      case 'CANCELLED': return 'Cancelada';
+      case 'RECEIVED': return isEn ? 'Received in Kitchen & Bar' : 'Recibido en Cocina & Bar';
+      case 'PREPARING': return isEn ? 'In Kitchen / Preparing' : 'En Fogón / Preparando';
+      case 'READY_FOR_DELIVERY': return isEn ? 'Ready / On the Way' : 'Listo / En Camino a Suite';
+      case 'DELIVERED': return isEn ? 'Delivered to Suite' : 'Entregado en Suite';
+      case 'CANCELLED': return isEn ? 'Cancelled' : 'Cancelada';
       default: return status;
     }
   }
 
   getCategoryLabel(category: ExtraCategory): string {
+    const isEn = this.i18n.currentLang() === 'en';
     switch (category) {
-      case 'GASTRONOMY': return 'Cocina en Vivo';
-      case 'BAR_WINE': return 'Cava & Bar';
-      case 'WELLNESS_SPA': return 'Concierge & Spa';
+      case 'GASTRONOMY': return isEn ? 'Live Kitchen' : 'Cocina en Vivo';
+      case 'BAR_WINE': return isEn ? 'Wine & Bar' : 'Cava & Bar';
+      case 'WELLNESS_SPA': return isEn ? 'Concierge & Spa' : 'Concierge & Spa';
       default: return category;
     }
   }
@@ -389,6 +428,7 @@ export class MyReservationsComponent implements OnInit {
     const now = new Date();
     const diffMs = checkInDateTime.getTime() - now.getTime();
     const hoursRemaining = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+    const isEn = this.i18n.currentLang() === 'en';
 
     if (!isOnlineCard) {
       return {
@@ -396,8 +436,10 @@ export class MyReservationsComponent implements OnInit {
         isEligibleForFullRefund: true,
         refundAmount: 0,
         penaltyAmount: 0,
-        policyMessage: 'Cancelación flexible sin cargos: Su modalidad de pago es en recepción, por lo que no se efectuó ningún débito previo.',
-        badgeLabel: 'Cancelación Gratuita (Sin Cargos)',
+        policyMessage: isEn
+          ? 'Flexible cancellation without charges: Your payment method is upon arrival at reception, so no prior debit was made.'
+          : 'Cancelación flexible sin cargos: Su modalidad de pago es en recepción, por lo que no se efectuó ningún débito previo.',
+        badgeLabel: isEn ? 'Free Cancellation (No Charges)' : 'Cancelación Gratuita (Sin Cargos)',
         badgeType: 'free'
       };
     }
@@ -408,8 +450,10 @@ export class MyReservationsComponent implements OnInit {
         isEligibleForFullRefund: true,
         refundAmount: total,
         penaltyAmount: 0,
-        policyMessage: `Reembolso íntegro del 100% procesado a su tarjeta •••• ${res.cardLast4 || '4242'}. Al cancelar con más de 48h de anticipación, recupera el monto total de su estancia.`,
-        badgeLabel: 'Reembolso del 100% Garantizado',
+        policyMessage: isEn
+          ? `Full 100% refund processed to your card •••• ${res.cardLast4 || '4242'}. By cancelling more than 48h in advance, you receive the full stay amount.`
+          : `Reembolso íntegro del 100% procesado a su tarjeta •••• ${res.cardLast4 || '4242'}. Al cancelar con más de 48h de anticipación, recupera el monto total de su estancia.`,
+        badgeLabel: isEn ? '100% Guaranteed Refund' : 'Reembolso del 100% Garantizado',
         badgeType: 'full'
       };
     } else {
@@ -423,8 +467,10 @@ export class MyReservationsComponent implements OnInit {
         isEligibleForFullRefund: false,
         refundAmount: refund,
         penaltyAmount: penalty,
-        policyMessage: `Cancelación tardía (quedan ${hoursRemaining}h para el check-in): Por política boutique se retiene el valor de la 1ª noche ($${penalty.toFixed(2)} USD) y se reembolsa el saldo restante ($${refund.toFixed(2)} USD) a su tarjeta •••• ${res.cardLast4 || '4242'}.`,
-        badgeLabel: 'Retención de 1ª Noche (Saldo Reembolsado)',
+        policyMessage: isEn
+          ? `Late cancellation (${hoursRemaining}h remaining until check-in): Per boutique policy, 1st night ($${penalty.toFixed(2)} USD) is retained and remaining balance ($${refund.toFixed(2)} USD) refunded to your card •••• ${res.cardLast4 || '4242'}.`
+          : `Cancelación tardía (quedan ${hoursRemaining}h para el check-in): Por política boutique se retiene el valor de la 1ª noche ($${penalty.toFixed(2)} USD) y se reembolsa el saldo restante ($${refund.toFixed(2)} USD) a su tarjeta •••• ${res.cardLast4 || '4242'}.`,
+        badgeLabel: isEn ? '1st Night Retained (Balance Refunded)' : 'Retención de 1ª Noche (Saldo Reembolsado)',
         badgeType: 'partial'
       };
     }
@@ -487,17 +533,18 @@ export class MyReservationsComponent implements OnInit {
   }
 
   getStatusLabel(status: string): string {
+    const isEn = this.i18n.currentLang() === 'en';
     switch (status) {
       case 'CHECKED_IN':
-        return 'En Casa (Check-In Realizado)';
+        return isEn ? 'In-House (Checked-In)' : 'En Casa (Check-In Realizado)';
       case 'CONFIRMED':
-        return 'Reserva Confirmada';
+        return isEn ? 'Confirmed Reservation' : 'Reserva Confirmada';
       case 'PENDING':
-        return 'Pendiente de Confirmación';
+        return isEn ? 'Pending Confirmation' : 'Pendiente de Confirmación';
       case 'COMPLETED':
-        return 'Estancia Completada';
+        return isEn ? 'Completed Stay' : 'Estancia Completada';
       case 'CANCELLED':
-        return 'Reserva Cancelada';
+        return isEn ? 'Cancelled' : 'Reserva Cancelada';
       default:
         return status;
     }

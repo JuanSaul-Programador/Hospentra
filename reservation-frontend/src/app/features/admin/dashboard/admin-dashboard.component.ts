@@ -2,25 +2,43 @@ import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { RoomService } from '../../../core/services/room.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { StaffService } from '../../../core/services/staff.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { TherapistService } from '../../../core/services/therapist.service';
+import { SseService } from '../../../core/services/sse.service';
 import { Reservation, ReservationStatus } from '../../../core/models/reservation.model';
-import { Room, RoomStatus } from '../../../core/models/room.model';
+import { Room, RoomStatus, RoomType } from '../../../core/models/room.model';
 import { Role } from '../../../core/models/auth.model';
 import { Shift, UserResponse, WorkStatus } from '../../../core/models/staff.model';
 import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 import { Therapist } from '../../../core/models/therapist.model';
+import { RoomRackComponent } from './components/room-rack/room-rack.component';
+import { VoucherModalComponent } from './components/voucher-modal/voucher-modal.component';
+import { TherapistDirectoryModalComponent } from './components/therapist-directory-modal/therapist-directory-modal.component';
+import { AssignTherapistModalComponent } from './components/assign-therapist-modal/assign-therapist-modal.component';
+import { TapeChartComponent } from './components/tape-chart/tape-chart.component';
+import { SuiteInventoryComponent } from './components/suite-inventory/suite-inventory.component';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    RoomRackComponent,
+    VoucherModalComponent,
+    TherapistDirectoryModalComponent,
+    AssignTherapistModalComponent,
+    TapeChartComponent,
+    SuiteInventoryComponent
+  ],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
@@ -31,15 +49,20 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly roomOrderService = inject(RoomOrderService);
   private readonly therapistService = inject(TherapistService);
   readonly authService = inject(AuthService);
+  readonly sseService = inject(SseService);
   private readonly router = inject(Router);
+
+  private sseSub: Subscription | null = null;
 
   readonly isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
   readonly isReceptionist = computed(() => this.authService.userRole() === 'ROLE_RECEPTIONIST');
 
-  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'STAFF'>('OPERATIONS');
+  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF'>('OPERATIONS');
 
   readonly reservations = signal<Reservation[]>([]);
   readonly rooms = signal<Room[]>([]);
+  readonly roomTypes = signal<RoomType[]>([]);
+  readonly isLoadingRooms = signal<boolean>(false);
   readonly roomOrders = signal<RoomOrder[]>([]);
   readonly therapists = signal<Therapist[]>([]);
   readonly activeTherapists = computed(() => this.therapists().filter(t => t.active));
@@ -50,6 +73,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly isAssignModalOpen = signal<boolean>(false);
   readonly orderToAssign = signal<RoomOrder | null>(null);
   readonly selectedTherapistId = signal<number | null>(null);
+  readonly busyTherapistIds = signal<number[]>([]);
   readonly isAssigningTherapist = signal<boolean>(false);
   readonly activeOrdersCount = computed(() => {
     return this.roomOrders().filter(o => o.status === 'RECEIVED' || o.status === 'PREPARING' || o.status === 'READY_FOR_DELIVERY').length;
@@ -64,6 +88,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   readonly searchQuery = signal<string>('');
   readonly statusFilter = signal<AdminFilterTab>('ALL');
+  readonly operationsViewMode = signal<'LIST' | 'TAPE_CHART'>('LIST');
 
   readonly currentWorkStatus = signal<WorkStatus>('ON_DUTY');
   readonly breakSeconds = signal<number>(0);
@@ -240,11 +265,67 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (this.isAdmin()) {
       this.loadStaff();
     }
+
+    this.sseService.connect();
+    this.sseSub = new Subscription();
+
+    this.sseSub.add(
+      this.sseService.orderCreated$.subscribe({
+        next: (event) => {
+          this.showToast(event.title + ' — ' + event.message);
+          this.loadOrders();
+        }
+      })
+    );
+
+    this.sseSub.add(
+      this.sseService.orderStatusChanged$.subscribe({
+        next: (event) => {
+          const updated = event.payload as RoomOrder;
+          if (updated && updated.id) {
+            this.roomOrders.update(list => list.map(o => o.id === updated.id ? updated : o));
+          } else {
+            this.loadOrders();
+          }
+        }
+      })
+    );
+
+    this.sseSub.add(
+      this.sseService.roomStatusChanged$.subscribe({
+        next: (event) => {
+          const updatedRoom = event.payload as Room;
+          if (updatedRoom && updatedRoom.id) {
+            this.rooms.update(list => list.map(r => r.id === updatedRoom.id ? updatedRoom : r));
+          } else {
+            this.roomService.getRooms().subscribe(roomsData => this.rooms.set(roomsData || []));
+          }
+          this.showToast(event.title + ' — ' + event.message);
+        }
+      })
+    );
+
+    this.sseSub.add(
+      this.sseService.reservationStatusChanged$.subscribe({
+        next: (event) => {
+          const updatedRes = event.payload as Reservation;
+          if (updatedRes && updatedRes.id) {
+            this.reservations.update(list => list.map(r => r.id === updatedRes.id ? updatedRes : r));
+          } else {
+            this.loadData();
+          }
+          this.showToast(event.title + ' — ' + event.message);
+        }
+      })
+    );
   }
 
   ngOnDestroy(): void {
     if (this.breakInterval) {
       clearInterval(this.breakInterval);
+    }
+    if (this.sseSub) {
+      this.sseSub.unsubscribe();
     }
   }
 
@@ -269,6 +350,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.errorMessage.set('Error al sincronizar las reservas con el servidor.');
         this.isLoading.set(false);
       }
+    });
+
+    this.loadRoomTypes();
+  }
+
+  loadRoomTypes(): void {
+    this.roomService.getRoomTypes().subscribe({
+      next: (types) => this.roomTypes.set(types || []),
+      error: () => {}
+    });
+  }
+
+  loadRooms(): void {
+    this.isLoadingRooms.set(true);
+    this.roomService.getRooms().subscribe({
+      next: (roomsData) => {
+        this.rooms.set(roomsData || []);
+        this.isLoadingRooms.set(false);
+      },
+      error: () => this.isLoadingRooms.set(false)
     });
   }
 
@@ -385,6 +486,42 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  saveTherapistFromChild(data: { name: string; specialty: string; phone?: string }): void {
+    this.isSavingTherapist.set(true);
+    this.therapistService.createTherapist({
+      name: data.name,
+      specialty: data.specialty,
+      phone: data.phone,
+      active: true
+    }).subscribe({
+      next: (created) => {
+        this.isSavingTherapist.set(false);
+        this.therapists.update(list => [created, ...list]);
+        this.showToast(`Terapeuta ${created.name} agregado al directorio exitosamente.`);
+      },
+      error: () => {
+        this.isSavingTherapist.set(false);
+      }
+    });
+  }
+
+  confirmAssignFromChild(data: { orderId: number; therapistId: number }): void {
+    this.isAssigningTherapist.set(true);
+    this.roomOrderService.assignTherapist(data.orderId, data.therapistId).subscribe({
+      next: (updatedOrder) => {
+        this.isAssigningTherapist.set(false);
+        this.roomOrders.update(list => list.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+        this.closeAssignModal();
+        this.showToast(`Terapeuta asignado a Comanda #${updatedOrder.id} de Suite ${updatedOrder.roomNumber}.`);
+      },
+      error: (err) => {
+        this.isAssigningTherapist.set(false);
+        const errorMsg = err.error?.message || 'No fue posible asignar el especialista';
+        this.showToast(errorMsg);
+      }
+    });
+  }
+
   toggleTherapistStatus(therapist: Therapist): void {
     this.therapistService.toggleStatus(therapist.id).subscribe({
       next: (updated) => {
@@ -414,6 +551,14 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.selectedTherapistId.set(null);
     this.isAssignModalOpen.set(true);
     this.loadTherapists();
+    if (order.scheduledTime) {
+      this.roomOrderService.getBusyTherapists(order.scheduledTime).subscribe({
+        next: (ids) => this.busyTherapistIds.set(ids || []),
+        error: () => this.busyTherapistIds.set([])
+      });
+    } else {
+      this.busyTherapistIds.set([]);
+    }
   }
 
   closeAssignModal(): void {
@@ -435,8 +580,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.closeAssignModal();
         this.showToast(`Terapeuta asignado a Comanda #${updatedOrder.id} de Suite ${updatedOrder.roomNumber}.`);
       },
-      error: () => {
+      error: (err) => {
         this.isAssigningTherapist.set(false);
+        const errorMsg = err.error?.message || 'No fue posible asignar el especialista';
+        this.showToast(errorMsg);
       }
     });
   }
@@ -465,14 +612,27 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'STAFF'): void {
-    if (section === 'STAFF' && !this.isAdmin()) return;
+  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF'): void {
+    if ((section === 'STAFF' || section === 'SUITES_INVENTORY') && !this.isAdmin()) return;
     this.activeSection.set(section);
     if (section === 'STAFF' && this.staffList().length === 0) {
       this.loadStaff();
     }
     if (section === 'ROOM_SERVICE') {
       this.loadOrders();
+    }
+    if (section === 'SUITES_INVENTORY') {
+      this.loadRoomTypes();
+      this.loadRooms();
+    }
+  }
+
+  onNotifyFromInventory(event: { type: 'success' | 'error'; message: string }): void {
+    if (event.type === 'success') {
+      this.showToast(event.message);
+    } else {
+      this.errorMessage.set(event.message);
+      setTimeout(() => this.errorMessage.set(null), 6000);
     }
   }
 

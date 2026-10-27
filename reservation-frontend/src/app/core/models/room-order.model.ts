@@ -4,8 +4,10 @@ export type OrderStatus = 'RECEIVED' | 'PREPARING' | 'READY_FOR_DELIVERY' | 'DEL
 export interface ExtraService {
   id: number;
   name: string;
+  nameEn?: string;
   category: ExtraCategory;
   description: string;
+  descriptionEn?: string;
   price: number;
   imageUrl: string;
   available: boolean;

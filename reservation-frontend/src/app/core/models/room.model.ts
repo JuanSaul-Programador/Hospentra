@@ -3,7 +3,9 @@ export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
 export interface RoomType {
   id: number;
   name: string;
+  nameEn?: string;
   description?: string;
+  descriptionEn?: string;
   capacity: number;
   pricePerNight: number;
 }
@@ -17,7 +19,9 @@ export interface Room {
 
 export interface RoomTypeRequest {
   name: string;
+  nameEn?: string;
   description?: string;
+  descriptionEn?: string;
   capacity: number;
   pricePerNight: number;
 }

@@ -5,20 +5,20 @@
       <div class="prestige-badges">
         <div class="badge-item gold">
           <span class="material-symbols-outlined badge-icon filled">hotel_class</span>
-          <span class="badge-text">Certificado 5 Diamantes</span>
+          <span class="badge-text">{{ i18n.t('hero.prestige1') }}</span>
         </div>
         <div class="badge-item glass">
           <span class="material-symbols-outlined badge-icon">room_service</span>
-          <span class="badge-text">Servicio de Concierge 24/7</span>
+          <span class="badge-text">{{ i18n.t('hero.prestige2') }}</span>
         </div>
       </div>
 
       <h1 class="hero-title">
-        El Arte del <span class="gold-text">Descanso</span> Exclusivo
+        {{ i18n.t('hero.titleStart') }} <span class="gold-text">{{ i18n.t('hero.titleHighlight') }}</span> {{ i18n.t('hero.titleEnd') }}
       </h1>
 
       <p class="hero-subtitle">
-        Descubre nuestra selección curada de suites boutique y santuarios privados, diseñados para una estadía inolvidable con atención personalizada.
+        {{ i18n.t('hero.subtitle') }}
       </p>
 
       <div class="search-capsule">
@@ -27,7 +27,7 @@
             <span class="material-symbols-outlined">calendar_today</span>
           </div>
           <div class="field-content">
-            <label for="check-in-input" class="field-label">Llegada</label>
+            <label for="check-in-input" class="field-label">{{ i18n.t('hero.checkIn') }}</label>
             <input
               id="check-in-input"
               type="date"
@@ -46,7 +46,7 @@
             <span class="material-symbols-outlined">event_available</span>
           </div>
           <div class="field-content">
-            <label for="check-out-input" class="field-label">Salida</label>
+            <label for="check-out-input" class="field-label">{{ i18n.t('hero.checkOut') }}</label>
             <input
               id="check-out-input"
               type="date"
@@ -65,24 +65,24 @@
             <span class="material-symbols-outlined">group</span>
           </div>
           <div class="field-content">
-            <label for="guests-select" class="field-label">Huéspedes</label>
+            <label for="guests-select" class="field-label">{{ i18n.t('hero.guests') }}</label>
             <select
               id="guests-select"
               [ngModel]="searchGuests()"
               (ngModelChange)="searchGuests.set($event)"
               class="field-select"
             >
-              <option [ngValue]="1">1 Huésped</option>
-              <option [ngValue]="2">2 Huéspedes</option>
-              <option [ngValue]="3">3 Huéspedes</option>
-              <option [ngValue]="4">4 Huéspedes</option>
-              <option [ngValue]="6">6 Huéspedes</option>
+              <option [ngValue]="1">{{ i18n.t('hero.guestSingular') }}</option>
+              <option [ngValue]="2">{{ i18n.t('hero.guestPlural', { n: 2 }) }}</option>
+              <option [ngValue]="3">{{ i18n.t('hero.guestPlural', { n: 3 }) }}</option>
+              <option [ngValue]="4">{{ i18n.t('hero.guestPlural', { n: 4 }) }}</option>
+              <option [ngValue]="6">{{ i18n.t('hero.guestPlural', { n: 6 }) }}</option>
             </select>
           </div>
         </div>
 
         <button type="button" class="btn btn-secondary search-cta-btn" (click)="loadRooms()">
-          <span>Consultar Disponibilidad</span>
+          <span>{{ i18n.t('hero.searchCta') }}</span>
           <span class="material-symbols-outlined">arrow_forward</span>
         </button>
       </div>
@@ -90,12 +90,12 @@
       <div class="assurance-ribbon">
         <div class="assurance-item">
           <span class="material-symbols-outlined">verified</span>
-          <span>Garantía de mejor tarifa directa</span>
+          <span>{{ i18n.t('hero.guarantee1') }}</span>
         </div>
         <span class="ribbon-dot">•</span>
         <div class="assurance-item">
           <span class="material-symbols-outlined">event_repeat</span>
-          <span>Cancelación gratuita hasta 48h antes</span>
+          <span>{{ i18n.t('hero.guarantee2') }}</span>
         </div>
       </div>
     </div>
@@ -111,7 +111,7 @@
             [class.active]="selectedCategory() === 'all'"
             (click)="onFilterChange('all')"
           >
-            Todas las Habitaciones
+            {{ i18n.t('catalog.filterAll') }}
           </button>
           <button
             type="button"
@@ -119,7 +119,7 @@
             [class.active]="selectedCategory() === 'suite'"
             (click)="onFilterChange('suite')"
           >
-            Suites Vista al Mar
+            {{ i18n.t('catalog.filterSuite') }}
           </button>
           <button
             type="button"
@@ -127,7 +127,7 @@
             [class.active]="selectedCategory() === 'penthouse'"
             (click)="onFilterChange('penthouse')"
           >
-            Penthouse Exclusivo
+            {{ i18n.t('catalog.filterPenthouse') }}
           </button>
           <button
             type="button"
@@ -135,7 +135,7 @@
             [class.active]="selectedCategory() === 'villa'"
             (click)="onFilterChange('villa')"
           >
-            Villas Privadas
+            {{ i18n.t('catalog.filterVilla') }}
           </button>
           <button
             type="button"
@@ -143,36 +143,36 @@
             [class.active]="selectedCategory() === 'deluxe'"
             (click)="onFilterChange('deluxe')"
           >
-            Habitaciones Deluxe
+            {{ i18n.t('catalog.filterDeluxe') }}
           </button>
         </div>
 
         <div class="sort-wrapper">
           <span class="material-symbols-outlined sort-icon">tune</span>
-          <label for="sort-select" class="sort-label">Ordenar:</label>
+          <label for="sort-select" class="sort-label">{{ i18n.t('catalog.sortLabel') }}</label>
           <select id="sort-select" class="sort-select" (change)="onSortChange($event)">
-            <option value="featured">Recomendados</option>
-            <option value="price-asc">Precio: menor a mayor</option>
-            <option value="price-desc">Precio: mayor a menor</option>
-            <option value="capacity">Capacidad máxima</option>
+            <option value="featured">{{ i18n.t('catalog.sortFeatured') }}</option>
+            <option value="price-asc">{{ i18n.t('catalog.sortPriceAsc') }}</option>
+            <option value="price-desc">{{ i18n.t('catalog.sortPriceDesc') }}</option>
+            <option value="capacity">{{ i18n.t('catalog.sortCapacity') }}</option>
           </select>
         </div>
       </div>
 
       <div class="catalog-meta-bar">
         <p class="count-text">
-          Mostrando <strong class="bold-count">{{ filteredRooms().length }} residencias exclusivas</strong> disponibles
+          <strong class="bold-count">{{ i18n.t('catalog.showingText', { n: filteredRooms().length }) }}</strong>
         </p>
         <div class="live-indicator">
           <span class="pulsing-dot"></span>
-          <span>Disponibilidad en Tiempo Real</span>
+          <span>{{ i18n.t('catalog.realtimeAvailability') }}</span>
         </div>
       </div>
 
       @if (isLoading()) {
         <div class="loading-state">
           <div class="spinner"></div>
-          <p>Consultando disponibilidad de suites...</p>
+          <p>{{ i18n.t('catalog.loadingSuites') }}</p>
         </div>
       } @else {
         <div class="rooms-grid">
@@ -197,42 +197,42 @@
 
               <div class="room-card-body">
                 <div class="room-specs">
-                  <span>Hasta {{ room.roomType.capacity }} huéspedes</span>
+                  <span>{{ i18n.t('catalog.capacityUpTo', { n: room.roomType.capacity }) }}</span>
                   <span class="spec-dot">•</span>
-                  <span>Habitación {{ room.roomNumber }}</span>
+                  <span>{{ i18n.t('catalog.roomLabel', { n: room.roomNumber }) }}</span>
                 </div>
 
-                <h3 class="room-title">{{ room.roomType.name }}</h3>
+                <h3 class="room-title">{{ (i18n.currentLang() === 'en' && room.roomType.nameEn) ? room.roomType.nameEn : room.roomType.name }}</h3>
 
                 <p class="room-description">
-                  {{ room.roomType.description || 'Disfruta de una estancia de lujo con acabados de primera clase y amenidades exclusivas.' }}
+                  {{ (i18n.currentLang() === 'en' && room.roomType.descriptionEn) ? room.roomType.descriptionEn : (room.roomType.description || (i18n.currentLang() === 'en' ? 'Enjoy a boutique sanctuary with premium amenities and bespoke luxury service.' : 'Disfruta de una estancia de lujo con acabados de primera clase y amenidades exclusivas.')) }}
                 </p>
 
                 <div class="amenities-grid">
                   <div class="amenity-item">
                     <span class="material-symbols-outlined">panorama</span>
-                    <span>Vista panorámica</span>
+                    <span>{{ i18n.t('catalog.panoramicView') }}</span>
                   </div>
                   <div class="amenity-item">
                     <span class="material-symbols-outlined">hot_tub</span>
-                    <span>Tina hidromasaje</span>
+                    <span>{{ i18n.t('catalog.hotTub') }}</span>
                   </div>
                   <div class="amenity-item">
                     <span class="material-symbols-outlined">deck</span>
-                    <span>Terraza privada</span>
+                    <span>{{ i18n.t('catalog.privateTerrace') }}</span>
                   </div>
                   <div class="amenity-item">
                     <span class="material-symbols-outlined">restaurant</span>
-                    <span>Desayuno gourmet</span>
+                    <span>{{ i18n.t('catalog.gourmetBreakfast') }}</span>
                   </div>
                 </div>
 
                 <div class="room-card-footer">
                   <div class="pricing-block">
-                    <span class="pricing-label">Tarifa por noche</span>
+                    <span class="pricing-label">{{ i18n.t('catalog.ratePerNight') }}</span>
                     <div class="pricing-val">
                       <span class="amount">${{ room.roomType.pricePerNight | number:'1.2-2' }}</span>
-                      <span class="night-label">/ noche</span>
+                      <span class="night-label">{{ i18n.t('catalog.perNight') }}</span>
                     </div>
                   </div>
 
@@ -241,7 +241,7 @@
                     class="btn btn-primary book-btn"
                     (click)="onBook(room)"
                   >
-                    Reservar ahora
+                    {{ i18n.t('catalog.bookNow') }}
                   </button>
                 </div>
               </div>
@@ -254,10 +254,10 @@
 
   <section id="servicios" class="experience-section">
     <div class="experience-container">
-      <div class="section-badge">Estándar Hospentra</div>
-      <h2 class="experience-title">Servicios de Hospitalidad de Autor</h2>
+      <div class="section-badge">{{ i18n.t('amenities.tag') }}</div>
+      <h2 class="experience-title">{{ i18n.t('amenities.title') }}</h2>
       <p class="experience-subtitle">
-        Cada momento de su estancia está concebido para superar las más altas expectativas de confort, privacidad y bienestar.
+        {{ i18n.t('amenities.subtitle') }}
       </p>
 
       <div class="features-grid">
@@ -265,32 +265,32 @@
           <div class="feature-icon">
             <span class="material-symbols-outlined">room_service</span>
           </div>
-          <h3 class="feature-name">Concierge Dedicado 24/7</h3>
-          <p class="feature-desc">Atención a medida para reservas privadas, itinerarios a medida y asistencia permanente.</p>
+          <h3 class="feature-name">{{ i18n.t('amenities.conciergeTitle') }}</h3>
+          <p class="feature-desc">{{ i18n.t('amenities.conciergeDesc') }}</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">
             <span class="material-symbols-outlined">restaurant</span>
           </div>
-          <h3 class="feature-name">Alta Gastronomía</h3>
-          <p class="feature-desc">Chefs galardonados en servicio a la habitación y maridajes curados por sommeliers.</p>
+          <h3 class="feature-name">{{ i18n.t('amenities.diningTitle') }}</h3>
+          <p class="feature-desc">{{ i18n.t('amenities.diningDesc') }}</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">
             <span class="material-symbols-outlined">spa</span>
           </div>
-          <h3 class="feature-name">Wellness & Spa Privado</h3>
-          <p class="feature-desc">Tratamientos termales personalizados y rituales holísticos en la intimidad de su suite.</p>
+          <h3 class="feature-name">{{ i18n.t('amenities.spaTitle') }}</h3>
+          <p class="feature-desc">{{ i18n.t('amenities.spaDesc') }}</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">
             <span class="material-symbols-outlined">shield</span>
           </div>
-          <h3 class="feature-name">Privacidad & Seguridad</h3>
-          <p class="feature-desc">Acceso blindado, discretas instalaciones y protocolos internacionales de bioseguridad.</p>
+          <h3 class="feature-name">{{ i18n.t('amenities.securityTitle') }}</h3>
+          <p class="feature-desc">{{ i18n.t('amenities.securityDesc') }}</p>
         </div>
       </div>
     </div>

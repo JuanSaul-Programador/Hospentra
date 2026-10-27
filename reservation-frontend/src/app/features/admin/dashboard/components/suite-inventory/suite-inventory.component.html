@@ -1,0 +1,447 @@
+<section class="inventory-section">
+  <div class="inventory-header">
+    <div class="header-titles">
+      <div class="badge-prestige">
+        <span class="material-symbols-outlined icon-mini">hotel_class</span>
+        <span>ADMINISTRACIÓN EXCLUSIVA DE INVENTARIO</span>
+      </div>
+      <h2 class="section-title">Gestión de Suites & Habitaciones Físicas</h2>
+      <p class="section-subtitle">
+        Configure las categorías de autor con tarifas base, capacidad y textos bilingües (ES / EN), y registre las habitaciones físicas asignadas al hotel.
+      </p>
+    </div>
+
+    <div class="header-kpi-strip">
+      <div class="kpi-chip">
+        <span class="chip-label">Categorías</span>
+        <strong class="chip-val">{{ roomTypes.length }}</strong>
+      </div>
+      <div class="kpi-chip">
+        <span class="chip-label">Total Suites</span>
+        <strong class="chip-val">{{ rooms.length }}</strong>
+      </div>
+      <div class="kpi-chip available">
+        <span class="chip-label">Disponibles</span>
+        <strong class="chip-val">{{ availableRoomsCount() }}</strong>
+      </div>
+      <div class="kpi-chip occupied">
+        <span class="chip-label">Ocupadas</span>
+        <strong class="chip-val">{{ occupiedRoomsCount() }}</strong>
+      </div>
+      <div class="kpi-chip maintenance">
+        <span class="chip-label">Mantenimiento</span>
+        <strong class="chip-val">{{ maintenanceRoomsCount() }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="subtabs-bar">
+    <div class="subtabs-group">
+      <button
+        type="button"
+        class="subtab-btn"
+        [class.active]="activeSubTab() === 'ROOM_TYPES'"
+        (click)="activeSubTab.set('ROOM_TYPES')"
+      >
+        <span class="material-symbols-outlined">style</span>
+        <span>Categorías de Suite (Room Types)</span>
+        <span class="count-pill">{{ roomTypes.length }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="subtab-btn"
+        [class.active]="activeSubTab() === 'ROOMS'"
+        (click)="activeSubTab.set('ROOMS')"
+      >
+        <span class="material-symbols-outlined">meeting_room</span>
+        <span>Habitaciones Físicas (Rooms)</span>
+        <span class="count-pill">{{ rooms.length }}</span>
+      </button>
+    </div>
+
+    <div class="subtabs-actions">
+      @if (activeSubTab() === 'ROOM_TYPES') {
+        <button type="button" class="btn-create-primary" (click)="openCreateRoomTypeModal()">
+          <span class="material-symbols-outlined">add</span>
+          <span>Nueva Categoría de Suite</span>
+        </button>
+      } @else {
+        <button type="button" class="btn-create-primary" (click)="openCreateRoomModal()">
+          <span class="material-symbols-outlined">add</span>
+          <span>Nueva Habitación Física</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (activeSubTab() === 'ROOM_TYPES') {
+    <div class="inventory-grid-types">
+      @if (roomTypes.length === 0) {
+        <div class="empty-inventory-state">
+          <span class="material-symbols-outlined empty-icon">hotel_class</span>
+          <h3>No hay categorías de suite registradas</h3>
+          <p>Comience dando de alta la primera categoría de autor de la colección boutique.</p>
+          <button type="button" class="btn-create-primary" (click)="openCreateRoomTypeModal()">
+            <span class="material-symbols-outlined">add</span>
+            <span>Crear Primera Categoría</span>
+          </button>
+        </div>
+      } @else {
+        @for (rt of roomTypes; track rt.id) {
+          <article class="type-card">
+            <div class="type-card-head">
+              <div class="type-meta-left">
+                <span class="type-id-tag">TIPO #{{ rt.id }}</span>
+                <span class="capacity-tag">
+                  <span class="material-symbols-outlined icon-mini">group</span>
+                  <span>Hasta {{ rt.capacity }} huéspedes</span>
+                </span>
+              </div>
+              <div class="type-price-badge">
+                <span class="price-val">${{ rt.pricePerNight | number:'1.2-2' }}</span>
+                <span class="price-sub">USD / noche</span>
+              </div>
+            </div>
+
+            <div class="type-card-body">
+              <div class="lang-row es">
+                <span class="lang-flag-pill">ES</span>
+                <h3 class="type-title">{{ rt.name }}</h3>
+              </div>
+              <p class="type-desc">{{ rt.description || 'Sin descripción en español registrada.' }}</p>
+
+              <div class="lang-divider"></div>
+
+              <div class="lang-row en">
+                <span class="lang-flag-pill en">EN</span>
+                <h4 class="type-title-en">{{ rt.nameEn || '(Traducción al inglés pendiente)' }}</h4>
+              </div>
+              <p class="type-desc en">{{ rt.descriptionEn || '(English description pending)' }}</p>
+            </div>
+
+            <div class="type-card-footer">
+              <div class="rooms-assigned-count">
+                <span class="material-symbols-outlined icon-mini">door_front</span>
+                <span><strong>{{ countRoomsByType(rt.id) }}</strong> habitaciones vinculadas</span>
+              </div>
+
+              <div class="card-action-btns">
+                <button type="button" class="btn-card-action edit" (click)="openEditRoomTypeModal(rt)" title="Editar categoría">
+                  <span class="material-symbols-outlined">edit</span>
+                  <span>Editar</span>
+                </button>
+                <button type="button" class="btn-card-action delete" (click)="confirmDeleteRoomType(rt)" title="Eliminar categoría">
+                  <span class="material-symbols-outlined">delete_outline</span>
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      }
+    </div>
+  }
+
+  @if (activeSubTab() === 'ROOMS') {
+    <div class="inventory-grid-rooms">
+      @if (rooms.length === 0) {
+        <div class="empty-inventory-state">
+          <span class="material-symbols-outlined empty-icon">door_sliding</span>
+          <h3>No hay habitaciones físicas registradas</h3>
+          <p>Asigne números de habitación a las categorías de suite existentes para habilitar el Rack.</p>
+          <button type="button" class="btn-create-primary" (click)="openCreateRoomModal()">
+            <span class="material-symbols-outlined">add</span>
+            <span>Registrar Primera Habitación</span>
+          </button>
+        </div>
+      } @else {
+        @for (room of rooms; track room.id) {
+          <article class="room-inventory-card">
+            <div class="room-top-row">
+              <div class="room-number-wrap">
+                <span class="material-symbols-outlined icon-door">meeting_room</span>
+                <span class="room-num">Habitación {{ room.roomNumber }}</span>
+              </div>
+              <span class="status-pill" [ngClass]="getStatusClass(room.status)">
+                <span class="status-dot"></span>
+                <span>{{ getStatusLabel(room.status) }}</span>
+              </span>
+            </div>
+
+            <div class="room-card-content">
+              <span class="room-category-label">{{ room.roomType.name }}</span>
+              @if (room.roomType.nameEn) {
+                <span class="room-category-en">{{ room.roomType.nameEn }}</span>
+              }
+
+              <div class="room-specs-row">
+                <span class="spec-pill">
+                  <span class="material-symbols-outlined icon-mini">attach_money</span>
+                  <span>${{ room.roomType.pricePerNight | number:'1.2-2' }} USD/noche</span>
+                </span>
+                <span class="spec-pill">
+                  <span class="material-symbols-outlined icon-mini">group</span>
+                  <span>{{ room.roomType.capacity }} pax</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="room-bottom-actions">
+              <button type="button" class="btn-room-action edit" (click)="openEditRoomModal(room)">
+                <span class="material-symbols-outlined icon-mini">edit</span>
+                <span>Editar</span>
+              </button>
+              <button type="button" class="btn-room-action delete" (click)="confirmDeleteRoom(room)">
+                <span class="material-symbols-outlined icon-mini">delete_outline</span>
+                <span>Eliminar</span>
+              </button>
+            </div>
+          </article>
+        }
+      }
+    </div>
+  }
+</section>
+
+@if (isRoomTypeModalOpen()) {
+  <div class="modal-backdrop" (click)="closeRoomTypeModal()">
+    <div class="inventory-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="closeRoomTypeModal()" aria-label="Cerrar modal">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="modal-header">
+        <div class="modal-icon-badge">
+          <span class="material-symbols-outlined">style</span>
+        </div>
+        <div>
+          <h3 class="modal-title">{{ editingRoomTypeId() ? 'Editar Categoría de Suite' : 'Nueva Categoría de Suite' }}</h3>
+          <p class="modal-subtitle">Especifique las tarifas, ocupación y denominaciones de autor bilingües para el catálogo.</p>
+        </div>
+      </div>
+
+      @if (formError()) {
+        <div class="modal-alert-error">
+          <span class="material-symbols-outlined">error</span>
+          <span>{{ formError() }}</span>
+        </div>
+      }
+
+      <div class="modal-form-body">
+        <div class="form-row-dual">
+          <div class="form-group">
+            <label class="form-label" for="rtName">Nombre en Español *</label>
+            <input
+              id="rtName"
+              type="text"
+              class="form-input"
+              [ngModel]="roomTypeForm().name"
+              (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), name: $event })"
+              placeholder="Ej. Suite Royal Vista al Mar"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="rtNameEn">Nombre en Inglés (English) *</label>
+            <input
+              id="rtNameEn"
+              type="text"
+              class="form-input"
+              [ngModel]="roomTypeForm().nameEn"
+              (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), nameEn: $event })"
+              placeholder="Ej. Royal Ocean View Suite"
+            />
+          </div>
+        </div>
+
+        <div class="form-row-dual">
+          <div class="form-group">
+            <label class="form-label" for="rtPrice">Tarifa Base por Noche (USD) *</label>
+            <div class="input-currency-wrap">
+              <span class="currency-symbol">$</span>
+              <input
+                id="rtPrice"
+                type="number"
+                min="1"
+                step="0.01"
+                class="form-input with-prefix"
+                [ngModel]="roomTypeForm().pricePerNight"
+                (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), pricePerNight: $event })"
+                placeholder="380.00"
+              />
+              <span class="currency-code">USD</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="rtCapacity">Capacidad Máxima (Huéspedes) *</label>
+            <input
+              id="rtCapacity"
+              type="number"
+              min="1"
+              max="12"
+              class="form-input"
+              [ngModel]="roomTypeForm().capacity"
+              (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), capacity: $event })"
+              placeholder="2"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="rtDesc">Descripción en Español</label>
+          <textarea
+            id="rtDesc"
+            rows="3"
+            class="form-textarea"
+            [ngModel]="roomTypeForm().description"
+            (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), description: $event })"
+            placeholder="Descripción detallada de la experiencia, acabados y vista de la suite..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="rtDescEn">Descripción en Inglés (English)</label>
+          <textarea
+            id="rtDescEn"
+            rows="3"
+            class="form-textarea"
+            [ngModel]="roomTypeForm().descriptionEn"
+            (ngModelChange)="roomTypeForm.set({ ...roomTypeForm(), descriptionEn: $event })"
+            placeholder="Bespoke luxury description of finishes, panorama, and in-suite amenities..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="closeRoomTypeModal()" [disabled]="isSaving()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-modal-submit" (click)="saveRoomType()" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <span class="spinner-mini"></span>
+            <span>Guardando...</span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            <span>{{ editingRoomTypeId() ? 'Guardar Cambios' : 'Crear Categoría' }}</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (isRoomModalOpen()) {
+  <div class="modal-backdrop" (click)="closeRoomModal()">
+    <div class="inventory-modal compact" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="closeRoomModal()" aria-label="Cerrar modal">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="modal-header">
+        <div class="modal-icon-badge">
+          <span class="material-symbols-outlined">meeting_room</span>
+        </div>
+        <div>
+          <h3 class="modal-title">{{ editingRoomId() ? 'Editar Habitación Física' : 'Registrar Nueva Habitación' }}</h3>
+          <p class="modal-subtitle">Asigne un número de suite físico al catálogo del hotel boutique.</p>
+        </div>
+      </div>
+
+      @if (formError()) {
+        <div class="modal-alert-error">
+          <span class="material-symbols-outlined">error</span>
+          <span>{{ formError() }}</span>
+        </div>
+      }
+
+      <div class="modal-form-body">
+        <div class="form-group">
+          <label class="form-label" for="roomNum">Número de Suite / Habitación *</label>
+          <input
+            id="roomNum"
+            type="text"
+            class="form-input"
+            [ngModel]="roomForm().roomNumber"
+            (ngModelChange)="roomForm.set({ ...roomForm(), roomNumber: $event })"
+            placeholder="Ej. 102, 203, 305..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="roomCatSelect">Categoría de Suite Asignada *</label>
+          <select
+            id="roomCatSelect"
+            class="form-select"
+            [ngModel]="roomForm().roomTypeId"
+            (ngModelChange)="roomForm.set({ ...roomForm(), roomTypeId: $event })"
+          >
+            @for (rt of roomTypes; track rt.id) {
+              <option [value]="rt.id">{{ rt.name }} (Capacidad: {{ rt.capacity }} pax — ${{ rt.pricePerNight | number:'1.2-2' }} USD)</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="roomStatusSelect">Estado Inicial de Housekeeping *</label>
+          <select
+            id="roomStatusSelect"
+            class="form-select"
+            [ngModel]="roomForm().status"
+            (ngModelChange)="roomForm.set({ ...roomForm(), status: $event })"
+          >
+            <option value="AVAILABLE">Disponible (Limpia y lista para recibir huéspedes)</option>
+            <option value="MAINTENANCE">En Mantenimiento (En inspección o limpieza profunda)</option>
+            <option value="OCCUPIED">Ocupada (Con huésped en estancia activa)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="closeRoomModal()" [disabled]="isSaving()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-modal-submit" (click)="saveRoom()" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <span class="spinner-mini"></span>
+            <span>Guardando...</span>
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            <span>{{ editingRoomId() ? 'Guardar Cambios' : 'Registrar Habitación' }}</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (isDeleteModalOpen() && deleteTarget()) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="inventory-modal delete-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="delete-icon-circle">
+        <span class="material-symbols-outlined">warning</span>
+      </div>
+
+      <h3 class="delete-title">¿Desea eliminar esta {{ deleteTarget()?.type === 'ROOM_TYPE' ? 'categoría de suite' : 'habitación' }}?</h3>
+      <p class="delete-desc">
+        Está a punto de eliminar <strong>{{ deleteTarget()?.name }}</strong> del inventario del hotel. Esta acción no se puede deshacer.
+      </p>
+
+      <div class="delete-actions-row">
+        <button type="button" class="btn-modal-cancel" (click)="closeDeleteModal()" [disabled]="isSaving()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-modal-danger" (click)="executeDelete()" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <span class="spinner-mini"></span>
+            <span>Eliminando...</span>
+          } @else {
+            <span class="material-symbols-outlined">delete_forever</span>
+            <span>Eliminar Definitivamente</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

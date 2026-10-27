@@ -2,11 +2,11 @@
   <section class="stepper-section">
     <div class="stepper-container">
       <nav class="breadcrumb-nav" aria-label="Ruta de navegación">
-        <a routerLink="/" class="breadcrumb-link">Catálogo</a>
+        <a routerLink="/" class="breadcrumb-link">{{ i18n.t('checkout.breadcrumbCatalog') }}</a>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current">{{ room()?.roomType?.name || 'Suite Boutique' }}</span>
+        <span class="breadcrumb-current">{{ (i18n.currentLang() === 'en' && room()?.roomType?.nameEn) ? room()?.roomType?.nameEn : (room()?.roomType?.name || (i18n.currentLang() === 'en' ? 'Boutique Suite' : 'Suite Boutique')) }}</span>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-highlight">Confirmación de Reserva</span>
+        <span class="breadcrumb-highlight">{{ i18n.t('checkout.breadcrumbConfirm') }}</span>
       </nav>
 
       <div class="stepper-steps">
@@ -14,17 +14,17 @@
           <span class="step-circle">
             <span class="material-symbols-outlined check-icon">check</span>
           </span>
-          <span class="step-label">Selección</span>
+          <span class="step-label">{{ i18n.t('checkout.stepSelection') }}</span>
         </div>
         <div class="step-line active"></div>
         <div class="step-item active">
           <span class="step-circle">2</span>
-          <span class="step-label">Datos y Pago</span>
+          <span class="step-label">{{ i18n.t('checkout.stepDataPayment') }}</span>
         </div>
         <div class="step-line"></div>
         <div class="step-item">
           <span class="step-circle">3</span>
-          <span class="step-label">Confirmación</span>
+          <span class="step-label">{{ i18n.t('checkout.stepConfirmation') }}</span>
         </div>
       </div>
     </div>
@@ -35,9 +35,9 @@
       <div class="checkout-grid">
         <div class="checkout-form-col">
           <div class="section-heading">
-            <span class="prestige-tag">Reserva Directa Exclusiva</span>
-            <h1 class="heading-title">Formalización de su Estadía</h1>
-            <p class="heading-desc">Verifique los detalles de su suite y elija su modalidad de pago preferida con garantía Hospentra.</p>
+            <span class="prestige-tag">{{ i18n.t('checkout.prestigeTag') }}</span>
+            <h1 class="heading-title">{{ i18n.t('checkout.pageTitle') }}</h1>
+            <p class="heading-desc">{{ i18n.t('checkout.pageDesc') }}</p>
           </div>
 
           @if (errorMessage()) {
@@ -51,7 +51,7 @@
             <div class="module-header">
               <div class="module-title-group">
                 <span class="material-symbols-outlined module-icon">calendar_month</span>
-                <h2 class="module-title">Fechas y Ocupantes</h2>
+                <h2 class="module-title">{{ i18n.t('checkout.datesAndGuests') }}</h2>
               </div>
             </div>
 
@@ -59,7 +59,7 @@
               <div class="date-subcard">
                 <div class="date-header">
                   <span class="material-symbols-outlined">calendar_today</span>
-                  <span class="date-label">Llegada</span>
+                  <span class="date-label">{{ i18n.t('checkout.checkInLabel') }}</span>
                 </div>
                 <input
                   type="date"
@@ -70,19 +70,19 @@
                 />
                 <span class="date-meta">
                   <span class="material-symbols-outlined icon-small">schedule</span>
-                  A partir de las 15:00 hrs
+                  {{ i18n.t('checkout.checkInTime') }}
                 </span>
               </div>
 
               <div class="nights-floating-pill">
                 <span class="material-symbols-outlined">nights_stay</span>
-                <span>{{ nightsCount() }} Noches</span>
+                <span>{{ i18n.t('checkout.nightsCount', { n: nightsCount() }) }}</span>
               </div>
 
               <div class="date-subcard">
                 <div class="date-header">
                   <span class="material-symbols-outlined">event_available</span>
-                  <span class="date-label">Salida</span>
+                  <span class="date-label">{{ i18n.t('checkout.checkOutLabel') }}</span>
                 </div>
                 <input
                   type="date"
@@ -93,7 +93,7 @@
                 />
                 <span class="date-meta">
                   <span class="material-symbols-outlined icon-small">schedule</span>
-                  Hasta las 12:00 hrs
+                  {{ i18n.t('checkout.checkOutTime') }}
                 </span>
               </div>
             </div>
@@ -102,16 +102,16 @@
               <div class="occupants-info">
                 <span class="material-symbols-outlined occupants-icon">group</span>
                 <div>
-                  <p class="occupants-title">{{ guestsCount() }} Huéspedes adultos • 1 Cama King Size</p>
-                  <p class="occupants-subtitle">Capacidad óptima y confort garantizado</p>
+                  <p class="occupants-title">{{ i18n.t('checkout.occupantsTitle', { n: guestsCount() }) }}</p>
+                  <p class="occupants-subtitle">{{ i18n.t('checkout.occupantsSubtitle') }}</p>
                 </div>
               </div>
               <div class="occupants-actions">
                 <select [ngModel]="guestsCount()" (ngModelChange)="guestsCount.set(+$event)" class="guests-select">
-                  <option [ngValue]="1">1 Huésped</option>
-                  <option [ngValue]="2">2 Huéspedes</option>
-                  <option [ngValue]="3">3 Huéspedes</option>
-                  <option [ngValue]="4">4 Huéspedes</option>
+                  <option [ngValue]="1">{{ i18n.t('checkout.guestSingular') }}</option>
+                  <option [ngValue]="2">{{ i18n.t('checkout.guestPlural', { n: 2 }) }}</option>
+                  <option [ngValue]="3">{{ i18n.t('checkout.guestPlural', { n: 3 }) }}</option>
+                  <option [ngValue]="4">{{ i18n.t('checkout.guestPlural', { n: 4 }) }}</option>
                 </select>
               </div>
             </div>
@@ -121,17 +121,17 @@
             <div class="module-header">
               <div class="module-title-group">
                 <span class="material-symbols-outlined module-icon">badge</span>
-                <h2 class="module-title">Información del Titular</h2>
+                <h2 class="module-title">{{ i18n.t('checkout.guestInfoTitle') }}</h2>
               </div>
               <span class="elite-pill">
                 <span class="material-symbols-outlined icon-small">verified</span>
-                Huésped Registrado
+                {{ i18n.t('checkout.registeredBadge') }}
               </span>
             </div>
 
             <div class="form-grid">
               <div class="form-field full-width">
-                <label class="field-label">Nombre Completo</label>
+                <label class="field-label">{{ i18n.t('checkout.fullNameLabel') }}</label>
                 <div class="input-with-badge">
                   <input
                     type="text"
@@ -141,13 +141,13 @@
                   />
                   <span class="verified-badge">
                     <span class="material-symbols-outlined icon-small">verified</span>
-                    Verificado
+                    {{ i18n.t('checkout.verifiedBadge') }}
                   </span>
                 </div>
               </div>
 
               <div class="form-field">
-                <label class="field-label">Correo Electrónico</label>
+                <label class="field-label">{{ i18n.t('checkout.emailLabel') }}</label>
                 <div class="input-with-icon">
                   <span class="material-symbols-outlined field-icon">alternate_email</span>
                   <input
@@ -160,7 +160,7 @@
               </div>
 
               <div class="form-field">
-                <label class="field-label">Teléfono Móvil (Perú +51) *</label>
+                <label class="field-label">{{ i18n.t('checkout.phoneLabel') }}</label>
                 <div class="input-with-icon">
                   <span class="material-symbols-outlined field-icon">call</span>
                   <input
@@ -181,13 +181,13 @@
               <div class="module-title-group">
                 <span class="material-symbols-outlined module-icon">payments</span>
                 <div>
-                  <h2 class="module-title">Pasarela de Pago Dual</h2>
-                  <p class="module-subtitle">Seleccione cómo desea garantizar su reserva.</p>
+                  <h2 class="module-title">{{ i18n.t('checkout.dualPaymentTitle') }}</h2>
+                  <p class="module-subtitle">{{ i18n.t('checkout.dualPaymentDesc') }}</p>
                 </div>
               </div>
               <div class="security-badge-pill">
                 <span class="material-symbols-outlined icon-small">lock</span>
-                Cifrado SSL 256-Bit
+                {{ i18n.t('checkout.sslBadge') }}
               </div>
             </div>
 
@@ -205,11 +205,11 @@
                 <div class="tab-content">
                   <div class="tab-header-line">
                     <span class="material-symbols-outlined tab-icon">credit_card</span>
-                    <strong class="tab-title">Pago Online Inmediato</strong>
-                    <span class="tab-badge gold">Recomendado</span>
+                    <strong class="tab-title">{{ i18n.t('checkout.payOnlineImmediate') }}</strong>
+                    <span class="tab-badge gold">{{ i18n.t('checkout.recommendedBadge') }}</span>
                   </div>
                   <p class="tab-description">
-                    Tarjeta de Crédito o Débito (Visa, Mastercard, Amex). Su voucher se emitirá sellado con <strong>PAGADA EN LÍNEA</strong>.
+                    {{ i18n.t('checkout.payOnlineSub') }}
                   </p>
                 </div>
               </div>
@@ -227,11 +227,11 @@
                 <div class="tab-content">
                   <div class="tab-header-line">
                     <span class="material-symbols-outlined tab-icon">storefront</span>
-                    <strong class="tab-title">Pago en Recepción</strong>
-                    <span class="tab-badge green">Sin Cargo Hoy</span>
+                    <strong class="tab-title">{{ i18n.t('checkout.payAtReception') }}</strong>
+                    <span class="tab-badge green">{{ i18n.t('checkout.noChargeToday') }}</span>
                   </div>
                   <p class="tab-description">
-                    Garantice su suite ahora sin desembolso previo. Liquidación íntegra al registrarse en el hotel con sello <strong>LIQUIDACIÓN AL CHECK-IN</strong>.
+                    {{ i18n.t('checkout.payAtReceptionSub') }}
                   </p>
                 </div>
               </div>
@@ -275,11 +275,11 @@
 
                     <div class="card-footer-row">
                       <div class="cardholder-col">
-                        <span class="field-meta">TITULAR DE LA SUITE</span>
+                        <span class="field-meta">{{ i18n.t('checkout.suiteCardholderField') }}</span>
                         <span class="field-data">{{ displayCardHolder() }}</span>
                       </div>
                       <div class="expiry-col">
-                        <span class="field-meta">VENCE</span>
+                        <span class="field-meta">{{ i18n.t('checkout.expiresField') }}</span>
                         <span class="field-data">{{ displayExpiry() }}</span>
                       </div>
                     </div>
@@ -288,7 +288,7 @@
 
                 <div class="card-inputs-grid">
                   <div class="form-field full-width">
-                    <label class="field-label">Número de Tarjeta (Visa / Mastercard / Amex) *</label>
+                    <label class="field-label">{{ i18n.t('checkout.cardNumberLabel') }}</label>
                     <div class="input-with-icon">
                       <span class="material-symbols-outlined field-icon">credit_card</span>
                       <input
@@ -306,7 +306,7 @@
                   </div>
 
                   <div class="form-field full-width">
-                    <label class="field-label">Nombre del Titular (tal como figura en el plástico) *</label>
+                    <label class="field-label">{{ i18n.t('checkout.cardHolderLabel') }}</label>
                     <div class="input-with-icon">
                       <span class="material-symbols-outlined field-icon">person</span>
                       <input
@@ -320,7 +320,7 @@
                   </div>
 
                   <div class="form-field">
-                    <label class="field-label">Fecha de Expiración (MM/AA) *</label>
+                    <label class="field-label">{{ i18n.t('checkout.cardExpiryLabel') }}</label>
                     <div class="input-with-icon">
                       <span class="material-symbols-outlined field-icon">calendar_month</span>
                       <input
@@ -335,7 +335,7 @@
                   </div>
 
                   <div class="form-field">
-                    <label class="field-label">Código de Seguridad CVV *</label>
+                    <label class="field-label">{{ i18n.t('checkout.cardCvvLabel') }}</label>
                     <div class="input-with-icon">
                       <span class="material-symbols-outlined field-icon">vpn_key</span>
                       <input
@@ -352,7 +352,7 @@
 
                 <div class="security-reassurance">
                   <span class="material-symbols-outlined icon-small">lock</span>
-                  <span>Cifrado bancario SSL 256-Bit. Autorización simulada en tiempo real. Hospentra no almacena códigos CVV.</span>
+                  <span>{{ i18n.t('checkout.cardSimulatedNotice') }}</span>
                 </div>
               </div>
             } @else {
@@ -391,8 +391,8 @@
               <div class="module-title-group">
                 <span class="material-symbols-outlined module-icon">room_service</span>
                 <div>
-                  <h2 class="module-title">Peticiones al Concierge</h2>
-                  <p class="module-subtitle">Nuestro equipo preparará su suite a la medida de sus preferencias.</p>
+                  <h2 class="module-title">{{ i18n.t('checkout.conciergeRequestsTitle') }}</h2>
+                  <p class="module-subtitle">{{ i18n.t('checkout.conciergeRequestsSubtitle') }}</p>
                 </div>
               </div>
             </div>
@@ -401,38 +401,38 @@
               [(ngModel)]="specialRequests"
               rows="3"
               class="notes-textarea"
-              placeholder="Indique requerimientos específicos: hora estimada de llegada, piso alto, almohadas hipoalergénicas, champagne de bienvenida..."
+              [placeholder]="i18n.t('checkout.conciergePlaceholder')"
             ></textarea>
 
             <div class="quick-tags-wrapper">
-              <span class="tags-label">Sugerencias habituales:</span>
+              <span class="tags-label">{{ i18n.t('checkout.usualSuggestions') }}</span>
               <div class="tags-container">
                 <button type="button" class="tag-btn" (click)="addSuggestionTag('Check-in temprano (+13:00)')">
-                  <span class="material-symbols-outlined">add</span> Check-in temprano (+13:00)
+                  <span class="material-symbols-outlined">add</span> {{ i18n.t('checkout.suggestionEarlyCheckIn') }}
                 </button>
                 <button type="button" class="tag-btn" (click)="addSuggestionTag('Almohadas de plumas de ganso')">
-                  <span class="material-symbols-outlined">add</span> Almohadas de plumas
+                  <span class="material-symbols-outlined">add</span> {{ i18n.t('checkout.suggestionPillows') }}
                 </button>
                 <button type="button" class="tag-btn" (click)="addSuggestionTag('Cuna para bebé')">
-                  <span class="material-symbols-outlined">add</span> Cuna para bebé
+                  <span class="material-symbols-outlined">add</span> {{ i18n.t('checkout.suggestionCrib') }}
                 </button>
                 <button type="button" class="tag-btn" (click)="addSuggestionTag('Habitación en piso alto')">
-                  <span class="material-symbols-outlined">add</span> Piso alto
+                  <span class="material-symbols-outlined">add</span> {{ i18n.t('checkout.suggestionHighFloor') }}
                 </button>
               </div>
             </div>
           </section>
 
           <section class="guarantees-module">
-            <h3 class="guarantees-title">Garantías Hospentra & Políticas Claras</h3>
+            <h3 class="guarantees-title">{{ i18n.t('checkout.guaranteesTitle') }}</h3>
             <div class="guarantees-list">
               <div class="guarantee-item">
                 <div class="guarantee-icon">
                   <span class="material-symbols-outlined">verified_user</span>
                 </div>
                 <div>
-                  <h4 class="guarantee-name">Cancelación Flexible & Reembolsos</h4>
-                  <p class="guarantee-text">Cancelación con más de 48h: 100% de reembolso a su tarjeta. Con menos de 48h: se retiene la primera noche por política boutique y se reembolsa el saldo.</p>
+                  <h4 class="guarantee-name">{{ i18n.t('checkout.guaranteeFlexCancelTitle') }}</h4>
+                  <p class="guarantee-text">{{ i18n.t('checkout.guaranteeFlexCancelDesc') }}</p>
                 </div>
               </div>
 
@@ -441,8 +441,8 @@
                   <span class="material-symbols-outlined">nest_clock_farsight_analog</span>
                 </div>
                 <div>
-                  <h4 class="guarantee-name">Horarios Oficiales & Late Check-Out</h4>
-                  <p class="guarantee-text">Check-in regular 15:00 hrs | Check-out 12:00 hrs. Salida extendida sujeta a disponibilidad sin costo adicional.</p>
+                  <h4 class="guarantee-name">{{ i18n.t('checkout.guaranteeHoursTitle') }}</h4>
+                  <p class="guarantee-text">{{ i18n.t('checkout.guaranteeHoursDesc') }}</p>
                 </div>
               </div>
 
@@ -451,8 +451,8 @@
                   <span class="material-symbols-outlined">workspace_premium</span>
                 </div>
                 <div>
-                  <h4 class="guarantee-name">Garantía de Mejor Tarifa Directa</h4>
-                  <p class="guarantee-text">Sin intermediarios ni comisiones sorpresa. Reserva directa garantizada con atención personalizada.</p>
+                  <h4 class="guarantee-name">{{ i18n.t('checkout.guaranteeBestRateTitle') }}</h4>
+                  <p class="guarantee-text">{{ i18n.t('checkout.guaranteeBestRateDesc') }}</p>
                 </div>
               </div>
             </div>
@@ -467,73 +467,73 @@
               <img [src]="getRoomImageUrl()" [alt]="room()?.roomType?.name" class="summary-image" />
               <div class="media-overlay"></div>
               <div class="media-badges">
-                <span class="suite-badge">Habitación {{ room()?.roomNumber || '101' }}</span>
+                <span class="suite-badge">{{ i18n.t('checkout.roomBadgeNumber', { n: room()?.roomNumber || '101' }) }}</span>
                 <span class="prestige-chip">
                   <span class="material-symbols-outlined icon-small">diamond</span>
-                  5 Diamantes
+                  {{ i18n.t('checkout.fiveDiamonds') }}
                 </span>
               </div>
               <div class="rating-strip">
                 <span class="material-symbols-outlined star-icon">star</span>
                 <span class="rating-val">4.98</span>
-                <span class="reviews-count">(124 reseñas)</span>
+                <span class="reviews-count">{{ i18n.t('checkout.reviewsCount', { n: 124 }) }}</span>
               </div>
             </div>
 
             <div class="summary-body">
               <div class="summary-headline">
-                <h3 class="suite-title">{{ room()?.roomType?.name || 'Suite Royal Vista al Mar' }}</h3>
+                <h3 class="suite-title">{{ (i18n.currentLang() === 'en' && room()?.roomType?.nameEn) ? room()?.roomType?.nameEn : (room()?.roomType?.name || (i18n.currentLang() === 'en' ? 'Royal Ocean View Suite' : 'Suite Royal Vista al Mar')) }}</h3>
                 <p class="suite-location">
                   <span class="material-symbols-outlined icon-small">location_on</span>
-                  Riviera Maya, México • Retiro Boutique
+                  {{ i18n.t('checkout.suiteLocation') }}
                 </p>
               </div>
 
               <div class="suite-features-grid">
                 <div class="feature-chip">
                   <span class="material-symbols-outlined">aspect_ratio</span>
-                  <span>75 m² de superficie</span>
+                  <span>{{ i18n.t('checkout.sqmSurface') }}</span>
                 </div>
                 <div class="feature-chip">
                   <span class="material-symbols-outlined">waves</span>
-                  <span>Vista Frontal al Mar</span>
+                  <span>{{ i18n.t('checkout.oceanFrontView') }}</span>
                 </div>
                 <div class="feature-chip">
                   <span class="material-symbols-outlined">hot_tub</span>
-                  <span>Tina Hidromasaje</span>
+                  <span>{{ i18n.t('checkout.hotTubFeature') }}</span>
                 </div>
                 <div class="feature-chip">
                   <span class="material-symbols-outlined">restaurant</span>
-                  <span>Desayuno Incluido</span>
+                  <span>{{ i18n.t('checkout.breakfastIncluded') }}</span>
                 </div>
               </div>
 
               <div class="breakdown-block">
-                <span class="breakdown-title">Desglose de Tarifa</span>
+                <span class="breakdown-title">{{ i18n.t('checkout.rateBreakdownTitle') }}</span>
                 <div class="breakdown-row">
-                  <span>Tarifa base ({{ nightsCount() }} noches × ${{ room()?.roomType?.pricePerNight || 380 | number:'1.2-2' }})</span>
+                  <span>{{ i18n.t('checkout.baseRateBreakdown', { nights: nightsCount(), rate: (room()?.roomType?.pricePerNight ?? 380) }) }}</span>
                   <span class="value">${{ baseRateTotal() | number:'1.2-2' }}</span>
                 </div>
                 <div class="breakdown-row">
-                  <span>Cargo por servicio boutique & concierge (10%)</span>
+                  <span>{{ i18n.t('checkout.serviceFeeBreakdown') }}</span>
                   <span class="value">${{ serviceFee() | number:'1.2-2' }}</span>
                 </div>
                 <div class="breakdown-row">
-                  <span>Impuestos hoteleros y locales (16%)</span>
+                  <span>{{ i18n.t('checkout.taxesBreakdown') }}</span>
                   <span class="value">${{ taxes() | number:'1.2-2' }}</span>
                 </div>
                 <div class="breakdown-discount">
                   <span class="discount-text">
                     <span class="material-symbols-outlined icon-small">celebration</span>
-                    Beneficio de Bienvenida
+                    {{ i18n.t('checkout.welcomeBenefit') }}
                   </span>
-                  <span>Incluido</span>
+                  <span>{{ i18n.t('checkout.included') }}</span>
                 </div>
 
                 <div class="total-row">
                   <div>
-                    <span class="total-label">Total Estancia</span>
-                    <span class="total-sub">Impuestos y cargos incluidos</span>
+                    <span class="total-label">{{ i18n.t('checkout.totalStayTitle') }}</span>
+                    <span class="total-sub">{{ i18n.t('checkout.taxesIncluded') }}</span>
                   </div>
                   <div class="total-price-box">
                     <span class="total-amount">${{ grandTotal() | number:'1.2-2' }}</span>
@@ -553,13 +553,13 @@
                   <span>{{ authStepMessage() }}</span>
                 } @else if (isSubmitting()) {
                   <span class="material-symbols-outlined rotating">progress_activity</span>
-                  <span>Procesando reserva...</span>
+                  <span>{{ i18n.t('checkout.processingReservation') }}</span>
                 } @else if (paymentMethod() === 'CREDIT_CARD') {
                   <span class="material-symbols-outlined">credit_card</span>
-                  <span>Pagar y Confirmar (${{ grandTotal() | number:'1.2-2' }} USD)</span>
+                  <span>{{ i18n.t('checkout.payAndConfirmBtn', { total: ((grandTotal() | number:'1.2-2') || '0.00') }) }}</span>
                 } @else {
                   <span class="material-symbols-outlined">hotel</span>
-                  <span>Confirmar (Pagar en Recepción)</span>
+                  <span>{{ i18n.t('checkout.confirmReceptionBtn') }}</span>
                 }
               </button>
 
@@ -569,9 +569,9 @@
                 </span>
                 <p>
                   @if (paymentMethod() === 'CREDIT_CARD') {
-                    <strong>Pago en línea inmediato:</strong> Transacción autorizada mediante pasarela bancaria segura con cifrado SSL 256-Bit.
+                    {{ i18n.t('checkout.onlinePaymentNotice') }}
                   } @else {
-                    <strong>Sin cargo hoy:</strong> Pago liquidado en destino al momento de realizar el check-in.
+                    {{ i18n.t('checkout.receptionPaymentNotice') }}
                   }
                 </p>
               </div>
@@ -579,7 +579,7 @@
               <div class="trust-signatures">
                 <div class="security-text">
                   <span class="material-symbols-outlined icon-small">lock</span>
-                  <span>Garantía con cifrado bancario SSL 256-Bit</span>
+                  <span>{{ i18n.t('checkout.sslGuaranteeNotice') }}</span>
                 </div>
                 <div class="payment-cards">
                   <span class="payment-card">VISA</span>
@@ -608,65 +608,65 @@
           @if (confirmedReservation()?.paymentMethod === 'CREDIT_CARD') {
             <div class="voucher-stamp paid-online">
               <span class="stamp-icon material-symbols-outlined">check_circle</span>
-              <span class="stamp-title">PAGADA EN LÍNEA</span>
-              <span class="stamp-sub">COMPROBANTE LIQUIDADO</span>
+              <span class="stamp-title">{{ i18n.t('checkout.successPaidOnlineBadge') }}</span>
+              <span class="stamp-sub">{{ i18n.t('checkout.successPaidOnlineSub') }}</span>
             </div>
           } @else {
             <div class="voucher-stamp pay-checkin">
               <span class="stamp-icon material-symbols-outlined">storefront</span>
-              <span class="stamp-title">LIQUIDACIÓN AL CHECK-IN</span>
-              <span class="stamp-sub">COBRO EN FRONT DESK</span>
+              <span class="stamp-title">{{ i18n.t('checkout.successPayCheckinBadge') }}</span>
+              <span class="stamp-sub">{{ i18n.t('checkout.successPayCheckinSub') }}</span>
             </div>
           }
         </div>
 
-        <h3 class="success-title">¡Reserva Formalizada con Éxito!</h3>
+        <h3 class="success-title">{{ i18n.t('checkout.successTitle') }}</h3>
         <p class="success-desc">
-          Su código de reserva oficial es <strong class="code-highlight">HOSP-{{ confirmedReservation()?.id }}-2026</strong>. Su itinerario ha sido vinculado a su cuenta de huésped.
+          {{ i18n.t('checkout.successDesc', { code: 'HOSP-' + (confirmedReservation()?.id || '') + '-2026' }) }}
         </p>
 
         <div class="receipt-box">
           <div class="receipt-row">
-            <span class="receipt-label">Suite Reservada:</span>
-            <span class="receipt-val">{{ room()?.roomType?.name }}</span>
+            <span class="receipt-label">{{ i18n.t('checkout.successSuiteLabel') }}</span>
+            <span class="receipt-val">{{ (i18n.currentLang() === 'en' && room()?.roomType?.nameEn) ? room()?.roomType?.nameEn : (room()?.roomType?.name || '') }}</span>
           </div>
           <div class="receipt-row">
-            <span class="receipt-label">Fechas de Estadía:</span>
-            <span class="receipt-val">{{ checkInDate() }} al {{ checkOutDate() }} ({{ nightsCount() }} noches)</span>
+            <span class="receipt-label">{{ i18n.t('checkout.successDatesLabel') }}</span>
+            <span class="receipt-val">{{ checkInDate() }} {{ i18n.t('checkout.successDatesTo') }} {{ checkOutDate() }} ({{ i18n.t('checkout.successNightsUnit', { n: nightsCount() }) }})</span>
           </div>
           <div class="receipt-row">
-            <span class="receipt-label">Modalidad de Pago:</span>
+            <span class="receipt-label">{{ i18n.t('checkout.successPaymentLabel') }}</span>
             <span class="receipt-val highlight">
-              {{ confirmedReservation()?.paymentMethod === 'CREDIT_CARD' ? 'Tarjeta de Crédito Online' : 'Liquidación en Recepción al Check-in' }}
+              {{ confirmedReservation()?.paymentMethod === 'CREDIT_CARD' ? i18n.t('checkout.successCardOnline') : i18n.t('checkout.successReceptionPay') }}
             </span>
           </div>
           @if (confirmedReservation()?.paymentMethod === 'CREDIT_CARD') {
             <div class="receipt-row">
-              <span class="receipt-label">Tarjeta / Autorización:</span>
+              <span class="receipt-label">{{ i18n.t('checkout.successCardAuthLabel') }}</span>
               <span class="receipt-val">{{ confirmedReservation()?.cardBrand }} •••• {{ confirmedReservation()?.cardLast4 }} ({{ confirmedReservation()?.authCode }})</span>
             </div>
             <div class="receipt-row total">
-              <span class="receipt-label">Monto cobrado hoy:</span>
+              <span class="receipt-label">{{ i18n.t('checkout.successChargedToday') }}</span>
               <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
             </div>
             <div class="receipt-row sub-zero">
-              <span class="receipt-label">Saldo pendiente al check-in:</span>
-              <span class="receipt-val text-green">$0.00 USD (Liquidado)</span>
+              <span class="receipt-label">{{ i18n.t('checkout.successBalanceCheckin') }}</span>
+              <span class="receipt-val text-green">{{ i18n.t('checkout.successSettledZero') }}</span>
             </div>
           } @else {
             <div class="receipt-row">
-              <span class="receipt-label">Monto cobrado hoy:</span>
+              <span class="receipt-label">{{ i18n.t('checkout.successChargedToday') }}</span>
               <span class="receipt-val highlight">$0.00 USD</span>
             </div>
             <div class="receipt-row total">
-              <span class="receipt-label">Total a liquidar en recepción:</span>
+              <span class="receipt-label">{{ i18n.t('checkout.successTotalReception') }}</span>
               <span class="receipt-val price">${{ grandTotal() | number:'1.2-2' }} USD</span>
             </div>
           }
         </div>
 
         <button type="button" class="btn btn-primary w-full" (click)="closeSuccessModal()">
-          Aceptar y Ver Mis Reservas
+          {{ i18n.t('checkout.successAcceptBtn') }}
         </button>
       </div>
     </div>
