@@ -28,6 +28,7 @@ export interface Reservation {
   cardLast4?: string;
   cardBrand?: string;
   authCode?: string;
+  paymentIntentId?: string;
   refundAmount?: number;
   penaltyAmount?: number;
 }
@@ -42,4 +43,5 @@ export interface ReservationRequest {
   cardLast4?: string;
   cardBrand?: string;
   authCode?: string;
+  paymentIntentId?: string;
 }

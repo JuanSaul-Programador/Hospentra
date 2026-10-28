@@ -6,6 +6,7 @@ import { Role } from '../models/auth.model';
 })
 export class TokenService {
   private readonly TOKEN_KEY = 'hospentra_token';
+  private readonly REFRESH_TOKEN_KEY = 'hospentra_refresh_token';
   private readonly USER_KEY = 'hospentra_user';
 
   saveToken(token: string): void {
@@ -14,6 +15,14 @@ export class TokenService {
 
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  saveRefreshToken(refreshToken: string): void {
+    localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
   }
 
   saveUser(user: { username: string; email: string; role: Role }): void {
@@ -27,6 +36,7 @@ export class TokenService {
 
   clear(): void {
     localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
   }
 

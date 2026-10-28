@@ -16,8 +16,13 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   type: string;
   username: string;
   email: string;
   role: Role;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
 }

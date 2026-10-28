@@ -4,27 +4,30 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ReservationService } from '../../../core/services/reservation.service';
+import { ReviewService } from '../../../core/services/review.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { SseService } from '../../../core/services/sse.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { Reservation } from '../../../core/models/reservation.model';
-import { ExtraCategory, ExtraService, OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
+import { ExtraService, RoomOrder } from '../../../core/models/room-order.model';
+import { GuestVoucherModalComponent } from './components/guest-voucher-modal/guest-voucher-modal.component';
+import { CancellationModalComponent, RefundCalculation } from './components/cancellation-modal/cancellation-modal.component';
+import { GuestRoomServiceModalComponent, RoomOrderSubmitPayload } from './components/guest-room-service-modal/guest-room-service-modal.component';
 
-export interface RefundCalculation {
-  hoursUntilCheckIn: number;
-  isEligibleForFullRefund: boolean;
-  refundAmount: number;
-  penaltyAmount: number;
-  policyMessage: string;
-  badgeLabel: string;
-  badgeType: 'full' | 'partial' | 'free';
-}
+export type { RefundCalculation };
 
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    GuestVoucherModalComponent,
+    CancellationModalComponent,
+    GuestRoomServiceModalComponent
+  ],
   templateUrl: './my-reservations.component.html',
   styleUrl: './my-reservations.component.scss'
 })
@@ -35,6 +38,21 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly sseService = inject(SseService);
   readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly reviewService = inject(ReviewService);
+
+  readonly reviewedReservationIds = signal<Set<number>>(new Set());
+  readonly isReviewModalOpen = signal<boolean>(false);
+  readonly selectedReviewReservation = signal<Reservation | null>(null);
+  readonly reviewRating = signal<number>(5);
+  readonly reviewCleanliness = signal<number>(5);
+  readonly reviewServiceRating = signal<number>(5);
+  readonly reviewComfort = signal<number>(5);
+  readonly reviewLocation = signal<number>(5);
+  readonly reviewTitle = signal<string>('');
+  readonly reviewComment = signal<string>('');
+  readonly isSubmittingReview = signal<boolean>(false);
+  readonly reviewSuccessMessage = signal<string>('');
+  readonly reviewErrorMessage = signal<string>('');
 
   private sseSub: Subscription | null = null;
 
@@ -51,18 +69,11 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly isCancelling = signal<boolean>(false);
 
   readonly isRoomServiceModalOpen = signal<boolean>(false);
-  readonly rsActiveView = signal<'MENU' | 'ORDERS'>('MENU');
   readonly activeCheckedInReservation = signal<Reservation | null>(null);
   readonly extraServices = signal<ExtraService[]>([]);
-  readonly selectedCategory = signal<ExtraCategory | 'ALL'>('ALL');
-  readonly cartQuantities = signal<Record<number, number>>({});
-  readonly orderNotes = signal<string>('');
   readonly isSubmittingOrder = signal<boolean>(false);
   readonly activeReservationOrders = signal<RoomOrder[]>([]);
   readonly orderSuccessMessage = signal<string | null>(null);
-  readonly spaLocation = signal<'IN_SUITE' | 'SPA_CENTER'>('IN_SUITE');
-  readonly spaScheduledTime = signal<string>('17:00 hrs');
-  readonly spaTimeSlots: string[] = ['10:00 hrs', '11:30 hrs', '13:00 hrs', '15:00 hrs', '16:30 hrs', '18:00 hrs', '19:30 hrs', '21:00 hrs'];
 
   readonly activeCancelCalculation = computed<RefundCalculation | null>(() => {
     const res = this.reservationToCancel();
@@ -74,6 +85,23 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
   readonly isConciergeModalOpen = signal<boolean>(false);
   readonly copiedCodeId = signal<number | null>(null);
+
+  readonly userRoleLabel = computed<string>(() => {
+    const role = this.authService.currentUser()?.role;
+    if (role === 'ROLE_CUSTOMER') {
+      return this.i18n.t('myReservations.guestTierBadge');
+    }
+    if (role === 'ROLE_ADMIN') {
+      return this.i18n.t('nav.admin');
+    }
+    if (role === 'ROLE_RECEPTIONIST') {
+      return this.i18n.t('nav.receptionist');
+    }
+    if (role === 'ROLE_KITCHEN') {
+      return this.i18n.currentLang() === 'en' ? 'Culinary Staff' : 'Personal de Cocina';
+    }
+    return this.i18n.t('myReservations.guestTierBadge');
+  });
 
   private readonly roomImages: Record<number, string> = {
     1: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
@@ -101,99 +129,33 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     return this.reservations().filter(r => r.status === 'CANCELLED');
   });
 
-  readonly filteredExtraServices = computed(() => {
-    const cat = this.selectedCategory();
-    const list = this.extraServices();
-    if (cat === 'ALL') return list;
-    return list.filter(item => item.category === cat);
-  });
-
-  readonly cartTotalCount = computed(() => {
-    const cart = this.cartQuantities();
-    return Object.values(cart).reduce((sum, q) => sum + q, 0);
-  });
-
-  readonly cartTotalAmount = computed(() => {
-    const cart = this.cartQuantities();
-    const services = this.extraServices();
-    let total = 0;
-    for (const [idStr, qty] of Object.entries(cart)) {
-      if (qty > 0) {
-        const item = services.find(s => s.id === Number(idStr));
-        if (item) {
-          total += item.price * qty;
-        }
-      }
-    }
-    return total;
-  });
-
-  readonly cartItems = computed(() => {
-    const cart = this.cartQuantities();
-    const services = this.extraServices();
-    return Object.entries(cart)
-      .filter(([_, qty]) => qty > 0)
-      .map(([idStr, qty]) => {
-        const item = services.find(s => s.id === Number(idStr));
-        return {
-          service: item,
-          quantity: qty,
-          subtotal: item ? item.price * qty : 0
-        };
-      })
-      .filter(entry => entry.service !== undefined);
-  });
-
-  readonly cartHasKitchenItems = computed(() => {
-    return this.cartItems().some(
-      it => it.service?.category === 'GASTRONOMY' || it.service?.category === 'BAR_WINE'
-    );
-  });
-
-  readonly cartHasSpaItems = computed(() => {
-    return this.cartItems().some(
-      it => it.service?.category === 'WELLNESS_SPA'
-    );
-  });
-
-  readonly orderDestinationType = computed<'KITCHEN' | 'SPA' | 'MIXED'>(() => {
-    const hasKitchen = this.cartHasKitchenItems();
-    const hasSpa = this.cartHasSpaItems();
-    if (hasKitchen && hasSpa) return 'MIXED';
-    if (hasSpa) return 'SPA';
-    return 'KITCHEN';
-  });
-
-  readonly totalAccumulatedOrdersAmount = computed(() => {
-    return this.activeReservationOrders().reduce((sum, ord) => sum + (ord.totalAmount || 0), 0);
-  });
-
   ngOnInit(): void {
     this.loadReservations();
+
     this.sseService.connect();
+    this.sseSub = this.sseService.events$.subscribe(event => {
+      if (
+        event.eventType === 'RESERVATION_CREATED' ||
+        event.eventType === 'RESERVATION_STATUS_CHANGED'
+      ) {
+        this.loadReservations();
+      }
 
-    this.sseSub = new Subscription();
-
-    this.sseSub.add(
-      this.sseService.orderStatusChanged$.subscribe({
-        next: (event) => {
-          const updatedOrder = event.payload as RoomOrder;
-          if (updatedOrder && updatedOrder.id) {
-            this.activeReservationOrders.update(orders =>
-              orders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
-            );
-          }
+      if (
+        event.eventType === 'ORDER_CREATED' ||
+        event.eventType === 'ORDER_STATUS_CHANGED' ||
+        event.eventType === 'ORDER_THERAPIST_ASSIGNED'
+      ) {
+        const checkedIn = this.activeCheckedInReservation();
+        if (checkedIn && this.isRoomServiceModalOpen()) {
+          this.roomOrderService.getOrdersByReservation(checkedIn.id).subscribe({
+            next: (orders) => {
+              this.activeReservationOrders.set(orders || []);
+            }
+          });
         }
-      })
-    );
-
-    this.sseSub.add(
-      this.sseService.reservationStatusChanged$.subscribe({
-        next: () => {
-          this.loadReservations();
-        }
-      })
-    );
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -208,13 +170,32 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
     this.reservationService.getMyReservations().subscribe({
       next: (data) => {
-        this.reservations.set(data || []);
+        const list = data || [];
+        this.reservations.set(list);
         this.isLoading.set(false);
+        const completed = list.filter(r => r.status === 'COMPLETED');
+        this.checkReviewedStatus(completed);
       },
       error: () => {
         this.reservations.set([]);
         this.isLoading.set(false);
       }
+    });
+  }
+
+  private checkReviewedStatus(completed: Reservation[]): void {
+    completed.forEach(res => {
+      this.reviewService.getReviewByReservation(res.id).subscribe({
+        next: (review) => {
+          if (review) {
+            this.reviewedReservationIds.update(set => {
+              const next = new Set(set);
+              next.add(res.id);
+              return next;
+            });
+          }
+        }
+      });
     });
   }
 
@@ -237,6 +218,34 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     return diffDays > 0 ? diffDays : 1;
   }
 
+  formatDatePretty(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const year = +parts[0];
+      const month = +parts[1];
+      const day = +parts[2];
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime())) return dateStr;
+
+      const isEn = this.i18n.currentLang() === 'en';
+      if (isEn) {
+        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+        return `${weekday}, ${monthName} ${day}, ${year}`;
+      } else {
+        const weekday = d.toLocaleDateString('es-ES', { weekday: 'short' });
+        const monthName = d.toLocaleDateString('es-ES', { month: 'short' });
+        const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', '');
+        const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace('.', '');
+        return `${capitalizedWeekday}, ${day} ${capitalizedMonth} ${year}`;
+      }
+    } catch {
+      return dateStr;
+    }
+  }
+
   openVoucher(res: Reservation): void {
     this.selectedVoucherReservation.set(res);
     this.isVoucherModalOpen.set(true);
@@ -245,6 +254,75 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   closeVoucher(): void {
     this.isVoucherModalOpen.set(false);
     this.selectedVoucherReservation.set(null);
+  }
+
+  hasReviewed(reservationId: number): boolean {
+    return this.reviewedReservationIds().has(reservationId);
+  }
+
+  openReviewModal(res: Reservation): void {
+    this.selectedReviewReservation.set(res);
+    this.reviewRating.set(5);
+    this.reviewCleanliness.set(5);
+    this.reviewServiceRating.set(5);
+    this.reviewComfort.set(5);
+    this.reviewLocation.set(5);
+    this.reviewTitle.set('');
+    this.reviewComment.set('');
+    this.reviewSuccessMessage.set('');
+    this.reviewErrorMessage.set('');
+    this.isReviewModalOpen.set(true);
+  }
+
+  closeReviewModal(): void {
+    this.isReviewModalOpen.set(false);
+    this.selectedReviewReservation.set(null);
+  }
+
+  setReviewRating(val: number): void {
+    this.reviewRating.set(val);
+  }
+
+  submitGuestReview(): void {
+    const res = this.selectedReviewReservation();
+    if (!res) return;
+    const comment = this.reviewComment().trim();
+    if (comment.length < 5) {
+      this.reviewErrorMessage.set(this.i18n.currentLang() === 'en' ? 'Please write a review with at least 5 characters.' : 'Por favor escriba una opinión de al menos 5 caracteres.');
+      return;
+    }
+
+    this.isSubmittingReview.set(true);
+    this.reviewErrorMessage.set('');
+
+    this.reviewService.createReview({
+      reservationId: res.id,
+      rating: this.reviewRating(),
+      cleanlinessRating: this.reviewCleanliness(),
+      serviceRating: this.reviewServiceRating(),
+      comfortRating: this.reviewComfort(),
+      locationRating: this.reviewLocation(),
+      title: this.reviewTitle().trim() || undefined,
+      comment: comment
+    }).subscribe({
+      next: () => {
+        this.isSubmittingReview.set(false);
+        this.reviewedReservationIds.update(set => {
+          const next = new Set(set);
+          next.add(res.id);
+          return next;
+        });
+        this.reviewSuccessMessage.set(this.i18n.t('myReservations.reviewSuccess'));
+        setTimeout(() => {
+          this.closeReviewModal();
+        }, 1500);
+      },
+      error: (err) => {
+        this.isSubmittingReview.set(false);
+        const msg = err?.error?.message || (this.i18n.currentLang() === 'en' ? 'Unable to submit review. Please try again.' : 'No fue posible registrar la reseña. Intente nuevamente.');
+        this.reviewErrorMessage.set(msg);
+      }
+    });
   }
 
   copyBookingCode(code: string, id: number): void {
@@ -258,13 +336,9 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     });
   }
 
-  openRoomServiceModal(res: Reservation, defaultView: 'MENU' | 'ORDERS' = 'MENU'): void {
+  openRoomServiceModal(res: Reservation): void {
     this.activeCheckedInReservation.set(res);
-    this.cartQuantities.set({});
-    this.orderNotes.set('');
-    this.selectedCategory.set('ALL');
     this.orderSuccessMessage.set(null);
-    this.rsActiveView.set(defaultView);
     this.isRoomServiceModalOpen.set(true);
 
     this.roomOrderService.getExtraServices().subscribe({
@@ -285,139 +359,36 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   closeRoomServiceModal(): void {
     this.isRoomServiceModalOpen.set(false);
     this.activeCheckedInReservation.set(null);
-    this.cartQuantities.set({});
   }
 
-  increaseCart(serviceId: number): void {
-    this.cartQuantities.update(cart => ({
-      ...cart,
-      [serviceId]: (cart[serviceId] || 0) + 1
-    }));
-  }
-
-  decreaseCart(serviceId: number): void {
-    this.cartQuantities.update(cart => {
-      const current = cart[serviceId] || 0;
-      if (current <= 1) {
-        const copy = { ...cart };
-        delete copy[serviceId];
-        return copy;
-      }
-      return {
-        ...cart,
-        [serviceId]: current - 1
-      };
-    });
-  }
-
-  submitRoomOrder(): void {
+  submitRoomOrder(payload: RoomOrderSubmitPayload): void {
     const res = this.activeCheckedInReservation();
     if (!res) return;
 
-    const cart = this.cartQuantities();
-    const items = Object.entries(cart)
-      .filter(([_, qty]) => qty > 0)
-      .map(([idStr, qty]) => ({
-        extraServiceId: Number(idStr),
-        quantity: qty
-      }));
-
-    if (items.length === 0) return;
-
-    const dest = this.orderDestinationType();
     this.isSubmittingOrder.set(true);
     this.roomOrderService.createOrder({
       reservationId: res.id,
-      notes: this.orderNotes().trim(),
-      serviceLocation: this.cartHasSpaItems() ? this.spaLocation() : 'IN_SUITE',
-      scheduledTime: this.cartHasSpaItems() ? this.spaScheduledTime() : undefined,
-      items
+      notes: payload.notes,
+      serviceLocation: payload.serviceLocation || 'IN_SUITE',
+      scheduledTime: payload.scheduledTime,
+      items: payload.items
     }).subscribe({
       next: (createdOrder) => {
         this.isSubmittingOrder.set(false);
-        this.cartQuantities.set({});
-        this.orderNotes.set('');
         this.activeReservationOrders.update(orders => [createdOrder, ...orders]);
-
-        let msg = `¡Comanda #${createdOrder.id} enviada a Cocina & Bar! Se preparará de inmediato para su Suite.`;
-        if (dest === 'SPA') {
-          msg = `¡Solicitud #${createdOrder.id} de Bienestar & Spa enviada a Concierge! Un terapeuta coordinará su sesión en suite.`;
-        } else if (dest === 'MIXED') {
-          msg = `¡Servicio #${createdOrder.id} confirmado! Cocina preparará sus platillos y Concierge coordinará su sesión de Spa.`;
-        }
-        this.orderSuccessMessage.set(msg);
-        this.rsActiveView.set('ORDERS');
+        this.orderSuccessMessage.set(
+          this.i18n.currentLang() === 'en'
+            ? `Order #${createdOrder.id} successfully placed! It will be delivered to your suite promptly.`
+            : `¡Comanda #${createdOrder.id} registrada con éxito! Será atendida de inmediato para su suite.`
+        );
         setTimeout(() => {
           this.orderSuccessMessage.set(null);
-        }, 6000);
+        }, 5000);
       },
       error: () => {
         this.isSubmittingOrder.set(false);
       }
     });
-  }
-
-  getOrderType(order: RoomOrder): 'KITCHEN' | 'SPA' | 'MIXED' {
-    const hasKitchen = (order.items || []).some(
-      it => it.category === 'GASTRONOMY' || it.category === 'BAR_WINE'
-    );
-    const hasSpa = (order.items || []).some(
-      it => it.category === 'WELLNESS_SPA'
-    );
-    if (hasKitchen && hasSpa) return 'MIXED';
-    if (hasSpa) return 'SPA';
-    return 'KITCHEN';
-  }
-
-  getOrderStatusStep(status: OrderStatus): number {
-    switch (status) {
-      case 'RECEIVED': return 1;
-      case 'PREPARING': return 2;
-      case 'READY_FOR_DELIVERY': return 3;
-      case 'DELIVERED': return 4;
-      default: return 1;
-    }
-  }
-
-  getOrderStatusLabel(status: OrderStatus, type: 'KITCHEN' | 'SPA' | 'MIXED'): string {
-    const isEn = this.i18n.currentLang() === 'en';
-    if (type === 'SPA') {
-      switch (status) {
-        case 'RECEIVED': return isEn ? 'Request Received by Concierge' : 'Solicitud Recibida en Concierge';
-        case 'PREPARING': return isEn ? 'Therapist Assigned' : 'Terapeuta Asignado';
-        case 'READY_FOR_DELIVERY': return isEn ? 'On the Way to Suite' : 'En Camino a su Suite';
-        case 'DELIVERED': return isEn ? 'Session Completed' : 'Sesión Completada en Suite';
-        case 'CANCELLED': return isEn ? 'Cancelled' : 'Cancelada';
-        default: return status;
-      }
-    }
-    switch (status) {
-      case 'RECEIVED': return isEn ? 'Received in Kitchen & Bar' : 'Recibido en Cocina & Bar';
-      case 'PREPARING': return isEn ? 'In Kitchen / Preparing' : 'En Fogón / Preparando';
-      case 'READY_FOR_DELIVERY': return isEn ? 'Ready / On the Way' : 'Listo / En Camino a Suite';
-      case 'DELIVERED': return isEn ? 'Delivered to Suite' : 'Entregado en Suite';
-      case 'CANCELLED': return isEn ? 'Cancelled' : 'Cancelada';
-      default: return status;
-    }
-  }
-
-  getCategoryLabel(category: ExtraCategory): string {
-    const isEn = this.i18n.currentLang() === 'en';
-    switch (category) {
-      case 'GASTRONOMY': return isEn ? 'Live Kitchen' : 'Cocina en Vivo';
-      case 'BAR_WINE': return isEn ? 'Wine & Bar' : 'Cava & Bar';
-      case 'WELLNESS_SPA': return isEn ? 'Concierge & Spa' : 'Concierge & Spa';
-      default: return category;
-    }
-  }
-
-  getCategoryIcon(category: ExtraCategory): string {
-    switch (category) {
-      case 'GASTRONOMY': return 'restaurant';
-      case 'BAR_WINE': return 'wine_bar';
-      case 'WELLNESS_SPA': return 'spa';
-      default: return 'room_service';
-    }
   }
 
   calculateRefund(res: Reservation): RefundCalculation {
@@ -494,7 +465,7 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     this.isCancelling.set(true);
 
     this.reservationService.cancelReservation(res.id).subscribe({
-      next: (updatedRes) => {
+      next: () => {
         this.isCancelling.set(false);
         this.reservations.update(list =>
           list.map(item => item.id === res.id ? { ...item, status: 'CANCELLED' } : item)

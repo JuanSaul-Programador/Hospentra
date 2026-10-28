@@ -1,0 +1,372 @@
+@if (isOpen && reservation) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="room-service-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="onClose()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="rs-header">
+        <div class="rs-badge">
+          <span class="material-symbols-outlined">room_service</span>
+          <span>{{ i18n.t('roomService.rsHeaderBadge') }}</span>
+        </div>
+        <h3 class="rs-title">{{ i18n.t('roomService.rsCardTitle', { room: reservation.room?.roomNumber || '' }) }}</h3>
+        <p class="rs-subtitle">{{ i18n.t('roomService.rsCardSubtitle') }}</p>
+      </div>
+
+      @if (orderSuccessMessage) {
+        <div class="rs-alert-success">
+          <span class="material-symbols-outlined">check_circle</span>
+          <span>{{ orderSuccessMessage }}</span>
+        </div>
+      }
+
+      <div class="rs-modal-tabs">
+        <button
+          type="button"
+          class="modal-tab-btn"
+          [class.active]="rsActiveView() === 'MENU'"
+          (click)="rsActiveView.set('MENU')"
+        >
+          <span class="material-symbols-outlined">restaurant_menu</span>
+          <span>{{ i18n.t('roomService.tabMenu') }}</span>
+        </button>
+        <button
+          type="button"
+          class="modal-tab-btn"
+          [class.active]="rsActiveView() === 'ORDERS'"
+          (click)="rsActiveView.set('ORDERS')"
+        >
+          <span class="material-symbols-outlined">receipt_long</span>
+          <span>{{ i18n.t('roomService.tabOrders') }}</span>
+          @if (activeReservationOrders.length > 0) {
+            <span class="tab-badge">{{ activeReservationOrders.length }}</span>
+          }
+        </button>
+      </div>
+
+      @if (rsActiveView() === 'MENU') {
+        <div class="rs-categories-tabs">
+          <button
+            type="button"
+            class="cat-pill"
+            [class.active]="selectedCategory() === 'ALL'"
+            (click)="selectedCategory.set('ALL')"
+          >
+            <span class="material-symbols-outlined cat-icon">apps</span>
+            <span>{{ i18n.t('roomService.catAll') }}</span>
+          </button>
+          <button
+            type="button"
+            class="cat-pill"
+            [class.active]="selectedCategory() === 'GASTRONOMY'"
+            (click)="selectedCategory.set('GASTRONOMY')"
+          >
+            <span class="material-symbols-outlined cat-icon">restaurant</span>
+            <span>{{ i18n.t('roomService.catGastro') }}</span>
+          </button>
+          <button
+            type="button"
+            class="cat-pill"
+            [class.active]="selectedCategory() === 'BAR_WINE'"
+            (click)="selectedCategory.set('BAR_WINE')"
+          >
+            <span class="material-symbols-outlined cat-icon">wine_bar</span>
+            <span>{{ i18n.t('roomService.catWine') }}</span>
+          </button>
+          <button
+            type="button"
+            class="cat-pill"
+            [class.active]="selectedCategory() === 'WELLNESS_SPA'"
+            (click)="selectedCategory.set('WELLNESS_SPA')"
+          >
+            <span class="material-symbols-outlined cat-icon">spa</span>
+            <span>{{ i18n.t('roomService.catSpa') }}</span>
+          </button>
+        </div>
+
+        <div class="rs-menu-grid">
+          @for (item of filteredExtraServices(); track item.id) {
+            <div class="menu-item-card" [class.in-cart]="(cartQuantities()[item.id] || 0) > 0">
+              <div class="item-info">
+                <div class="item-meta-top">
+                  <span class="item-cat-tag" [ngClass]="item.category.toLowerCase()">
+                    <span class="material-symbols-outlined icon-mini">{{ getCategoryIcon(item.category) }}</span>
+                    <span>{{ getCategoryLabel(item.category) }}</span>
+                  </span>
+                </div>
+                <div class="item-title-row">
+                  <h4 class="item-name">{{ (i18n.currentLang() === 'en' && item.nameEn) ? item.nameEn : item.name }}</h4>
+                  <span class="item-price">${{ item.price | number:'1.2-2' }} USD</span>
+                </div>
+                <p class="item-desc">{{ (i18n.currentLang() === 'en' && item.descriptionEn) ? item.descriptionEn : item.description }}</p>
+              </div>
+
+              <div class="item-stepper">
+                @if ((cartQuantities()[item.id] || 0) === 0) {
+                  <button type="button" class="btn-add-item" (click)="increaseCart(item.id)">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>{{ i18n.t('roomService.addCart') }}</span>
+                  </button>
+                } @else {
+                  <div class="stepper-controls">
+                    <button type="button" class="btn-step" (click)="decreaseCart(item.id)">
+                      <span class="material-symbols-outlined">remove</span>
+                    </button>
+                    <span class="step-num">{{ cartQuantities()[item.id] }}</span>
+                    <button type="button" class="btn-step" (click)="increaseCart(item.id)">
+                      <span class="material-symbols-outlined">add</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (cartTotalCount() > 0) {
+          <div class="rs-order-footer">
+            <div class="destination-notice" [ngClass]="orderDestinationType().toLowerCase()">
+              @if (orderDestinationType() === 'KITCHEN') {
+                <span class="material-symbols-outlined">skillet</span>
+                <span>{{ i18n.t('roomService.rsNoticeKitchen') }}</span>
+              } @else if (orderDestinationType() === 'SPA') {
+                <span class="material-symbols-outlined">spa</span>
+                <span>{{ i18n.t('roomService.rsNoticeSpa') }}</span>
+              } @else {
+                <span class="material-symbols-outlined">room_service</span>
+                <span>{{ i18n.t('roomService.rsNoticeMixed') }}</span>
+              }
+            </div>
+
+            @if (cartHasSpaItems()) {
+              <div class="spa-preferences-card">
+                <div class="pref-group">
+                  <label class="lbl-pref">{{ i18n.t('roomService.spaLocationLabel') }}</label>
+                  <div class="pref-options">
+                    <button
+                      type="button"
+                      class="btn-pref-option"
+                      [class.active]="spaLocation() === 'IN_SUITE'"
+                      (click)="spaLocation.set('IN_SUITE')"
+                    >
+                      <span class="material-symbols-outlined">hotel</span>
+                      <span>{{ i18n.t('roomService.spaLocationSuite') }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-pref-option"
+                      [class.active]="spaLocation() === 'SPA_CENTER'"
+                      (click)="spaLocation.set('SPA_CENTER')"
+                    >
+                      <span class="material-symbols-outlined">spa</span>
+                      <span>{{ i18n.t('roomService.spaLocationCenter') }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="pref-group">
+                  <label for="spaTimeSelectModal" class="lbl-pref">{{ i18n.t('roomService.spaTimeLabel') }}</label>
+                  <select
+                    id="spaTimeSelectModal"
+                    [ngModel]="spaScheduledTime()"
+                    (ngModelChange)="spaScheduledTime.set($event)"
+                    class="spa-time-select"
+                  >
+                    @for (slot of spaTimeSlots; track slot) {
+                      <option [value]="slot">{{ slot }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            }
+
+            <div class="notes-field-wrap">
+              <label for="rsNotesModal" class="lbl-notes">
+                {{ orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaLabel') : i18n.t('roomService.rsNotesKitchenLabel') }}
+              </label>
+              <textarea
+                id="rsNotesModal"
+                [ngModel]="orderNotes()"
+                (ngModelChange)="orderNotes.set($event)"
+                [placeholder]="orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaPlaceholder') : i18n.t('roomService.rsNotesKitchenPlaceholder')"
+                rows="2"
+                class="notes-textarea"
+              ></textarea>
+            </div>
+
+            <div class="order-action-bar">
+              <div class="order-total-block">
+                <span class="lbl-total">{{ i18n.t('roomService.rsTotalLabel') }}</span>
+                <strong class="val-total">${{ cartTotalAmount() | number:'1.2-2' }} USD</strong>
+                <span class="sub-total">{{ i18n.t('roomService.rsSelectedCount', { n: cartTotalCount() }) }}</span>
+              </div>
+              <button
+                type="button"
+                class="btn-submit-order"
+                (click)="onSubmit()"
+                [disabled]="isSubmitting"
+                [ngClass]="orderDestinationType().toLowerCase()"
+              >
+                @if (isSubmitting) {
+                  <span class="btn-spinner"></span>
+                  <span>{{ i18n.t('roomService.sendingBtn') }}</span>
+                } @else {
+                  @if (orderDestinationType() === 'SPA') {
+                    <span class="material-symbols-outlined">spa</span>
+                    <span>{{ i18n.t('roomService.rsSubmitSpa') }}</span>
+                  } @else if (orderDestinationType() === 'MIXED') {
+                    <span class="material-symbols-outlined">room_service</span>
+                    <span>{{ i18n.t('roomService.rsSubmitMixed') }}</span>
+                  } @else {
+                    <span class="material-symbols-outlined">skillet</span>
+                    <span>{{ i18n.t('roomService.rsSubmitKitchen') }}</span>
+                  }
+                }
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      @if (rsActiveView() === 'ORDERS') {
+        <div class="orders-tracking-view">
+          <div class="folio-summary-banner">
+            <div class="folio-banner-icon">
+              <span class="material-symbols-outlined">account_balance_wallet</span>
+            </div>
+            <div class="folio-banner-content">
+              <span class="banner-title">{{ i18n.t('roomService.rsFolioTitle', { room: reservation.room?.roomNumber || '' }) }}</span>
+              <p class="banner-desc">{{ i18n.t('roomService.rsFolioDesc') }}</p>
+            </div>
+            <div class="folio-banner-amount">
+              <span class="lbl-accum">{{ i18n.t('roomService.rsFolioAccum') }}</span>
+              <strong class="val-accum">${{ totalAccumulatedOrdersAmount() | number:'1.2-2' }} USD</strong>
+            </div>
+          </div>
+
+          @if (activeReservationOrders.length === 0) {
+            <div class="orders-empty-state">
+              <span class="material-symbols-outlined empty-icon">receipt_long</span>
+              <h4>{{ i18n.t('roomService.rsOrdersEmptyTitle') }}</h4>
+              <p>{{ i18n.t('roomService.rsOrdersEmptyDesc') }}</p>
+              <button type="button" class="btn-goto-menu" (click)="rsActiveView.set('MENU')">
+                <span class="material-symbols-outlined">restaurant_menu</span>
+                <span>{{ i18n.t('roomService.rsOrdersEmptyBtn') }}</span>
+              </button>
+            </div>
+          } @else {
+            <div class="orders-tracking-list">
+              @for (ord of activeReservationOrders; track ord.id) {
+                <div class="track-order-card" [class.delivered]="ord.status === 'DELIVERED'">
+                  <div class="track-card-head">
+                    <div class="track-meta">
+                      <div class="track-code-row">
+                        <strong class="track-code">{{ i18n.t('roomService.rsOrderCode', { id: ord.id }) }}</strong>
+                        <span class="track-type-badge" [ngClass]="getOrderType(ord).toLowerCase()">
+                          <span class="material-symbols-outlined">
+                            {{ getOrderType(ord) === 'SPA' ? 'spa' : getOrderType(ord) === 'MIXED' ? 'room_service' : 'skillet' }}
+                          </span>
+                          <span>{{ getOrderType(ord) === 'SPA' ? 'Concierge & Spa' : getOrderType(ord) === 'MIXED' ? 'Suite & Spa' : 'Cocina & Bar' }}</span>
+                        </span>
+                      </div>
+                      <span class="track-time">{{ i18n.t('roomService.rsOrderTime', { time: (ord.orderedAt | date:'HH:mm • dd MMM') || '' }) }}</span>
+                    </div>
+
+                    <div class="track-price-tag">
+                      <span class="lbl-ord-total">{{ i18n.t('roomService.rsOrderTotal') }}</span>
+                      <strong class="track-amount">${{ ord.totalAmount | number:'1.2-2' }} USD</strong>
+                    </div>
+                  </div>
+
+                  <div class="track-stepper">
+                    <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 1" [class.current]="getOrderStatusStep(ord.status) === 1">
+                      <div class="step-dot">
+                        <span class="material-symbols-outlined">receipt</span>
+                      </div>
+                      <span class="step-lbl">{{ i18n.t('roomService.stepReceived') }}</span>
+                    </div>
+                    <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 2"></div>
+
+                    <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 2" [class.current]="getOrderStatusStep(ord.status) === 2">
+                      <div class="step-dot">
+                        <span class="material-symbols-outlined">{{ getOrderType(ord) === 'SPA' ? 'self_improvement' : 'outdoor_grill' }}</span>
+                      </div>
+                      <span class="step-lbl">{{ getOrderType(ord) === 'SPA' ? i18n.t('roomService.stepSpaAssigned') : i18n.t('roomService.stepInKitchen') }}</span>
+                    </div>
+                    <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 3"></div>
+
+                    <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 3" [class.current]="getOrderStatusStep(ord.status) === 3">
+                      <div class="step-dot">
+                        <span class="material-symbols-outlined">room_service</span>
+                      </div>
+                      <span class="step-lbl">{{ i18n.t('roomService.stepOnTheWay') }}</span>
+                    </div>
+                    <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 4"></div>
+
+                    <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 4" [class.current]="getOrderStatusStep(ord.status) === 4">
+                      <div class="step-dot">
+                        <span class="material-symbols-outlined">check_circle</span>
+                      </div>
+                      <span class="step-lbl">{{ i18n.t('roomService.stepDelivered') }}</span>
+                    </div>
+                  </div>
+
+                  <div class="track-status-banner" [ngClass]="ord.status.toLowerCase()">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>{{ getOrderStatusLabel(ord.status, getOrderType(ord)) }}</span>
+                  </div>
+
+                  @if (ord.therapistName) {
+                    <div class="track-therapist-badge">
+                      <span class="material-symbols-outlined icon-therapist">badge</span>
+                      <div class="therapist-info">
+                        <span class="lbl-therapist">{{ i18n.t('roomService.rsTherapistLabel') }}</span>
+                        <strong class="val-therapist">{{ ord.therapistName }}</strong>
+                      </div>
+                    </div>
+                  }
+
+                  @if (getOrderType(ord) === 'SPA' || getOrderType(ord) === 'MIXED') {
+                    <div class="track-spa-detail-row">
+                      <span class="spa-meta-chip">
+                        <span class="material-symbols-outlined icon-chip">{{ ord.serviceLocation === 'SPA_CENTER' ? 'spa' : 'hotel' }}</span>
+                        <span>{{ ord.serviceLocation === 'SPA_CENTER' ? i18n.t('roomService.rsLocationCenter') : i18n.t('roomService.rsLocationSuite') }}</span>
+                      </span>
+                      @if (ord.scheduledTime) {
+                        <span class="spa-meta-chip time">
+                          <span class="material-symbols-outlined icon-chip">schedule</span>
+                          <span>{{ i18n.t('roomService.rsScheduledTimeLabel', { time: ord.scheduledTime }) }}</span>
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  <div class="track-items-box">
+                    <span class="items-head-lbl">{{ i18n.t('roomService.rsItemsHead') }}</span>
+                    <div class="items-pills-row">
+                      @for (it of ord.items; track it.id) {
+                        <div class="it-pill-card">
+                          <span class="it-qty">{{ it.quantity }}x</span>
+                          <span class="it-name">{{ it.serviceName }}</span>
+                          <span class="it-subtotal">${{ it.subtotal | number:'1.2-2' }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  @if (ord.notes) {
+                    <div class="track-notes-row">
+                      <span class="material-symbols-outlined">sticky_note_2</span>
+                      <p class="notes-text">"{{ ord.notes }}"</p>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

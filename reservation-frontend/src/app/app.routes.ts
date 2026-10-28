@@ -17,6 +17,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'rooms/:id',
+    loadComponent: () => import('./features/rooms/room-detail/room-detail.component').then(m => m.RoomDetailComponent)
+  },
+  {
     path: 'reservations/checkout',
     canActivate: [authGuard],
     loadComponent: () => import('./features/reservations/checkout/checkout.component').then(m => m.CheckoutComponent)

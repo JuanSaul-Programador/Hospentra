@@ -25,6 +25,9 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => {
         this.tokenService.saveToken(response.token);
+        if (response.refreshToken) {
+          this.tokenService.saveRefreshToken(response.refreshToken);
+        }
         const user = { username: response.username, email: response.email, role: response.role };
         this.tokenService.saveUser(user);
         this.currentUserSignal.set(user);
@@ -36,9 +39,37 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, data).pipe(
       tap((response) => {
         this.tokenService.saveToken(response.token);
+        if (response.refreshToken) {
+          this.tokenService.saveRefreshToken(response.refreshToken);
+        }
         const user = { username: response.username, email: response.email, role: response.role };
         this.tokenService.saveUser(user);
         this.currentUserSignal.set(user);
+      })
+    );
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = this.tokenService.getRefreshToken();
+    if (!refreshToken) {
+      this.logout();
+      throw new Error('No refresh token available');
+    }
+
+    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+      tap({
+        next: (response) => {
+          this.tokenService.saveToken(response.token);
+          if (response.refreshToken) {
+            this.tokenService.saveRefreshToken(response.refreshToken);
+          }
+          const user = { username: response.username, email: response.email, role: response.role };
+          this.tokenService.saveUser(user);
+          this.currentUserSignal.set(user);
+        },
+        error: () => {
+          this.logout();
+        }
       })
     );
   }

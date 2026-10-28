@@ -56,45 +56,73 @@
             </div>
 
             <div class="dates-dual-box">
-              <div class="date-subcard">
+              <div
+                class="date-subcard clickable"
+                (click)="openDatePicker(checkInPicker)"
+                role="button"
+                tabindex="0"
+                aria-label="Seleccionar fecha de llegada"
+              >
                 <div class="date-header">
                   <span class="material-symbols-outlined">calendar_today</span>
                   <span class="date-label">{{ i18n.t('checkout.checkInLabel') }}</span>
                 </div>
-                <input
-                  type="date"
-                  [min]="minCheckInDate()"
-                  [ngModel]="checkInDate()"
-                  (ngModelChange)="onCheckInChange($event)"
-                  class="date-input"
-                />
+                <div class="date-display-row">
+                  <span class="date-formatted">{{ displayCheckInFormatted() }}</span>
+                  <span class="material-symbols-outlined edit-icon">edit_calendar</span>
+                </div>
                 <span class="date-meta">
                   <span class="material-symbols-outlined icon-small">schedule</span>
                   {{ i18n.t('checkout.checkInTime') }}
                 </span>
+                <input
+                  #checkInPicker
+                  type="date"
+                  [min]="minCheckInDate()"
+                  [ngModel]="checkInDate()"
+                  (ngModelChange)="onCheckInChange($event)"
+                  class="hidden-native-date"
+                  tabindex="-1"
+                />
               </div>
 
-              <div class="nights-floating-pill">
-                <span class="material-symbols-outlined">nights_stay</span>
-                <span>{{ i18n.t('checkout.nightsCount', { n: nightsCount() }) }}</span>
+              <div class="date-connector-column">
+                <div class="connector-line"></div>
+                <div class="nights-pill">
+                  <span class="material-symbols-outlined pill-icon">nights_stay</span>
+                  <span class="pill-text">{{ i18n.t('checkout.nightsCount', { n: nightsCount() }) }}</span>
+                </div>
+                <div class="connector-line"></div>
               </div>
 
-              <div class="date-subcard">
+              <div
+                class="date-subcard clickable"
+                (click)="openDatePicker(checkOutPicker)"
+                role="button"
+                tabindex="0"
+                aria-label="Seleccionar fecha de salida"
+              >
                 <div class="date-header">
                   <span class="material-symbols-outlined">event_available</span>
                   <span class="date-label">{{ i18n.t('checkout.checkOutLabel') }}</span>
                 </div>
-                <input
-                  type="date"
-                  [min]="minCheckOutDate()"
-                  [ngModel]="checkOutDate()"
-                  (ngModelChange)="checkOutDate.set($event)"
-                  class="date-input"
-                />
+                <div class="date-display-row">
+                  <span class="date-formatted">{{ displayCheckOutFormatted() }}</span>
+                  <span class="material-symbols-outlined edit-icon">edit_calendar</span>
+                </div>
                 <span class="date-meta">
                   <span class="material-symbols-outlined icon-small">schedule</span>
                   {{ i18n.t('checkout.checkOutTime') }}
                 </span>
+                <input
+                  #checkOutPicker
+                  type="date"
+                  [min]="minCheckOutDate()"
+                  [ngModel]="checkOutDate()"
+                  (ngModelChange)="onCheckOutChange($event)"
+                  class="hidden-native-date"
+                  tabindex="-1"
+                />
               </div>
             </div>
 
@@ -240,21 +268,21 @@
             @if (paymentMethod() === 'CREDIT_CARD') {
               <div class="credit-card-panel">
                 <div class="card-preview-wrapper">
-                  <div class="luxury-credit-card" [class]="'brand-' + detectedCardBrand().toLowerCase()">
+                  <div class="luxury-credit-card" [class]="'brand-' + cardBrand().toLowerCase()">
                     <div class="card-top-row">
                       <div class="monogram-lockup">
                         <span class="material-symbols-outlined crest-icon">hotel_class</span>
                         <span class="monogram-text">HOSPENTRA</span>
                       </div>
                       <div class="network-logo-box">
-                        @if (detectedCardBrand() === 'VISA') {
+                        @if (cardBrand() === 'VISA') {
                           <span class="visa-text">VISA</span>
-                        } @else if (detectedCardBrand() === 'MASTERCARD') {
+                        } @else if (cardBrand() === 'MASTERCARD') {
                           <div class="mc-circles">
                             <span class="c-red"></span>
                             <span class="c-yellow"></span>
                           </div>
-                        } @else if (detectedCardBrand() === 'AMEX') {
+                        } @else if (cardBrand() === 'AMEX') {
                           <span class="amex-text">AMEX</span>
                         } @else {
                           <span class="material-symbols-outlined generic-card-icon">credit_card</span>
@@ -288,24 +316,6 @@
 
                 <div class="card-inputs-grid">
                   <div class="form-field full-width">
-                    <label class="field-label">{{ i18n.t('checkout.cardNumberLabel') }}</label>
-                    <div class="input-with-icon">
-                      <span class="material-symbols-outlined field-icon">credit_card</span>
-                      <input
-                        type="text"
-                        maxlength="19"
-                        placeholder="4242 4242 4242 4242"
-                        [ngModel]="cardNumber()"
-                        (ngModelChange)="onCardNumberInput($event)"
-                        class="form-input with-icon"
-                      />
-                      <span class="card-detected-tag" [class]="detectedCardBrand().toLowerCase()">
-                        {{ detectedCardBrand() }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="form-field full-width">
                     <label class="field-label">{{ i18n.t('checkout.cardHolderLabel') }}</label>
                     <div class="input-with-icon">
                       <span class="material-symbols-outlined field-icon">person</span>
@@ -319,34 +329,18 @@
                     </div>
                   </div>
 
-                  <div class="form-field">
-                    <label class="field-label">{{ i18n.t('checkout.cardExpiryLabel') }}</label>
-                    <div class="input-with-icon">
-                      <span class="material-symbols-outlined field-icon">calendar_month</span>
-                      <input
-                        type="text"
-                        maxlength="5"
-                        placeholder="12/28"
-                        [ngModel]="cardExpiry()"
-                        (ngModelChange)="onExpiryInput($event)"
-                        class="form-input with-icon"
-                      />
+                  <div class="form-field full-width">
+                    <div class="vault-label-line">
+                      <label class="field-label">{{ i18n.t('checkout.stripeCardElementLabel') }}</label>
+                      <span class="pci-tag">
+                        <span class="material-symbols-outlined icon-small">verified_user</span>
+                        {{ i18n.t('checkout.pciCompliantBadge') }}
+                      </span>
                     </div>
-                  </div>
-
-                  <div class="form-field">
-                    <label class="field-label">{{ i18n.t('checkout.cardCvvLabel') }}</label>
-                    <div class="input-with-icon">
-                      <span class="material-symbols-outlined field-icon">vpn_key</span>
-                      <input
-                        type="password"
-                        maxlength="4"
-                        placeholder="888"
-                        [ngModel]="cardCvv()"
-                        (ngModelChange)="onCvvInput($event)"
-                        class="form-input with-icon"
-                      />
+                    <div class="stripe-card-wrapper">
+                      <div id="stripe-card-element" class="stripe-mount-box"></div>
                     </div>
+                    <p class="vault-subtext">{{ i18n.t('checkout.pciCompliantSub') }}</p>
                   </div>
                 </div>
 
@@ -354,6 +348,13 @@
                   <span class="material-symbols-outlined icon-small">lock</span>
                   <span>{{ i18n.t('checkout.cardSimulatedNotice') }}</span>
                 </div>
+
+                @if (errorMessage()) {
+                  <div class="inline-card-error">
+                    <span class="material-symbols-outlined">warning</span>
+                    <span>{{ errorMessage() }}</span>
+                  </div>
+                }
               </div>
             } @else {
               <div class="checkin-instruction-panel">
@@ -541,6 +542,13 @@
                   </div>
                 </div>
               </div>
+
+              @if (errorMessage()) {
+                <div class="summary-error-box">
+                  <span class="material-symbols-outlined">warning</span>
+                  <span>{{ errorMessage() }}</span>
+                </div>
+              }
 
               <button
                 type="button"

@@ -1,0 +1,437 @@
+<div class="room-detail-page">
+  <div class="container">
+    <nav class="breadcrumb-nav">
+      <a routerLink="/" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        <span>{{ i18n.t('roomDetail.backToCatalog') }}</span>
+      </a>
+      <div class="suite-meta-header">
+        <span class="suite-type-tag">{{ i18n.t('roomDetail.suiteBoutique') }}</span>
+        <span class="meta-separator">•</span>
+        <span class="room-number-tag">{{ i18n.t('roomDetail.roomNumberLabel', { n: room()?.roomNumber || '101' }) }}</span>
+      </div>
+    </nav>
+
+    @if (isLoadingRoom()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+      </div>
+    } @else {
+      <section class="gallery-section">
+        <div class="gallery-grid">
+          <div class="main-photo-wrapper">
+            <img [src]="galleryImages()[activeImageIndex()]" [alt]="room()?.roomType?.name" class="main-photo" />
+            <div class="photo-overlay-badge">
+              <span class="material-symbols-outlined">photo_camera</span>
+              <span>{{ activeImageIndex() + 1 }} / {{ galleryImages().length }}</span>
+            </div>
+          </div>
+          <div class="thumbnails-grid">
+            @for (img of galleryImages(); track $index) {
+              <button
+                type="button"
+                class="thumb-btn"
+                [class.active]="activeImageIndex() === $index"
+                (click)="setActiveImage($index)"
+              >
+                <img [src]="img" [alt]="room()?.roomType?.name" class="thumb-img" />
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <div class="detail-main-layout">
+        <div class="detail-content-column">
+          <header class="suite-header">
+            <h1 class="suite-title">
+              {{ (i18n.currentLang() === 'en' && room()?.roomType?.nameEn) ? room()?.roomType?.nameEn : room()?.roomType?.name }}
+            </h1>
+            <p class="suite-location">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>{{ i18n.t('roomDetail.location') }}</span>
+            </p>
+
+            <div class="quick-specs-bar">
+              <div class="spec-pill">
+                <span class="material-symbols-outlined">group</span>
+                <span>{{ i18n.t('roomDetail.specsGuests', { n: room()?.roomType?.capacity || 2 }) }}</span>
+              </div>
+              <div class="spec-pill">
+                <span class="material-symbols-outlined">bed</span>
+                <span>{{ i18n.t('roomDetail.specsKingBed') }}</span>
+              </div>
+              <div class="spec-pill">
+                <span class="material-symbols-outlined">aspect_ratio</span>
+                <span>{{ i18n.t('roomDetail.specsArea', { n: 85 }) }}</span>
+              </div>
+              <div class="spec-pill">
+                <span class="material-symbols-outlined">hot_tub</span>
+                <span>{{ i18n.t('roomDetail.amenityJacuzzi') }}</span>
+              </div>
+            </div>
+          </header>
+
+          <section class="section-card">
+            <h2 class="section-heading">{{ i18n.t('roomDetail.overview') }}</h2>
+            <p class="suite-description">
+              {{ (i18n.currentLang() === 'en' && room()?.roomType?.descriptionEn) ? room()?.roomType?.descriptionEn : (room()?.roomType?.description || '') }}
+            </p>
+          </section>
+
+          <section class="section-card">
+            <h2 class="section-heading">{{ i18n.t('roomDetail.amenitiesTitle') }}</h2>
+            <div class="amenities-features-grid">
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">waves</span>
+                <span>{{ i18n.t('roomDetail.amenityOceanView') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">hot_tub</span>
+                <span>{{ i18n.t('roomDetail.amenityJacuzzi') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">deck</span>
+                <span>{{ i18n.t('roomDetail.amenityTerrace') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">restaurant</span>
+                <span>{{ i18n.t('roomDetail.amenityBreakfast') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">wifi</span>
+                <span>{{ i18n.t('roomDetail.amenityWifi') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">local_bar</span>
+                <span>{{ i18n.t('roomDetail.amenityMinibar') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">coffee_maker</span>
+                <span>{{ i18n.t('roomDetail.amenityNespresso') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">support_agent</span>
+                <span>{{ i18n.t('roomDetail.amenityConcierge') }}</span>
+              </div>
+              <div class="amenity-feature">
+                <span class="material-symbols-outlined feature-icon">ac_unit</span>
+                <span>{{ i18n.t('roomDetail.amenityClimate') }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card policies-card">
+            <h2 class="section-heading">{{ i18n.t('roomDetail.policiesTitle') }}</h2>
+            <div class="policies-list">
+              <div class="policy-item">
+                <span class="material-symbols-outlined policy-icon">login</span>
+                <div>
+                  <strong>Check-In</strong>
+                  <p>{{ i18n.t('roomDetail.checkInPolicy') }}</p>
+                </div>
+              </div>
+              <div class="policy-item">
+                <span class="material-symbols-outlined policy-icon">logout</span>
+                <div>
+                  <strong>Check-Out</strong>
+                  <p>{{ i18n.t('roomDetail.checkOutPolicy') }}</p>
+                </div>
+              </div>
+              <div class="policy-item">
+                <span class="material-symbols-outlined policy-icon">verified_user</span>
+                <div>
+                  <strong>{{ i18n.t('myReservations.cancelPolicyBadge') }}</strong>
+                  <p>{{ i18n.t('roomDetail.cancelPolicy') }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card reviews-block">
+            <div class="reviews-header-row">
+              <div>
+                <h2 class="section-heading">{{ i18n.t('roomDetail.reviewsTitle') }}</h2>
+                <p class="section-subtext">
+                  {{ i18n.t('roomDetail.basedOnReviews', { n: reviewSummary()?.totalReviews || 0 }) }}
+                </p>
+              </div>
+              <div class="recommendation-badge">
+                <span class="material-symbols-outlined">recommend</span>
+                <span>{{ i18n.t('roomDetail.recommendationPct', { pct: recommendationRate() }) }}</span>
+              </div>
+            </div>
+
+            <div class="playstore-rating-box">
+              <div class="hero-score-column">
+                <div class="score-number">{{ reviewSummary()?.averageRating | number:'1.1-1' }}</div>
+                <div class="stars-display">
+                  <span class="material-symbols-outlined star-fill">star</span>
+                  <span class="material-symbols-outlined star-fill">star</span>
+                  <span class="material-symbols-outlined star-fill">star</span>
+                  <span class="material-symbols-outlined star-fill">star</span>
+                  <span class="material-symbols-outlined star-fill">star_half</span>
+                </div>
+                <span class="score-subtext">{{ i18n.t('roomDetail.ratingOut5', { score: reviewSummary()?.averageRating | number:'1.1-1' }) }}</span>
+                <span class="reviews-total-chip">{{ reviewSummary()?.totalReviews || 0 }} {{ i18n.t('catalog.roomReviews') }}</span>
+              </div>
+
+              <div class="histogram-column">
+                <div
+                  class="histogram-row"
+                  [class.active-filter]="activeRatingFilter() === 5"
+                  (click)="setRatingFilter(5)"
+                >
+                  <span class="row-star-lbl">5</span>
+                  <span class="material-symbols-outlined star-mini">star</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="ratingPercentage5()"></div>
+                  </div>
+                  <span class="row-pct">{{ ratingPercentage5() | number:'1.0-0' }}%</span>
+                  <span class="row-count">({{ ratingCount5() }})</span>
+                </div>
+
+                <div
+                  class="histogram-row"
+                  [class.active-filter]="activeRatingFilter() === 4"
+                  (click)="setRatingFilter(4)"
+                >
+                  <span class="row-star-lbl">4</span>
+                  <span class="material-symbols-outlined star-mini">star</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="ratingPercentage4()"></div>
+                  </div>
+                  <span class="row-pct">{{ ratingPercentage4() | number:'1.0-0' }}%</span>
+                  <span class="row-count">({{ ratingCount4() }})</span>
+                </div>
+
+                <div
+                  class="histogram-row"
+                  [class.active-filter]="activeRatingFilter() === 3"
+                  (click)="setRatingFilter(3)"
+                >
+                  <span class="row-star-lbl">3</span>
+                  <span class="material-symbols-outlined star-mini">star</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="ratingPercentage3()"></div>
+                  </div>
+                  <span class="row-pct">{{ ratingPercentage3() | number:'1.0-0' }}%</span>
+                  <span class="row-count">({{ ratingCount3() }})</span>
+                </div>
+
+                <div
+                  class="histogram-row"
+                  [class.active-filter]="activeRatingFilter() === 2"
+                  (click)="setRatingFilter(2)"
+                >
+                  <span class="row-star-lbl">2</span>
+                  <span class="material-symbols-outlined star-mini">star</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="ratingPercentage2()"></div>
+                  </div>
+                  <span class="row-pct">{{ ratingPercentage2() | number:'1.0-0' }}%</span>
+                  <span class="row-count">({{ ratingCount2() }})</span>
+                </div>
+
+                <div
+                  class="histogram-row"
+                  [class.active-filter]="activeRatingFilter() === 1"
+                  (click)="setRatingFilter(1)"
+                >
+                  <span class="row-star-lbl">1</span>
+                  <span class="material-symbols-outlined star-mini">star</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="ratingPercentage1()"></div>
+                  </div>
+                  <span class="row-pct">{{ ratingPercentage1() | number:'1.0-0' }}%</span>
+                  <span class="row-count">({{ ratingCount1() }})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dimensional-scores-grid">
+              <div class="dim-card">
+                <span class="dim-label">{{ i18n.t('roomDetail.cleanlinessScore') }}</span>
+                <strong class="dim-val">{{ reviewSummary()?.cleanlinessAverage || 4.9 | number:'1.1-1' }}</strong>
+              </div>
+              <div class="dim-card">
+                <span class="dim-label">{{ i18n.t('roomDetail.serviceScore') }}</span>
+                <strong class="dim-val">{{ reviewSummary()?.serviceAverage || 4.8 | number:'1.1-1' }}</strong>
+              </div>
+              <div class="dim-card">
+                <span class="dim-label">{{ i18n.t('roomDetail.comfortScore') }}</span>
+                <strong class="dim-val">{{ reviewSummary()?.comfortAverage || 4.9 | number:'1.1-1' }}</strong>
+              </div>
+              <div class="dim-card">
+                <span class="dim-label">{{ i18n.t('roomDetail.locationScore') }}</span>
+                <strong class="dim-val">{{ reviewSummary()?.locationAverage || 5.0 | number:'1.1-1' }}</strong>
+              </div>
+            </div>
+
+            <div class="reviews-filter-bar">
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="activeRatingFilter() === null"
+                (click)="setRatingFilter(null)"
+              >
+                {{ i18n.t('roomDetail.filterAll', { n: reviewSummary()?.totalReviews || 0 }) }}
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="activeRatingFilter() === 5"
+                (click)="setRatingFilter(5)"
+              >
+                {{ i18n.t('roomDetail.filterStars', { n: 5, count: ratingCount5() }) }}
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="activeRatingFilter() === 4"
+                (click)="setRatingFilter(4)"
+              >
+                {{ i18n.t('roomDetail.filterStars', { n: 4, count: ratingCount4() }) }}
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="activeRatingFilter() === 3"
+                (click)="setRatingFilter(3)"
+              >
+                {{ i18n.t('roomDetail.filterStars', { n: 3, count: ratingCount3() }) }}
+              </button>
+            </div>
+
+            @if (isLoadingReviews()) {
+              <div class="loading-state mini">
+                <div class="spinner"></div>
+              </div>
+            } @else if (reviews().length === 0) {
+              <div class="empty-reviews-box">
+                <span class="material-symbols-outlined">rate_review</span>
+                <p>{{ i18n.t('roomDetail.noReviewsFound') }}</p>
+              </div>
+            } @else {
+              <div class="reviews-feed">
+                @for (rev of reviews(); track rev.id) {
+                  <article class="review-card">
+                    <header class="review-card-header">
+                      <div class="reviewer-meta">
+                        <div class="avatar-circle">
+                          {{ rev.guestName.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                          <div class="name-badge-row">
+                            <span class="reviewer-name">{{ rev.guestName }}</span>
+                            <span class="verified-stay-pill">
+                              <span class="material-symbols-outlined">verified</span>
+                              <span>{{ i18n.t('roomDetail.verifiedStayBadge') }}</span>
+                            </span>
+                          </div>
+                          <span class="review-date">{{ formatDatePretty(rev.createdAt) }}</span>
+                        </div>
+                      </div>
+
+                      <div class="review-stars-badge">
+                        <span class="material-symbols-outlined star-icon">star</span>
+                        <strong>{{ rev.rating }}.0</strong>
+                      </div>
+                    </header>
+
+                    @if (rev.title) {
+                      <h4 class="review-title">"{{ rev.title }}"</h4>
+                    }
+
+                    <p class="review-comment">{{ rev.comment }}</p>
+
+                    @if (rev.managementResponse) {
+                      <div class="management-reply-box">
+                        <div class="reply-header">
+                          <span class="material-symbols-outlined reply-icon">hotel_class</span>
+                          <strong>{{ i18n.t('roomDetail.managementResponseTitle') }}</strong>
+                          @if (rev.managementRespondedAt) {
+                            <span class="reply-date">• {{ formatDatePretty(rev.managementRespondedAt) }}</span>
+                          }
+                        </div>
+                        <p class="reply-text">"{{ rev.managementResponse }}"</p>
+                      </div>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        </div>
+
+        <aside class="detail-sidebar-column">
+          <div class="sticky-booking-widget">
+            <div class="widget-header">
+              <div class="price-line">
+                <span class="currency-symbol">$</span>
+                <span class="price-amount">{{ room()?.roomType?.pricePerNight | number:'1.2-2' }}</span>
+                <span class="price-unit">USD {{ i18n.t('roomDetail.perNight') }}</span>
+              </div>
+              <div class="widget-rating-chip">
+                <span class="material-symbols-outlined star-icon">star</span>
+                <strong>{{ reviewSummary()?.averageRating | number:'1.1-1' }}</strong>
+                <span class="reviews-count">({{ reviewSummary()?.totalReviews || 0 }})</span>
+              </div>
+            </div>
+
+            <div class="widget-body">
+              <div class="dates-selector-grid">
+                <div class="date-field">
+                  <label for="check-in-widget" class="field-label">{{ i18n.t('roomDetail.checkIn') }}</label>
+                  <input
+                    id="check-in-widget"
+                    type="date"
+                    [min]="minDate"
+                    [ngModel]="checkInDate()"
+                    (ngModelChange)="checkInDate.set($event)"
+                    class="date-native-input"
+                  />
+                </div>
+                <div class="date-field">
+                  <label for="check-out-widget" class="field-label">{{ i18n.t('roomDetail.checkOut') }}</label>
+                  <input
+                    id="check-out-widget"
+                    type="date"
+                    [min]="checkInDate()"
+                    [ngModel]="checkOutDate()"
+                    (ngModelChange)="checkOutDate.set($event)"
+                    class="date-native-input"
+                  />
+                </div>
+              </div>
+
+              <div class="stay-summary-row">
+                <span>{{ i18n.t('roomDetail.nightsCount', { n: nightsCount() }) }}</span>
+                <span>${{ room()?.roomType?.pricePerNight || 380 | number:'1.2-2' }} x {{ nightsCount() }}</span>
+              </div>
+
+              <div class="stay-total-row">
+                <span class="total-label">{{ i18n.t('roomDetail.totalEstimated') }}</span>
+                <span class="total-amount">${{ totalEstimatedPrice() | number:'1.2-2' }} USD</span>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-primary submit-booking-btn"
+                (click)="proceedToCheckout()"
+              >
+                <span>{{ i18n.t('roomDetail.proceedToCheckout') }}</span>
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+
+              <div class="security-guarantee-line">
+                <span class="material-symbols-outlined">verified_user</span>
+                <span>{{ i18n.t('roomDetail.secureGuarantee') }}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    }
+  </div>
+</div>

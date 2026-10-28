@@ -37,7 +37,10 @@
           <div class="profile-info">
             <div class="name-row">
               <span class="user-fullname">{{ authService.currentUser()?.username }}</span>
-              <span class="elite-badge">{{ authService.currentUser()?.role || 'CLIENTE' }}</span>
+              <span class="elite-badge">
+                <span class="material-symbols-outlined icon-small">hotel_class</span>
+                {{ userRoleLabel() }}
+              </span>
             </div>
             <span class="member-subtitle">{{ authService.currentUser()?.email }} • {{ i18n.t('myReservations.verifiedAccount') }}</span>
           </div>
@@ -193,18 +196,22 @@
                     </div>
 
                     <div class="dates-summary-box">
-                      <div class="date-chip">
+                      <div class="date-chip check-in">
                         <span class="chip-label">{{ i18n.t('myReservations.checkInLabel') }}</span>
-                        <strong class="chip-val">{{ res.checkInDate }}</strong>
+                        <strong class="chip-val">{{ formatDatePretty(res.checkInDate) }}</strong>
                         <span class="chip-sub">{{ i18n.t('myReservations.checkInTime') }}</span>
                       </div>
-                      <div class="nights-pill">
-                        <span class="material-symbols-outlined">nights_stay</span>
-                        <span>{{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}</span>
+                      <div class="date-connector-column">
+                        <div class="connector-line"></div>
+                        <div class="nights-pill">
+                          <span class="material-symbols-outlined">nights_stay</span>
+                          <span>{{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}</span>
+                        </div>
+                        <div class="connector-line"></div>
                       </div>
-                      <div class="date-chip">
+                      <div class="date-chip check-out">
                         <span class="chip-label">{{ i18n.t('myReservations.checkOutLabel') }}</span>
-                        <strong class="chip-val">{{ res.checkOutDate }}</strong>
+                        <strong class="chip-val">{{ formatDatePretty(res.checkOutDate) }}</strong>
                         <span class="chip-sub">{{ i18n.t('myReservations.checkOutTime') }}</span>
                       </div>
                     </div>
@@ -306,7 +313,7 @@
                   </div>
                   <h4 class="history-suite-name">{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }}</h4>
                   <p class="history-dates">
-                    {{ res.checkInDate }} {{ i18n.t('myReservations.historyDatesTo') }} {{ res.checkOutDate }} ({{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}) • {{ i18n.t('myReservations.historyLocation') }}
+                    {{ formatDatePretty(res.checkInDate) }} {{ i18n.t('myReservations.historyDatesTo') }} {{ formatDatePretty(res.checkOutDate) }} ({{ i18n.t('myReservations.nightsUnit', { n: calculateNights(res.checkInDate, res.checkOutDate) }) }}) • {{ i18n.t('myReservations.historyLocation') }}
                   </p>
                   <div class="history-financials">
                     <span>{{ i18n.t('myReservations.historySettledTotal') }} <strong>${{ res.totalPrice | number:'1.2-2' }} USD</strong></span>
@@ -314,7 +321,18 @@
                   </div>
                 </div>
                 <div class="history-actions">
-                  <a routerLink="/" class="btn btn-primary">{{ i18n.t('myReservations.historyRebookBtn') }}</a>
+                  @if (hasReviewed(res.id)) {
+                    <span class="reviewed-badge">
+                      <span class="material-symbols-outlined">check_circle</span>
+                      <span>{{ i18n.t('myReservations.alreadyReviewedBadge') }}</span>
+                    </span>
+                  } @else {
+                    <button type="button" class="btn btn-rate" (click)="openReviewModal(res)">
+                      <span class="material-symbols-outlined">hotel_class</span>
+                      <span>{{ i18n.t('myReservations.rateStayBtn') }}</span>
+                    </button>
+                  }
+                  <a [routerLink]="['/rooms', res.room.id]" class="btn btn-primary">{{ i18n.t('myReservations.historyRebookBtn') }}</a>
                   <button type="button" class="btn btn-outline" (click)="openVoucher(res)">
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>{{ i18n.t('myReservations.historyVoucherBtn') }}</span>
@@ -346,7 +364,7 @@
                     <span class="history-code">{{ i18n.t('myReservations.historyCode', { id: res.id }) }}</span>
                   </div>
                   <h4 class="history-suite-name">{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }}</h4>
-                  <p class="history-dates">{{ res.checkInDate }} {{ i18n.t('myReservations.historyDatesTo') }} {{ res.checkOutDate }}</p>
+                  <p class="history-dates">{{ formatDatePretty(res.checkInDate) }} {{ i18n.t('myReservations.historyDatesTo') }} {{ formatDatePretty(res.checkOutDate) }}</p>
 
                   <div class="refund-resolution-box">
                     @if (res.paymentMethod === 'CREDIT_CARD') {
@@ -412,231 +430,24 @@
     </section>
   </div>
 
-  @if (isVoucherModalOpen() && selectedVoucherReservation()) {
-    <div class="modal-backdrop" (click)="closeVoucher()">
-      <div class="voucher-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <button type="button" class="modal-close-btn" (click)="closeVoucher()" aria-label="Cerrar voucher">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+  <app-guest-voucher-modal
+    [reservation]="selectedVoucherReservation()"
+    [isOpen]="isVoucherModalOpen()"
+    (closeModal)="closeVoucher()"
+    (print)="printVoucher()"
+  ></app-guest-voucher-modal>
 
-        <div class="voucher-header">
-          <div class="voucher-brand">
-            <span class="material-symbols-outlined brand-star">hotel_class</span>
-            <span class="brand-title">{{ i18n.t('myReservations.voucherOfficialBrand') }}</span>
-          </div>
-          <span class="voucher-badge">{{ i18n.t('myReservations.voucherDigitalBadge') }}</span>
-        </div>
-
-        <div class="voucher-seal-wrapper">
-          @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
-            <div class="voucher-seal paid-online">
-              <span class="material-symbols-outlined seal-icon">verified</span>
-              <div class="seal-text-group">
-                <span class="seal-main">{{ i18n.t('myReservations.voucherPaidOnline') }}</span>
-                <span class="seal-sub">{{ i18n.t('myReservations.voucherSettledReceipt') }}</span>
-                <span class="seal-auth">{{ i18n.t('myReservations.voucherAuth', { code: selectedVoucherReservation()?.authCode || 'AUTH-901844' }) }}</span>
-              </div>
-            </div>
-          } @else {
-            <div class="voucher-seal pay-checkin">
-              <span class="material-symbols-outlined seal-icon">storefront</span>
-              <div class="seal-text-group">
-                <span class="seal-main">{{ i18n.t('myReservations.voucherPayCheckin') }}</span>
-                <span class="seal-sub">{{ i18n.t('myReservations.voucherOnsitePayment') }}</span>
-                <span class="seal-auth">{{ i18n.t('myReservations.voucherFrontDeskCollect') }}</span>
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="voucher-code-strip">
-          <span class="strip-label">{{ i18n.t('myReservations.voucherCodeStrip') }}</span>
-          <span class="strip-code">HOSP-{{ selectedVoucherReservation()?.id }}-2026</span>
-        </div>
-
-        <div class="voucher-body">
-          <div class="voucher-field">
-            <span class="field-title">{{ i18n.t('myReservations.voucherGuestTitle') }}</span>
-            <strong class="field-val">{{ selectedVoucherReservation()?.guest?.firstName }} {{ selectedVoucherReservation()?.guest?.lastName }}</strong>
-            <span class="field-sub">{{ selectedVoucherReservation()?.guest?.email }} • Tel: {{ selectedVoucherReservation()?.guest?.phone || i18n.t('myReservations.voucherUnregistered') }}</span>
-          </div>
-
-          <div class="voucher-field">
-            <span class="field-title">{{ i18n.t('myReservations.voucherSuiteTitle') }}</span>
-            <strong class="field-val">{{ (i18n.currentLang() === 'en' && selectedVoucherReservation()?.room?.roomType?.nameEn) ? selectedVoucherReservation()?.room?.roomType?.nameEn : selectedVoucherReservation()?.room?.roomType?.name }}</strong>
-            <span class="field-sub">{{ i18n.t('catalog.roomLabel', { n: selectedVoucherReservation()?.room?.roomNumber || '' }) }} • {{ i18n.t('myReservations.voucherBoutiqueCategory') }}</span>
-          </div>
-
-          <div class="voucher-dates-row">
-            <div class="v-date">
-              <span class="field-title">{{ i18n.t('myReservations.checkInLabel') }}</span>
-              <strong class="field-val">{{ selectedVoucherReservation()?.checkInDate }}</strong>
-              <span class="field-sub">15:00 hrs</span>
-            </div>
-            <div class="v-date">
-              <span class="field-title">{{ i18n.t('myReservations.checkOutLabel') }}</span>
-              <strong class="field-val">{{ selectedVoucherReservation()?.checkOutDate }}</strong>
-              <span class="field-sub">12:00 hrs</span>
-            </div>
-          </div>
-
-          <div class="voucher-field">
-            <span class="field-title">{{ i18n.t('myReservations.voucherPaymentMode') }}</span>
-            @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
-              <strong class="field-val">{{ i18n.t('myReservations.voucherCardDesc', { brand: selectedVoucherReservation()?.cardBrand || 'VISA', last4: selectedVoucherReservation()?.cardLast4 || '4242' }) }}</strong>
-              <span class="field-sub text-emerald">{{ i18n.t('myReservations.voucherCardSub') }}</span>
-            } @else {
-              <strong class="field-val">{{ i18n.t('myReservations.voucherReceptionDesc') }}</strong>
-              <span class="field-sub text-amber">{{ i18n.t('myReservations.voucherReceptionSub') }}</span>
-            }
-          </div>
-
-          @if (selectedVoucherReservation()?.paymentMethod === 'CREDIT_CARD') {
-            <div class="voucher-price-row paid">
-              <span>{{ i18n.t('myReservations.voucherTotalPaidOnline') }}</span>
-              <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
-            </div>
-            <div class="voucher-balance-line">
-              <span>{{ i18n.t('myReservations.voucherBalanceCheckin') }}</span>
-              <strong class="balance-zero">{{ i18n.t('myReservations.voucherBalanceZero') }}</strong>
-            </div>
-          } @else {
-            <div class="voucher-price-row">
-              <span>{{ i18n.t('myReservations.voucherTotalToSettle') }}</span>
-              <strong class="v-price">${{ selectedVoucherReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
-            </div>
-          }
-
-          <div class="barcode-simulator">
-            <div class="barcode-lines"></div>
-            <span class="barcode-number">*HOSP-{{ selectedVoucherReservation()?.id }}-2026*</span>
-          </div>
-        </div>
-
-        <div class="voucher-actions-row">
-          <button type="button" class="btn btn-outline voucher-print-btn" (click)="printVoucher()">
-            <span class="material-symbols-outlined">picture_as_pdf</span>
-            <span>{{ i18n.t('myReservations.voucherPrintBtn') }}</span>
-          </button>
-          <button type="button" class="btn btn-primary" (click)="closeVoucher()">
-            {{ i18n.t('myReservations.voucherCloseBtn') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (isCancelModalOpen() && reservationToCancel()) {
-    <div class="modal-backdrop" (click)="closeCancelDialog()">
-      <div class="cancel-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <div class="cancel-warn-icon">
-          <span class="material-symbols-outlined">event_busy</span>
-        </div>
-        <h3 class="cancel-dialog-title">{{ i18n.t('myReservations.cancelModalTitle') }}</h3>
-        <p class="cancel-dialog-desc">
-          {{ i18n.t('myReservations.cancelSuiteLabel') }} <strong>{{ (i18n.currentLang() === 'en' && reservationToCancel()?.room?.roomType?.nameEn) ? reservationToCancel()?.room?.roomType?.nameEn : reservationToCancel()?.room?.roomType?.name }}</strong><br />
-          {{ i18n.t('myReservations.cancelDatesLabel') }} <strong>{{ reservationToCancel()?.checkInDate }}</strong> {{ i18n.t('myReservations.cancelToWord') }} <strong>{{ reservationToCancel()?.checkOutDate }}</strong>
-        </p>
-
-        <div class="refund-policy-box">
-          <div class="countdown-badge">
-            <span class="material-symbols-outlined icon-small">schedule</span>
-            <span>{{ i18n.t('myReservations.cancelTimeRemaining', { hours: activeCancelCalculation()?.hoursUntilCheckIn ?? 0 }) }}</span>
-          </div>
-
-          @if (reservationToCancel()?.paymentMethod === 'CREDIT_CARD') {
-            @if (activeCancelCalculation()?.isEligibleForFullRefund) {
-              <div class="refund-calc-card full">
-                <div class="calc-headline">
-                  <span class="material-symbols-outlined icon-success">verified</span>
-                  <strong>{{ i18n.t('myReservations.cancelFullTitle', { last4: reservationToCancel()?.cardLast4 || '4242' }) }}</strong>
-                </div>
-                <p class="calc-desc">
-                  {{ i18n.t('myReservations.cancelFullDesc', { total: (reservationToCancel()?.totalPrice | number:'1.2-2') || '0.00' }) }}
-                </p>
-              </div>
-            } @else {
-              <div class="refund-calc-card partial">
-                <div class="calc-headline">
-                  <span class="material-symbols-outlined icon-warn">warning</span>
-                  <strong>{{ i18n.t('myReservations.cancelPartialTitle') }}</strong>
-                </div>
-                <div class="calc-breakdown-table">
-                  <div class="table-row">
-                    <span>{{ i18n.t('myReservations.cancelPartialRetention') }}</span>
-                    <strong class="retention-val">-${{ activeCancelCalculation()?.penaltyAmount | number:'1.2-2' }} USD</strong>
-                  </div>
-                  <div class="table-row refund">
-                    <span>{{ i18n.t('myReservations.cancelPartialRefund') }}</span>
-                    <strong class="refund-val">+${{ activeCancelCalculation()?.refundAmount | number:'1.2-2' }} USD</strong>
-                  </div>
-                </div>
-              </div>
-            }
-          } @else {
-            <div class="refund-calc-card free">
-              <div class="calc-headline">
-                <span class="material-symbols-outlined icon-success">task_alt</span>
-                <strong>{{ i18n.t('myReservations.cancelFreeTitle') }}</strong>
-              </div>
-              <p class="calc-desc">
-                {{ i18n.t('myReservations.cancelFreeDesc') }}
-              </p>
-            </div>
-          }
-        </div>
-
-        <div class="dialog-actions-row">
-          <button type="button" class="btn btn-outline" (click)="closeCancelDialog()" [disabled]="isCancelling()">
-            {{ i18n.t('myReservations.cancelKeepBtn') }}
-          </button>
-          <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="isCancelling()">
-            {{ isCancelling() ? i18n.t('myReservations.cancelProcessingBtn') : i18n.t('myReservations.cancelConfirmBtn') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (isCancelResultModalOpen() && cancelResult()) {
-    <div class="modal-backdrop" (click)="closeCancelResultModal()">
-      <div class="cancel-result-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <div class="result-icon-badge" [class.partial]="cancelResult()?.badgeType === 'partial'">
-          <span class="material-symbols-outlined">
-            {{ cancelResult()?.badgeType === 'partial' ? 'receipt_long' : 'check_circle' }}
-          </span>
-        </div>
-
-        <span class="prestige-tag">{{ i18n.t('myReservations.cancelResultPrestige') }}</span>
-        <h3 class="result-title">{{ i18n.t('myReservations.cancelResultSuccess') }}</h3>
-
-        <div class="result-statement-card" [class]="cancelResult()?.badgeType">
-          <p class="statement-msg">{{ cancelResult()?.policyMessage }}</p>
-          @if (cancelResult()?.badgeType === 'full') {
-            <div class="statement-amount-box">
-              <span class="lbl">{{ i18n.t('myReservations.cancelResultFullTotal') }}</span>
-              <strong class="val">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
-            </div>
-          } @else if (cancelResult()?.badgeType === 'partial') {
-            <div class="statement-breakdown-box">
-              <div class="row">
-                <span>{{ i18n.t('myReservations.cancelResultPartialRet') }}</span>
-                <strong class="text-amber">${{ cancelResult()?.penaltyAmount | number:'1.2-2' }} USD</strong>
-              </div>
-              <div class="row">
-                <span>{{ i18n.t('myReservations.cancelResultPartialRef') }}</span>
-                <strong class="text-green">${{ cancelResult()?.refundAmount | number:'1.2-2' }} USD</strong>
-              </div>
-            </div>
-          }
-        </div>
-
-        <button type="button" class="btn btn-primary w-full" (click)="closeCancelResultModal()">
-          {{ i18n.t('myReservations.cancelResultDismissBtn') }}
-        </button>
-      </div>
-    </div>
-  }
+  <app-cancellation-modal
+    [reservation]="reservationToCancel()"
+    [isOpen]="isCancelModalOpen()"
+    [isCancelling]="isCancelling()"
+    [cancelCalculation]="activeCancelCalculation()"
+    [isResultModalOpen]="isCancelResultModalOpen()"
+    [cancelResult]="cancelResult()"
+    (confirmCancel)="confirmCancel()"
+    (closeModal)="closeCancelDialog()"
+    (closeResultModal)="closeCancelResultModal()"
+  ></app-cancellation-modal>
 
   @if (isConciergeModalOpen()) {
     <div class="modal-backdrop" (click)="closeConcierge()">
@@ -677,375 +488,113 @@
     </div>
   }
 
-  @if (isRoomServiceModalOpen() && activeCheckedInReservation()) {
-    <div class="modal-backdrop" (click)="closeRoomServiceModal()">
-      <div class="room-service-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-        <button type="button" class="modal-close-btn" (click)="closeRoomServiceModal()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+  <app-guest-room-service-modal
+    [reservation]="activeCheckedInReservation()"
+    [isOpen]="isRoomServiceModalOpen()"
+    [extraServices]="extraServices()"
+    [activeReservationOrders]="activeReservationOrders()"
+    [isSubmitting]="isSubmittingOrder()"
+    [orderSuccessMessage]="orderSuccessMessage()"
+    (closeModal)="closeRoomServiceModal()"
+    (submitOrder)="submitRoomOrder($event)"
+  ></app-guest-room-service-modal>
 
-        <div class="rs-header">
-          <div class="rs-badge">
-            <span class="material-symbols-outlined">room_service</span>
-            <span>{{ i18n.t('roomService.rsHeaderBadge') }}</span>
+  @if (isReviewModalOpen() && selectedReviewReservation(); as res) {
+    <div class="review-modal-backdrop" (click)="closeReviewModal()">
+      <div class="review-modal-card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div class="modal-icon-title">
+            <span class="material-symbols-outlined header-star">hotel_class</span>
+            <div>
+              <h3>{{ i18n.t('myReservations.rateStayModalTitle') }}</h3>
+              <p>{{ (i18n.currentLang() === 'en' && res.room.roomType.nameEn) ? res.room.roomType.nameEn : res.room.roomType.name }} • Habitación {{ res.room.roomNumber }}</p>
+            </div>
           </div>
-          <h3 class="rs-title">{{ i18n.t('roomService.rsCardTitle', { room: activeCheckedInReservation()?.room?.roomNumber || '' }) }}</h3>
-          <p class="rs-subtitle">{{ i18n.t('roomService.rsCardSubtitle') }}</p>
-        </div>
-
-        @if (orderSuccessMessage()) {
-          <div class="rs-alert-success">
-            <span class="material-symbols-outlined">check_circle</span>
-            <span>{{ orderSuccessMessage() }}</span>
-          </div>
-        }
-
-        <div class="rs-modal-tabs">
-          <button
-            type="button"
-            class="modal-tab-btn"
-            [class.active]="rsActiveView() === 'MENU'"
-            (click)="rsActiveView.set('MENU')"
-          >
-            <span class="material-symbols-outlined">restaurant_menu</span>
-            <span>{{ i18n.t('roomService.tabMenu') }}</span>
+          <button type="button" class="close-btn" (click)="closeReviewModal()">
+            <span class="material-symbols-outlined">close</span>
           </button>
-          <button
-            type="button"
-            class="modal-tab-btn"
-            [class.active]="rsActiveView() === 'ORDERS'"
-            (click)="rsActiveView.set('ORDERS')"
-          >
-            <span class="material-symbols-outlined">receipt_long</span>
-            <span>{{ i18n.t('roomService.tabOrders') }}</span>
-            @if (activeReservationOrders().length > 0) {
-              <span class="tab-badge">{{ activeReservationOrders().length }}</span>
-            }
-          </button>
-        </div>
+        </header>
 
-        @if (rsActiveView() === 'MENU') {
-          <div class="rs-categories-tabs">
-            <button
-              type="button"
-              class="cat-pill"
-              [class.active]="selectedCategory() === 'ALL'"
-              (click)="selectedCategory.set('ALL')"
-            >
-              <span class="material-symbols-outlined cat-icon">apps</span>
-              <span>{{ i18n.t('roomService.catAll') }}</span>
-            </button>
-            <button
-              type="button"
-              class="cat-pill"
-              [class.active]="selectedCategory() === 'GASTRONOMY'"
-              (click)="selectedCategory.set('GASTRONOMY')"
-            >
-              <span class="material-symbols-outlined cat-icon">restaurant</span>
-              <span>{{ i18n.t('roomService.catGastro') }}</span>
-            </button>
-            <button
-              type="button"
-              class="cat-pill"
-              [class.active]="selectedCategory() === 'BAR_WINE'"
-              (click)="selectedCategory.set('BAR_WINE')"
-            >
-              <span class="material-symbols-outlined cat-icon">wine_bar</span>
-              <span>{{ i18n.t('roomService.catWine') }}</span>
-            </button>
-            <button
-              type="button"
-              class="cat-pill"
-              [class.active]="selectedCategory() === 'WELLNESS_SPA'"
-              (click)="selectedCategory.set('WELLNESS_SPA')"
-            >
-              <span class="material-symbols-outlined cat-icon">spa</span>
-              <span>{{ i18n.t('roomService.catSpa') }}</span>
-            </button>
-          </div>
+        <div class="modal-body">
+          @if (reviewSuccessMessage()) {
+            <div class="review-success-banner">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>{{ reviewSuccessMessage() }}</span>
+            </div>
+          } @else {
+            <p class="modal-instruction">{{ i18n.t('myReservations.rateStayModalSubtitle') }}</p>
 
-          <div class="rs-menu-grid">
-            @for (item of filteredExtraServices(); track item.id) {
-              <div class="menu-item-card" [class.in-cart]="(cartQuantities()[item.id] || 0) > 0">
-                <div class="item-info">
-                  <div class="item-meta-top">
-                    <span class="item-cat-tag" [ngClass]="item.category.toLowerCase()">
-                      <span class="material-symbols-outlined icon-mini">{{ getCategoryIcon(item.category) }}</span>
-                      <span>{{ getCategoryLabel(item.category) }}</span>
-                    </span>
-                  </div>
-                  <div class="item-title-row">
-                    <h4 class="item-name">{{ (i18n.currentLang() === 'en' && item.nameEn) ? item.nameEn : item.name }}</h4>
-                    <span class="item-price">${{ item.price | number:'1.2-2' }} USD</span>
-                  </div>
-                  <p class="item-desc">{{ (i18n.currentLang() === 'en' && item.descriptionEn) ? item.descriptionEn : item.description }}</p>
-                </div>
-
-                <div class="item-stepper">
-                  @if ((cartQuantities()[item.id] || 0) === 0) {
-                    <button type="button" class="btn-add-item" (click)="increaseCart(item.id)">
-                      <span class="material-symbols-outlined">add</span>
-                      <span>{{ i18n.t('roomService.addCart') }}</span>
-                    </button>
-                  } @else {
-                    <div class="stepper-controls">
-                      <button type="button" class="btn-step" (click)="decreaseCart(item.id)">
-                        <span class="material-symbols-outlined">remove</span>
-                      </button>
-                      <span class="step-num">{{ cartQuantities()[item.id] }}</span>
-                      <button type="button" class="btn-step" (click)="increaseCart(item.id)">
-                        <span class="material-symbols-outlined">add</span>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-
-          @if (cartTotalCount() > 0) {
-            <div class="rs-order-footer">
-              <div class="destination-notice" [ngClass]="orderDestinationType().toLowerCase()">
-                @if (orderDestinationType() === 'KITCHEN') {
-                  <span class="material-symbols-outlined">skillet</span>
-                  <span>{{ i18n.t('roomService.rsNoticeKitchen') }}</span>
-                } @else if (orderDestinationType() === 'SPA') {
-                  <span class="material-symbols-outlined">spa</span>
-                  <span>{{ i18n.t('roomService.rsNoticeSpa') }}</span>
-                } @else {
-                  <span class="material-symbols-outlined">room_service</span>
-                  <span>{{ i18n.t('roomService.rsNoticeMixed') }}</span>
+            <div class="stars-picker-section">
+              <label class="picker-label">{{ i18n.t('myReservations.overallRating') }}</label>
+              <div class="stars-picker-row">
+                @for (star of [1, 2, 3, 4, 5]; track star) {
+                  <button
+                    type="button"
+                    class="star-btn"
+                    [class.filled]="reviewRating() >= star"
+                    (click)="setReviewRating(star)"
+                  >
+                    <span class="material-symbols-outlined">star</span>
+                  </button>
                 }
+                <span class="score-badge">{{ reviewRating() }}.0 / 5.0</span>
               </div>
+            </div>
 
-              @if (cartHasSpaItems()) {
-                <div class="spa-preferences-card">
-                  <div class="pref-group">
-                    <label class="lbl-pref">{{ i18n.t('roomService.spaLocationLabel') }}</label>
-                    <div class="pref-options">
-                      <button
-                        type="button"
-                        class="btn-pref-option"
-                        [class.active]="spaLocation() === 'IN_SUITE'"
-                        (click)="spaLocation.set('IN_SUITE')"
-                      >
-                        <span class="material-symbols-outlined">hotel</span>
-                        <span>{{ i18n.t('roomService.spaLocationSuite') }}</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-pref-option"
-                        [class.active]="spaLocation() === 'SPA_CENTER'"
-                        (click)="spaLocation.set('SPA_CENTER')"
-                      >
-                        <span class="material-symbols-outlined">spa</span>
-                        <span>{{ i18n.t('roomService.spaLocationCenter') }}</span>
-                      </button>
-                    </div>
-                  </div>
+            <div class="form-group">
+              <label for="review-title-input" class="input-label">{{ i18n.t('myReservations.reviewTitleLabel') }}</label>
+              <input
+                id="review-title-input"
+                type="text"
+                class="text-input"
+                [placeholder]="i18n.t('myReservations.reviewTitlePlaceholder')"
+                [ngModel]="reviewTitle()"
+                (ngModelChange)="reviewTitle.set($event)"
+                maxlength="150"
+              />
+            </div>
 
-                  <div class="pref-group">
-                    <label for="spaTimeSelect" class="lbl-pref">{{ i18n.t('roomService.spaTimeLabel') }}</label>
-                    <select
-                      id="spaTimeSelect"
-                      [ngModel]="spaScheduledTime()"
-                      (ngModelChange)="spaScheduledTime.set($event)"
-                      class="spa-time-select"
-                    >
-                      @for (slot of spaTimeSlots; track slot) {
-                        <option [value]="slot">{{ slot }}</option>
-                      }
-                    </select>
-                  </div>
-                </div>
-              }
+            <div class="form-group">
+              <label for="review-comment-input" class="input-label">{{ i18n.t('myReservations.reviewCommentLabel') }} *</label>
+              <textarea
+                id="review-comment-input"
+                rows="4"
+                class="textarea-input"
+                [placeholder]="i18n.t('myReservations.reviewCommentPlaceholder')"
+                [ngModel]="reviewComment()"
+                (ngModelChange)="reviewComment.set($event)"
+                maxlength="2000"
+              ></textarea>
+            </div>
 
-              <div class="notes-field-wrap">
-                <label for="rsNotes" class="lbl-notes">
-                  {{ orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaLabel') : i18n.t('roomService.rsNotesKitchenLabel') }}
-                </label>
-                <textarea
-                  id="rsNotes"
-                  [ngModel]="orderNotes()"
-                  (ngModelChange)="orderNotes.set($event)"
-                  [placeholder]="orderDestinationType() === 'SPA' ? i18n.t('roomService.rsNotesSpaPlaceholder') : i18n.t('roomService.rsNotesKitchenPlaceholder')"
-                  rows="2"
-                  class="notes-textarea"
-                ></textarea>
+            @if (reviewErrorMessage()) {
+              <div class="review-error-banner">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ reviewErrorMessage() }}</span>
               </div>
+            }
 
-              <div class="order-action-bar">
-                <div class="order-total-block">
-                  <span class="lbl-total">{{ i18n.t('roomService.rsTotalLabel') }}</span>
-                  <strong class="val-total">${{ cartTotalAmount() | number:'1.2-2' }} USD</strong>
-                  <span class="sub-total">{{ i18n.t('roomService.rsSelectedCount', { n: cartTotalCount() }) }}</span>
-                </div>
-                <button
-                  type="button"
-                  class="btn-submit-order"
-                  (click)="submitRoomOrder()"
-                  [disabled]="isSubmittingOrder()"
-                  [ngClass]="orderDestinationType().toLowerCase()"
-                >
-                  @if (isSubmittingOrder()) {
-                    <span class="btn-spinner"></span>
-                    <span>{{ i18n.t('roomService.sendingBtn') }}</span>
-                  } @else {
-                    @if (orderDestinationType() === 'SPA') {
-                      <span class="material-symbols-outlined">spa</span>
-                      <span>{{ i18n.t('roomService.rsSubmitSpa') }}</span>
-                    } @else if (orderDestinationType() === 'MIXED') {
-                      <span class="material-symbols-outlined">room_service</span>
-                      <span>{{ i18n.t('roomService.rsSubmitMixed') }}</span>
-                    } @else {
-                      <span class="material-symbols-outlined">skillet</span>
-                      <span>{{ i18n.t('roomService.rsSubmitKitchen') }}</span>
-                    }
-                  }
-                </button>
-              </div>
+            <div class="modal-actions-row">
+              <button type="button" class="btn btn-outline" (click)="closeReviewModal()">
+                {{ i18n.t('myReservations.closeReviewModal') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary submit-review-btn"
+                [disabled]="isSubmittingReview() || !reviewComment().trim()"
+                (click)="submitGuestReview()"
+              >
+                @if (isSubmittingReview()) {
+                  <span class="spinner-sm"></span>
+                  <span>{{ i18n.t('myReservations.submittingReview') }}</span>
+                } @else {
+                  <span class="material-symbols-outlined">send</span>
+                  <span>{{ i18n.t('myReservations.submitReviewBtn') }}</span>
+                }
+              </button>
             </div>
           }
-        }
-
-        @if (rsActiveView() === 'ORDERS') {
-          <div class="orders-tracking-view">
-            <div class="folio-summary-banner">
-              <div class="folio-banner-icon">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-              </div>
-              <div class="folio-banner-content">
-                <span class="banner-title">{{ i18n.t('roomService.rsFolioTitle', { room: activeCheckedInReservation()?.room?.roomNumber || '' }) }}</span>
-                <p class="banner-desc">{{ i18n.t('roomService.rsFolioDesc') }}</p>
-              </div>
-              <div class="folio-banner-amount">
-                <span class="lbl-accum">{{ i18n.t('roomService.rsFolioAccum') }}</span>
-                <strong class="val-accum">${{ totalAccumulatedOrdersAmount() | number:'1.2-2' }} USD</strong>
-              </div>
-            </div>
-
-            @if (activeReservationOrders().length === 0) {
-              <div class="orders-empty-state">
-                <span class="material-symbols-outlined empty-icon">receipt_long</span>
-                <h4>{{ i18n.t('roomService.rsOrdersEmptyTitle') }}</h4>
-                <p>{{ i18n.t('roomService.rsOrdersEmptyDesc') }}</p>
-                <button type="button" class="btn-goto-menu" (click)="rsActiveView.set('MENU')">
-                  <span class="material-symbols-outlined">restaurant_menu</span>
-                  <span>{{ i18n.t('roomService.rsOrdersEmptyBtn') }}</span>
-                </button>
-              </div>
-            } @else {
-              <div class="orders-tracking-list">
-                @for (ord of activeReservationOrders(); track ord.id) {
-                  <div class="track-order-card" [class.delivered]="ord.status === 'DELIVERED'">
-                    <div class="track-card-head">
-                      <div class="track-meta">
-                        <div class="track-code-row">
-                          <strong class="track-code">{{ i18n.t('roomService.rsOrderCode', { id: ord.id }) }}</strong>
-                          <span class="track-type-badge" [ngClass]="getOrderType(ord).toLowerCase()">
-                            <span class="material-symbols-outlined">
-                              {{ getOrderType(ord) === 'SPA' ? 'spa' : getOrderType(ord) === 'MIXED' ? 'room_service' : 'skillet' }}
-                            </span>
-                            <span>{{ getOrderType(ord) === 'SPA' ? 'Concierge & Spa' : getOrderType(ord) === 'MIXED' ? 'Suite & Spa' : 'Cocina & Bar' }}</span>
-                          </span>
-                        </div>
-                        <span class="track-time">{{ i18n.t('roomService.rsOrderTime', { time: (ord.orderedAt | date:'HH:mm • dd MMM') || '' }) }}</span>
-                      </div>
-
-                      <div class="track-price-tag">
-                        <span class="lbl-ord-total">{{ i18n.t('roomService.rsOrderTotal') }}</span>
-                        <strong class="track-amount">${{ ord.totalAmount | number:'1.2-2' }} USD</strong>
-                      </div>
-                    </div>
-
-                    <div class="track-stepper">
-                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 1" [class.current]="getOrderStatusStep(ord.status) === 1">
-                        <div class="step-dot">
-                          <span class="material-symbols-outlined">receipt</span>
-                        </div>
-                        <span class="step-lbl">{{ i18n.t('roomService.stepReceived') }}</span>
-                      </div>
-                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 2"></div>
-
-                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 2" [class.current]="getOrderStatusStep(ord.status) === 2">
-                        <div class="step-dot">
-                          <span class="material-symbols-outlined">{{ getOrderType(ord) === 'SPA' ? 'self_improvement' : 'outdoor_grill' }}</span>
-                        </div>
-                        <span class="step-lbl">{{ getOrderType(ord) === 'SPA' ? i18n.t('roomService.stepSpaAssigned') : i18n.t('roomService.stepInKitchen') }}</span>
-                      </div>
-                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 3"></div>
-
-                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 3" [class.current]="getOrderStatusStep(ord.status) === 3">
-                        <div class="step-dot">
-                          <span class="material-symbols-outlined">room_service</span>
-                        </div>
-                        <span class="step-lbl">{{ i18n.t('roomService.stepOnTheWay') }}</span>
-                      </div>
-                      <div class="step-line" [class.active]="getOrderStatusStep(ord.status) >= 4"></div>
-
-                      <div class="step-item" [class.active]="getOrderStatusStep(ord.status) >= 4" [class.current]="getOrderStatusStep(ord.status) === 4">
-                        <div class="step-dot">
-                          <span class="material-symbols-outlined">check_circle</span>
-                        </div>
-                        <span class="step-lbl">{{ i18n.t('roomService.stepDelivered') }}</span>
-                      </div>
-                    </div>
-
-                    <div class="track-status-banner" [ngClass]="ord.status.toLowerCase()">
-                      <span class="material-symbols-outlined">info</span>
-                      <span>{{ getOrderStatusLabel(ord.status, getOrderType(ord)) }}</span>
-                    </div>
-
-                    @if (ord.therapistName) {
-                      <div class="track-therapist-badge">
-                        <span class="material-symbols-outlined icon-therapist">badge</span>
-                        <div class="therapist-info">
-                          <span class="lbl-therapist">{{ i18n.t('roomService.rsTherapistLabel') }}</span>
-                          <strong class="val-therapist">{{ ord.therapistName }}</strong>
-                        </div>
-                      </div>
-                    }
-
-                    @if (getOrderType(ord) === 'SPA' || getOrderType(ord) === 'MIXED') {
-                      <div class="track-spa-detail-row">
-                        <span class="spa-meta-chip">
-                          <span class="material-symbols-outlined icon-chip">{{ ord.serviceLocation === 'SPA_CENTER' ? 'spa' : 'hotel' }}</span>
-                          <span>{{ ord.serviceLocation === 'SPA_CENTER' ? i18n.t('roomService.rsLocationCenter') : i18n.t('roomService.rsLocationSuite') }}</span>
-                        </span>
-                        @if (ord.scheduledTime) {
-                          <span class="spa-meta-chip time">
-                            <span class="material-symbols-outlined icon-chip">schedule</span>
-                            <span>{{ i18n.t('roomService.rsScheduledTimeLabel', { time: ord.scheduledTime }) }}</span>
-                          </span>
-                        }
-                      </div>
-                    }
-
-                    <div class="track-items-box">
-                      <span class="items-head-lbl">{{ i18n.t('roomService.rsItemsHead') }}</span>
-                      <div class="items-pills-row">
-                        @for (it of ord.items; track it.id) {
-                          <div class="it-pill-card">
-                            <span class="it-qty">{{ it.quantity }}x</span>
-                            <span class="it-name">{{ it.serviceName }}</span>
-                            <span class="it-subtotal">${{ it.subtotal | number:'1.2-2' }}</span>
-                          </div>
-                        }
-                      </div>
-                    </div>
-
-                    @if (ord.notes) {
-                      <div class="track-notes-row">
-                        <span class="material-symbols-outlined">sticky_note_2</span>
-                        <p class="notes-text">"{{ ord.notes }}"</p>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
+        </div>
       </div>
     </div>
   }

@@ -1,0 +1,111 @@
+@if (isOpen && reservation) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="cancel-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="cancel-warn-icon">
+        <span class="material-symbols-outlined">event_busy</span>
+      </div>
+      <h3 class="cancel-dialog-title">{{ i18n.t('myReservations.cancelModalTitle') }}</h3>
+      <p class="cancel-dialog-desc">
+        {{ i18n.t('myReservations.cancelSuiteLabel') }} <strong>{{ (i18n.currentLang() === 'en' && reservation.room?.roomType?.nameEn) ? reservation.room?.roomType?.nameEn : reservation.room?.roomType?.name }}</strong><br />
+        {{ i18n.t('myReservations.cancelDatesLabel') }} <strong>{{ reservation.checkInDate }}</strong> {{ i18n.t('myReservations.cancelToWord') }} <strong>{{ reservation.checkOutDate }}</strong>
+      </p>
+
+      <div class="refund-policy-box">
+        <div class="countdown-badge">
+          <span class="material-symbols-outlined icon-small">schedule</span>
+          <span>{{ i18n.t('myReservations.cancelTimeRemaining', { hours: cancelCalculation?.hoursUntilCheckIn ?? 0 }) }}</span>
+        </div>
+
+        @if (reservation.paymentMethod === 'CREDIT_CARD') {
+          @if (cancelCalculation?.isEligibleForFullRefund) {
+            <div class="refund-calc-card full">
+              <div class="calc-headline">
+                <span class="material-symbols-outlined icon-success">verified</span>
+                <strong>{{ i18n.t('myReservations.cancelFullTitle', { last4: reservation.cardLast4 || '4242' }) }}</strong>
+              </div>
+              <p class="calc-desc">
+                {{ i18n.t('myReservations.cancelFullDesc', { total: (reservation.totalPrice | number:'1.2-2') || '0.00' }) }}
+              </p>
+            </div>
+          } @else {
+            <div class="refund-calc-card partial">
+              <div class="calc-headline">
+                <span class="material-symbols-outlined icon-warn">warning</span>
+                <strong>{{ i18n.t('myReservations.cancelPartialTitle') }}</strong>
+              </div>
+              <div class="calc-breakdown-table">
+                <div class="table-row">
+                  <span>{{ i18n.t('myReservations.cancelPartialRetention') }}</span>
+                  <strong class="retention-val">-${{ cancelCalculation?.penaltyAmount | number:'1.2-2' }} USD</strong>
+                </div>
+                <div class="table-row refund">
+                  <span>{{ i18n.t('myReservations.cancelPartialRefund') }}</span>
+                  <strong class="refund-val">+${{ cancelCalculation?.refundAmount | number:'1.2-2' }} USD</strong>
+                </div>
+              </div>
+            </div>
+          }
+        } @else {
+          <div class="refund-calc-card free">
+            <div class="calc-headline">
+              <span class="material-symbols-outlined icon-success">task_alt</span>
+              <strong>{{ i18n.t('myReservations.cancelFreeTitle') }}</strong>
+            </div>
+            <p class="calc-desc">
+              {{ i18n.t('myReservations.cancelFreeDesc') }}
+            </p>
+          </div>
+        }
+      </div>
+
+      <div class="dialog-actions-row">
+        <button type="button" class="btn btn-outline" (click)="onClose()" [disabled]="isCancelling">
+          {{ i18n.t('myReservations.cancelKeepBtn') }}
+        </button>
+        <button type="button" class="btn btn-danger" (click)="onConfirm()" [disabled]="isCancelling">
+          {{ isCancelling ? i18n.t('myReservations.cancelProcessingBtn') : i18n.t('myReservations.cancelConfirmBtn') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (isResultModalOpen && cancelResult) {
+  <div class="modal-backdrop" (click)="onCloseResult()">
+    <div class="cancel-result-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="result-icon-badge" [class.partial]="cancelResult.badgeType === 'partial'">
+        <span class="material-symbols-outlined">
+          {{ cancelResult.badgeType === 'partial' ? 'receipt_long' : 'check_circle' }}
+        </span>
+      </div>
+
+      <span class="prestige-tag">{{ i18n.t('myReservations.cancelResultPrestige') }}</span>
+      <h3 class="result-title">{{ i18n.t('myReservations.cancelResultSuccess') }}</h3>
+
+      <div class="result-statement-card" [class]="cancelResult.badgeType">
+        <p class="statement-msg">{{ cancelResult.policyMessage }}</p>
+        @if (cancelResult.badgeType === 'full') {
+          <div class="statement-amount-box">
+            <span class="lbl">{{ i18n.t('myReservations.cancelResultFullTotal') }}</span>
+            <strong class="val">${{ cancelResult.refundAmount | number:'1.2-2' }} USD</strong>
+          </div>
+        } @else if (cancelResult.badgeType === 'partial') {
+          <div class="statement-breakdown-box">
+            <div class="row">
+              <span>{{ i18n.t('myReservations.cancelResultPartialRet') }}</span>
+              <strong class="text-amber">${{ cancelResult.penaltyAmount | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="row">
+              <span>{{ i18n.t('myReservations.cancelResultPartialRef') }}</span>
+              <strong class="text-green">${{ cancelResult.refundAmount | number:'1.2-2' }} USD</strong>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="btn btn-primary w-full" (click)="onCloseResult()">
+        {{ i18n.t('myReservations.cancelResultDismissBtn') }}
+      </button>
+    </div>
+  </div>
+}

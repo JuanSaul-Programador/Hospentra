@@ -178,22 +178,28 @@
         <div class="rooms-grid">
           @for (room of filteredRooms(); track room.id) {
             <article class="room-card">
-              <div class="room-card-media">
-                <img
-                  [src]="getRoomImage(room)"
-                  [alt]="room.roomType.name"
-                  class="room-card-image"
-                  loading="lazy"
-                />
-                <span class="room-badge">
-                  {{ getCategoryBadge(room.roomType.name) }}
-                </span>
-                <div class="room-rating-chip">
-                  <span class="material-symbols-outlined star-icon">star</span>
-                  <span class="rating-val">4.96</span>
-                  <span class="reviews-count">(98)</span>
+              <a
+                [routerLink]="['/rooms', room.id]"
+                [queryParams]="{ checkIn: searchCheckIn(), checkOut: searchCheckOut() }"
+                class="room-card-media-link"
+              >
+                <div class="room-card-media">
+                  <img
+                    [src]="getRoomImage(room)"
+                    [alt]="room.roomType.name"
+                    class="room-card-image"
+                    loading="lazy"
+                  />
+                  <span class="room-badge">
+                    {{ getCategoryBadge(room.roomType.name) }}
+                  </span>
+                  <div class="room-rating-chip">
+                    <span class="material-symbols-outlined star-icon">star</span>
+                    <span class="rating-val">4.8</span>
+                    <span class="reviews-count">(5)</span>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               <div class="room-card-body">
                 <div class="room-specs">
@@ -202,7 +208,11 @@
                   <span>{{ i18n.t('catalog.roomLabel', { n: room.roomNumber }) }}</span>
                 </div>
 
-                <h3 class="room-title">{{ (i18n.currentLang() === 'en' && room.roomType.nameEn) ? room.roomType.nameEn : room.roomType.name }}</h3>
+                <h3 class="room-title">
+                  <a [routerLink]="['/rooms', room.id]" [queryParams]="{ checkIn: searchCheckIn(), checkOut: searchCheckOut() }" class="title-link">
+                    {{ (i18n.currentLang() === 'en' && room.roomType.nameEn) ? room.roomType.nameEn : room.roomType.name }}
+                  </a>
+                </h3>
 
                 <p class="room-description">
                   {{ (i18n.currentLang() === 'en' && room.roomType.descriptionEn) ? room.roomType.descriptionEn : (room.roomType.description || (i18n.currentLang() === 'en' ? 'Enjoy a boutique sanctuary with premium amenities and bespoke luxury service.' : 'Disfruta de una estancia de lujo con acabados de primera clase y amenidades exclusivas.')) }}
@@ -236,13 +246,13 @@
                     </div>
                   </div>
 
-                  <button
-                    type="button"
+                  <a
+                    [routerLink]="['/rooms', room.id]"
+                    [queryParams]="{ checkIn: searchCheckIn(), checkOut: searchCheckOut() }"
                     class="btn btn-primary book-btn"
-                    (click)="onBook(room)"
                   >
                     {{ i18n.t('catalog.bookNow') }}
-                  </button>
+                  </a>
                 </div>
               </div>
             </article>

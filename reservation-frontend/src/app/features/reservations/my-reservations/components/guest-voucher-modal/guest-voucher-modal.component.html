@@ -1,0 +1,113 @@
+@if (isOpen && reservation) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="voucher-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-btn" (click)="onClose()" aria-label="Cerrar voucher">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="voucher-header">
+        <div class="voucher-brand">
+          <span class="material-symbols-outlined brand-star">hotel_class</span>
+          <span class="brand-title">{{ i18n.t('myReservations.voucherOfficialBrand') }}</span>
+        </div>
+        <span class="voucher-badge">{{ i18n.t('myReservations.voucherDigitalBadge') }}</span>
+      </div>
+
+      <div class="voucher-seal-wrapper">
+        @if (reservation.paymentMethod === 'CREDIT_CARD') {
+          <div class="voucher-seal paid-online">
+            <span class="material-symbols-outlined seal-icon">verified</span>
+            <div class="seal-text-group">
+              <span class="seal-main">{{ i18n.t('myReservations.voucherPaidOnline') }}</span>
+              <span class="seal-sub">{{ i18n.t('myReservations.voucherSettledReceipt') }}</span>
+              <span class="seal-auth">{{ i18n.t('myReservations.voucherAuth', { code: reservation.authCode || 'AUTH-901844' }) }}</span>
+            </div>
+          </div>
+        } @else {
+          <div class="voucher-seal pay-checkin">
+            <span class="material-symbols-outlined seal-icon">storefront</span>
+            <div class="seal-text-group">
+              <span class="seal-main">{{ i18n.t('myReservations.voucherPayCheckin') }}</span>
+              <span class="seal-sub">{{ i18n.t('myReservations.voucherOnsitePayment') }}</span>
+              <span class="seal-auth">{{ i18n.t('myReservations.voucherFrontDeskCollect') }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="voucher-code-strip">
+        <span class="strip-label">{{ i18n.t('myReservations.voucherCodeStrip') }}</span>
+        <span class="strip-code">HOSP-{{ reservation.id }}-2026</span>
+      </div>
+
+      <div class="voucher-body">
+        <div class="voucher-field">
+          <span class="field-title">{{ i18n.t('myReservations.voucherGuestTitle') }}</span>
+          <strong class="field-val">{{ reservation.guest?.firstName }} {{ reservation.guest?.lastName }}</strong>
+          <span class="field-sub">{{ reservation.guest?.email }} • Tel: {{ reservation.guest?.phone || i18n.t('myReservations.voucherUnregistered') }}</span>
+        </div>
+
+        <div class="voucher-field">
+          <span class="field-title">{{ i18n.t('myReservations.voucherSuiteTitle') }}</span>
+          <strong class="field-val">{{ (i18n.currentLang() === 'en' && reservation.room?.roomType?.nameEn) ? reservation.room?.roomType?.nameEn : reservation.room?.roomType?.name }}</strong>
+          <span class="field-sub">{{ i18n.t('catalog.roomLabel', { n: reservation.room?.roomNumber || '' }) }} • {{ i18n.t('myReservations.voucherBoutiqueCategory') }}</span>
+        </div>
+
+        <div class="voucher-dates-row">
+          <div class="v-date">
+            <span class="field-title">{{ i18n.t('myReservations.checkInLabel') }}</span>
+            <strong class="field-val">{{ reservation.checkInDate }}</strong>
+            <span class="field-sub">15:00 hrs</span>
+          </div>
+          <div class="v-date">
+            <span class="field-title">{{ i18n.t('myReservations.checkOutLabel') }}</span>
+            <strong class="field-val">{{ reservation.checkOutDate }}</strong>
+            <span class="field-sub">12:00 hrs</span>
+          </div>
+        </div>
+
+        <div class="voucher-field">
+          <span class="field-title">{{ i18n.t('myReservations.voucherPaymentMode') }}</span>
+          @if (reservation.paymentMethod === 'CREDIT_CARD') {
+            <strong class="field-val">{{ i18n.t('myReservations.voucherCardDesc', { brand: reservation.cardBrand || 'VISA', last4: reservation.cardLast4 || '4242' }) }}</strong>
+            <span class="field-sub text-emerald">{{ i18n.t('myReservations.voucherCardSub') }}</span>
+          } @else {
+            <strong class="field-val">{{ i18n.t('myReservations.voucherReceptionDesc') }}</strong>
+            <span class="field-sub text-amber">{{ i18n.t('myReservations.voucherReceptionSub') }}</span>
+          }
+        </div>
+
+        @if (reservation.paymentMethod === 'CREDIT_CARD') {
+          <div class="voucher-price-row paid">
+            <span>{{ i18n.t('myReservations.voucherTotalPaidOnline') }}</span>
+            <strong class="v-price">${{ reservation.totalPrice | number:'1.2-2' }} USD</strong>
+          </div>
+          <div class="voucher-balance-line">
+            <span>{{ i18n.t('myReservations.voucherBalanceCheckin') }}</span>
+            <strong class="balance-zero">{{ i18n.t('myReservations.voucherBalanceZero') }}</strong>
+          </div>
+        } @else {
+          <div class="voucher-price-row">
+            <span>{{ i18n.t('myReservations.voucherTotalToSettle') }}</span>
+            <strong class="v-price">${{ reservation.totalPrice | number:'1.2-2' }} USD</strong>
+          </div>
+        }
+
+        <div class="barcode-simulator">
+          <div class="barcode-lines"></div>
+          <span class="barcode-number">*HOSP-{{ reservation.id }}-2026*</span>
+        </div>
+      </div>
+
+      <div class="voucher-actions-row">
+        <button type="button" class="btn btn-outline voucher-print-btn" (click)="onPrint()">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+          <span>{{ i18n.t('myReservations.voucherPrintBtn') }}</span>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="onClose()">
+          {{ i18n.t('myReservations.voucherCloseBtn') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

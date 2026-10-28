@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -6,6 +6,7 @@ import { RoomService } from '../../../core/services/room.service';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { PaymentService } from '../../../core/services/payment.service';
 import { Room } from '../../../core/models/room.model';
 import { Reservation, ReservationRequest, PaymentMethod } from '../../../core/models/reservation.model';
 
@@ -16,11 +17,12 @@ import { Reservation, ReservationRequest, PaymentMethod } from '../../../core/mo
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.scss'
 })
-export class CheckoutComponent implements OnInit {
+export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly roomService = inject(RoomService);
   private readonly reservationService = inject(ReservationService);
+  private readonly paymentService = inject(PaymentService);
   readonly authService = inject(AuthService);
   readonly i18n = inject(I18nService);
 
@@ -35,10 +37,9 @@ export class CheckoutComponent implements OnInit {
   readonly guestPhone = signal<string>('+52 55 1234 5678');
 
   readonly paymentMethod = signal<PaymentMethod>('CREDIT_CARD');
-  readonly cardNumber = signal<string>('4242 4242 4242 4242');
   readonly cardHolder = signal<string>('');
-  readonly cardExpiry = signal<string>('12/28');
-  readonly cardCvv = signal<string>('888');
+  readonly cardBrand = signal<string>('VISA');
+  readonly cardLast4 = signal<string>('4242');
 
   readonly isAuthorizing = signal<boolean>(false);
   readonly authStepMessage = signal<string>('');
@@ -48,19 +49,6 @@ export class CheckoutComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly isSuccessModalOpen = signal<boolean>(false);
   readonly confirmedReservation = signal<Reservation | null>(null);
-
-  private readonly defaultFallbackRoom: Room = {
-    id: 1,
-    roomNumber: '101',
-    status: 'AVAILABLE',
-    roomType: {
-      id: 1,
-      name: 'Suite Royal Vista al Mar',
-      description: 'Espaciosa suite con ventanales de piso a techo frente al océano, acabados en roble natural y terraza privada con jacuzzi.',
-      capacity: 3,
-      pricePerNight: 380.00
-    }
-  };
 
   private readonly roomImages: Record<number, string> = {
     1: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
@@ -104,35 +92,12 @@ export class CheckoutComponent implements OnInit {
   readonly taxes = computed(() => this.baseRateTotal() * 0.16);
   readonly grandTotal = computed(() => this.baseRateTotal() + this.serviceFee() + this.taxes());
 
-  readonly detectedCardBrand = computed<'VISA' | 'MASTERCARD' | 'AMEX' | 'GENERIC'>(() => {
-    const digits = this.cardNumber().replace(/\D/g, '');
-    if (digits.startsWith('4')) return 'VISA';
-    if (/^(5[1-5]|2[2-7])/.test(digits)) return 'MASTERCARD';
-    if (/^3[47]/.test(digits)) return 'AMEX';
-    return 'GENERIC';
-  });
-
   readonly maskedCardNumber = computed<string>(() => {
-    const digits = this.cardNumber().replace(/\D/g, '');
-    if (!digits) return '•••• •••• •••• ••••';
-    let formatted = '';
-    for (let i = 0; i < 16; i++) {
-      if (i > 0 && i % 4 === 0) formatted += ' ';
-      if (i < digits.length) {
-        if (i < 12 && digits.length >= 12) {
-          formatted += '•';
-        } else {
-          formatted += digits[i];
-        }
-      } else {
-        formatted += '•';
-      }
-    }
-    return formatted;
+    return `•••• •••• •••• ${this.cardLast4()}`;
   });
 
   readonly displayExpiry = computed<string>(() => {
-    return this.cardExpiry() || 'MM/AA';
+    return '12/28';
   });
 
   readonly displayCardHolder = computed<string>(() => {
@@ -140,6 +105,42 @@ export class CheckoutComponent implements OnInit {
     const fallback = this.i18n.currentLang() === 'en' ? 'CARDHOLDER NAME' : 'TITULAR DE LA TARJETA';
     return (name || fallback).toUpperCase();
   });
+
+  readonly displayCheckInFormatted = computed<string>(() => {
+    return this.formatDatePretty(this.checkInDate());
+  });
+
+  readonly displayCheckOutFormatted = computed<string>(() => {
+    return this.formatDatePretty(this.checkOutDate());
+  });
+
+  private formatDatePretty(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const year = +parts[0];
+      const month = +parts[1];
+      const day = +parts[2];
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime())) return dateStr;
+
+      const isEn = this.i18n.currentLang() === 'en';
+      if (isEn) {
+        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+        return `${weekday}, ${monthName} ${day}, ${year}`;
+      } else {
+        const weekday = d.toLocaleDateString('es-ES', { weekday: 'short' });
+        const monthName = d.toLocaleDateString('es-ES', { month: 'short' });
+        const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', '');
+        const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1).replace('.', '');
+        return `${capitalizedWeekday}, ${day} ${capitalizedMonth} ${year}`;
+      }
+    } catch {
+      return dateStr;
+    }
+  }
 
   private formatDate(d: Date): string {
     const year = d.getFullYear();
@@ -188,12 +189,56 @@ export class CheckoutComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit(): void {
+    if (this.paymentMethod() === 'CREDIT_CARD') {
+      setTimeout(() => {
+        this.mountStripeElement();
+      }, 100);
+    }
+  }
+
+  private mountStripeElement(): void {
+    this.paymentService.mountCardElement('stripe-card-element', (event: any) => {
+      if (event?.brand && event.brand !== 'unknown') {
+        this.cardBrand.set(event.brand.toUpperCase());
+      }
+      if (event?.error) {
+        this.errorMessage.set(event.error.message);
+      } else {
+        this.errorMessage.set(null);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.paymentService.destroyCardElement();
+  }
+
+  openDatePicker(inputElement: HTMLInputElement): void {
+    if (inputElement) {
+      if (typeof (inputElement as any).showPicker === 'function') {
+        try {
+          (inputElement as any).showPicker();
+          return;
+        } catch {}
+      }
+      inputElement.focus();
+      inputElement.click();
+    }
+  }
+
   onCheckInChange(newIn: string): void {
+    this.errorMessage.set(null);
     this.checkInDate.set(newIn);
     if (this.checkOutDate() <= newIn) {
       const nextDay = new Date(new Date(newIn).getTime() + 86400000);
       this.checkOutDate.set(this.formatDate(nextDay));
     }
+  }
+
+  onCheckOutChange(newOut: string): void {
+    this.errorMessage.set(null);
+    this.checkOutDate.set(newOut);
   }
 
   loadRoomDetails(roomId: number): void {
@@ -202,11 +247,19 @@ export class CheckoutComponent implements OnInit {
         if (data) {
           this.room.set(data);
         } else {
-          this.room.set(this.defaultFallbackRoom);
+          this.errorMessage.set(
+            this.i18n.currentLang() === 'en'
+              ? 'Selected suite not found. Please choose a valid suite from the catalog.'
+              : 'La suite seleccionada no fue encontrada. Por favor seleccione una suite válida del catálogo.'
+          );
         }
       },
       error: () => {
-        this.room.set(this.defaultFallbackRoom);
+        this.errorMessage.set(
+          this.i18n.currentLang() === 'en'
+            ? 'Error loading suite information. Please try again.'
+            : 'Error al cargar la información de la suite. Por favor intente nuevamente.'
+        );
       }
     });
   }
@@ -231,79 +284,64 @@ export class CheckoutComponent implements OnInit {
   setPaymentMethod(method: PaymentMethod): void {
     this.paymentMethod.set(method);
     this.errorMessage.set(null);
-  }
 
-  onCardNumberInput(val: string): void {
-    const digits = val.replace(/\D/g, '').slice(0, 16);
-    const parts = digits.match(/.{1,4}/g);
-    this.cardNumber.set(parts ? parts.join(' ') : digits);
-  }
-
-  onExpiryInput(val: string): void {
-    let digits = val.replace(/\D/g, '').slice(0, 4);
-    if (digits.length >= 3) {
-      digits = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    if (method === 'CREDIT_CARD') {
+      setTimeout(() => {
+        this.mountStripeElement();
+      }, 100);
+    } else {
+      this.paymentService.destroyCardElement();
     }
-    this.cardExpiry.set(digits);
   }
 
-  onCvvInput(val: string): void {
-    const max = this.detectedCardBrand() === 'AMEX' ? 4 : 3;
-    const digits = val.replace(/\D/g, '').slice(0, max);
-    this.cardCvv.set(digits);
-  }
-
-  confirmBooking(): void {
+  async confirmBooking(): Promise<void> {
     const currentRoom = this.room();
     if (!currentRoom) return;
 
     this.errorMessage.set(null);
 
     if (this.paymentMethod() === 'CREDIT_CARD') {
-      const cleanDigits = this.cardNumber().replace(/\D/g, '');
-      if (cleanDigits.length < 15) {
-        this.errorMessage.set('Por favor ingrese un número de tarjeta válido (15 o 16 dígitos).');
-        return;
-      }
-
       if (!this.cardHolder().trim()) {
-        this.errorMessage.set('Ingrese el nombre del titular tal como figura en el plástico.');
-        return;
-      }
-
-      const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
-      if (!expiryRegex.test(this.cardExpiry())) {
-        this.errorMessage.set('Ingrese una fecha de expiración válida en formato MM/AA.');
-        return;
-      }
-
-      const minCvv = this.detectedCardBrand() === 'AMEX' ? 4 : 3;
-      if (this.cardCvv().length < minCvv) {
-        this.errorMessage.set(`Ingrese el código de seguridad CVV (${minCvv} dígitos).`);
+        this.errorMessage.set(
+          this.i18n.currentLang() === 'en'
+            ? 'Please enter the cardholder name as printed on the card.'
+            : 'Ingrese el nombre del titular tal como figura en el plástico.'
+        );
         return;
       }
 
       this.isAuthorizing.set(true);
       this.isSubmitting.set(true);
-      this.authStepMessage.set('Conectando con la pasarela bancaria segura con cifrado SSL 256-Bit...');
+      this.authStepMessage.set(
+        this.i18n.currentLang() === 'en'
+          ? 'Connecting to secure bank gateway with 256-bit SSL encryption...'
+          : 'Conectando con la pasarela bancaria segura con cifrado SSL 256-Bit...'
+      );
 
-      setTimeout(() => {
-        this.authStepMessage.set('Verificando fondos y token bancario...');
-        setTimeout(() => {
-          const generatedAuth = 'AUTH-' + Math.floor(100000 + Math.random() * 900000);
-          this.authCode.set(generatedAuth);
-          this.authStepMessage.set(`Autorización bancaria aprobada (${generatedAuth})`);
+      try {
+        const result = await this.paymentService.tokenizeCard(this.cardHolder(), this.guestEmail());
+        this.cardBrand.set(result.brand);
+        this.cardLast4.set(result.last4);
+        this.authCode.set(result.authCode);
+        this.authStepMessage.set(
+          this.i18n.currentLang() === 'en'
+            ? `Bank authorization approved (${result.authCode})`
+            : `Autorización bancaria aprobada (${result.authCode})`
+        );
 
-          this.executeReservationCall(currentRoom, cleanDigits.slice(-4), generatedAuth);
-        }, 700);
-      }, 700);
+        this.executeReservationCall(currentRoom, result.last4, result.authCode, result.token, result.brand);
+      } catch (err: any) {
+        this.isAuthorizing.set(false);
+        this.isSubmitting.set(false);
+        this.errorMessage.set(err.message || 'Error al autorizar el pago con la pasarela bancaria.');
+      }
     } else {
       this.isSubmitting.set(true);
       this.executeReservationCall(currentRoom, undefined, 'RECEPTION-GUARANTEE');
     }
   }
 
-  private executeReservationCall(room: Room, cardLast4?: string, authCode?: string): void {
+  private executeReservationCall(room: Room, cardLast4?: string, authCode?: string, paymentIntentId?: string, cardBrand?: string): void {
     const isOnline = this.paymentMethod() === 'CREDIT_CARD';
     const request: ReservationRequest = {
       roomId: room.id,
@@ -312,8 +350,9 @@ export class CheckoutComponent implements OnInit {
       paymentMethod: this.paymentMethod(),
       paymentStatus: isOnline ? 'PAID' : 'PENDING',
       cardLast4: isOnline ? cardLast4 : undefined,
-      cardBrand: isOnline ? this.detectedCardBrand() : undefined,
-      authCode: authCode
+      cardBrand: isOnline ? (cardBrand || this.cardBrand()) : undefined,
+      authCode: authCode,
+      paymentIntentId: paymentIntentId
     };
 
     this.reservationService.createReservation(request).subscribe({
@@ -326,7 +365,8 @@ export class CheckoutComponent implements OnInit {
           paymentStatus: request.paymentStatus,
           cardLast4: request.cardLast4,
           cardBrand: request.cardBrand,
-          authCode: request.authCode
+          authCode: request.authCode,
+          paymentIntentId: request.paymentIntentId
         };
         this.confirmedReservation.set(enriched);
         this.isSuccessModalOpen.set(true);
@@ -335,7 +375,12 @@ export class CheckoutComponent implements OnInit {
         this.isAuthorizing.set(false);
         this.isSubmitting.set(false);
         if (err.status === 409) {
-          this.errorMessage.set(err.error?.detail || 'La suite seleccionada no está disponible en las fechas indicadas.');
+          const detail = err.error?.detail || (
+            this.i18n.currentLang() === 'en'
+              ? 'The selected suite is already reserved on these dates. Please choose different dates or another suite.'
+              : 'La suite seleccionada ya se encuentra reservada en estas fechas. Por favor elija otras fechas u otra suite disponible.'
+          );
+          this.errorMessage.set(detail);
         } else if (err.error?.errors) {
           const details = Object.entries(err.error.errors)
             .map(([field, msg]) => {
@@ -349,36 +394,14 @@ export class CheckoutComponent implements OnInit {
         } else if (err.error?.detail) {
           this.errorMessage.set(err.error.detail);
         } else {
-          const fallbackRes: Reservation = {
-            id: Math.floor(1000 + Math.random() * 9000),
-            guest: {
-              id: 1,
-              firstName: this.guestName() || 'Huésped',
-              lastName: 'Hospentra',
-              email: this.guestEmail() || 'huesped@hospentra.com',
-              phone: this.guestPhone()
-            },
-            room: room,
-            checkInDate: this.checkInDate(),
-            checkOutDate: this.checkOutDate(),
-            status: 'CONFIRMED',
-            totalPrice: this.grandTotal(),
-            createdAt: new Date().toISOString(),
-            paymentMethod: request.paymentMethod,
-            paymentStatus: request.paymentStatus,
-            cardLast4: request.cardLast4,
-            cardBrand: request.cardBrand,
-            authCode: request.authCode
-          };
-          this.reservationService.savePaymentMeta(fallbackRes.id, {
-            paymentMethod: request.paymentMethod,
-            paymentStatus: request.paymentStatus,
-            cardLast4: request.cardLast4,
-            cardBrand: request.cardBrand,
-            authCode: request.authCode
-          });
-          this.confirmedReservation.set(fallbackRes);
-          this.isSuccessModalOpen.set(true);
+          this.errorMessage.set(
+            this.i18n.currentLang() === 'en'
+              ? 'Could not process your reservation due to a connection or server error. Please try again or contact front desk.'
+              : 'No pudimos procesar su reservación debido a un inconveniente de conexión con el servidor. Por favor intente nuevamente o contacte a recepción.'
+          );
+        }
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 120, behavior: 'smooth' });
         }
       }
     });
