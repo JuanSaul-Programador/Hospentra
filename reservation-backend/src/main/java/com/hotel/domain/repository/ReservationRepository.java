@@ -2,17 +2,29 @@ package com.hotel.domain.repository;
 
 import com.hotel.domain.model.Reservation;
 import com.hotel.domain.model.ReservationStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    @Override
+    @EntityGraph(attributePaths = {"guest", "room", "room.roomType"})
+    List<Reservation> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"guest", "room", "room.roomType"})
+    Optional<Reservation> findById(Long id);
+
+    @EntityGraph(attributePaths = {"guest", "room", "room.roomType"})
     List<Reservation> findByStatus(ReservationStatus status);
 
+    @EntityGraph(attributePaths = {"guest", "room", "room.roomType"})
     List<Reservation> findByGuestId(Long guestId);
 
     @Query("SELECT COUNT(r) > 0 FROM Reservation r " +

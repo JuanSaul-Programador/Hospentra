@@ -3,6 +3,7 @@ package com.hotel.web.controller;
 import com.hotel.application.services.AuthService;
 import com.hotel.web.dto.AuthResponse;
 import com.hotel.web.dto.LoginRequest;
+import com.hotel.web.dto.RefreshTokenRequest;
 import com.hotel.web.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,5 +29,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.refreshToken()));
     }
 }

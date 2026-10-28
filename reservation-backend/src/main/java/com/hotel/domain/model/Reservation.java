@@ -51,6 +51,12 @@ public class Reservation {
     @Column(name = "card_last4", length = 4)
     private String cardLast4;
 
+    @Column(name = "payment_intent_id", length = 100)
+    private String paymentIntentId;
+
+    @Column(name = "auth_code", length = 100)
+    private String authCode;
+
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 

@@ -19,5 +19,7 @@ public record ReservationResponse(
         LocalDateTime createdAt,
         PaymentMethod paymentMethod,
         PaymentStatus paymentStatus,
-        String cardLast4
+        String cardLast4,
+        String paymentIntentId,
+        String authCode
 ) {}

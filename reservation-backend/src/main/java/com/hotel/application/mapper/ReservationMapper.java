@@ -32,7 +32,9 @@ public class ReservationMapper {
                 reservation.getCreatedAt(),
                 reservation.getPaymentMethod(),
                 reservation.getPaymentStatus(),
-                reservation.getCardLast4()
+                reservation.getCardLast4(),
+                reservation.getPaymentIntentId(),
+                reservation.getAuthCode()
         );
     }
 
@@ -50,6 +52,8 @@ public class ReservationMapper {
                 .paymentMethod(method)
                 .paymentStatus(status)
                 .cardLast4(request.cardLast4())
+                .paymentIntentId(request.paymentIntentId())
+                .authCode(request.authCode())
                 .build();
     }
 }

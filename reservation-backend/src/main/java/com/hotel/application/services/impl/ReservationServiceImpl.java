@@ -126,6 +126,9 @@ public class ReservationServiceImpl implements ReservationService {
         BigDecimal totalPrice = room.getRoomType().getPricePerNight().multiply(BigDecimal.valueOf(nights));
 
         Reservation reservation = reservationMapper.toEntity(request, guest, room, totalPrice);
+        if (reservation.getPaymentMethod() == PaymentMethod.CREDIT_CARD && (reservation.getAuthCode() == null || reservation.getAuthCode().isBlank())) {
+            reservation.setAuthCode("AUTH-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        }
         Reservation saved = reservationRepository.save(reservation);
         ReservationResponse response = reservationMapper.toResponse(saved);
 

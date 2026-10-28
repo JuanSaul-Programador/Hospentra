@@ -23,6 +23,9 @@ public class JwtService {
     @Value("${security.jwt.expiration}")
     private long jwtExpiration;
 
+    @Value("${security.jwt.refresh-expiration:604800000}")
+    private long jwtRefreshExpiration;
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -33,12 +36,18 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("token_type", "ACCESS");
+        return generateToken(claims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>(extraClaims);
+        if (!claims.containsKey("token_type")) {
+            claims.put("token_type", "ACCESS");
+        }
         return Jwts.builder()
-                .claims(extraClaims)
+                .claims(claims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
@@ -46,9 +55,34 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateRefreshToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("token_type", "REFRESH");
+        return Jwts.builder()
+                .claims(claims)
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpiration))
+                .signWith(getSignInKey())
+                .compact();
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            String tokenType = extractClaim(token, claims -> claims.get("token_type", String.class));
+            return "REFRESH".equalsIgnoreCase(tokenType);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
+        return isTokenValid(token, userDetails) && isRefreshToken(token);
     }
 
     private boolean isTokenExpired(String token) {

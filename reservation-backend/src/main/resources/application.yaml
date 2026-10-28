@@ -24,3 +24,8 @@ security:
   jwt:
     secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     expiration: ${JWT_EXPIRATION:86400000}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+stripe:
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_TYooMQauvdEDq54NiTFae7bg}
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}

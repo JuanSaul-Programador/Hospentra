@@ -56,8 +56,9 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
         String token = jwtService.generateToken(savedUser);
+        String refreshToken = jwtService.generateRefreshToken(savedUser);
 
-        return new AuthResponse(token, "Bearer", savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
+        return new AuthResponse(token, refreshToken, "Bearer", savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
     }
 
     @Override
@@ -70,7 +71,30 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
 
         String token = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
-        return new AuthResponse(token, "Bearer", user.getUsername(), user.getEmail(), user.getRole());
+        return new AuthResponse(token, refreshToken, "Bearer", user.getUsername(), user.getEmail(), user.getRole());
+    }
+
+    @Override
+    public AuthResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token cannot be empty");
+        }
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+        String username = jwtService.extractUsername(refreshToken);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for provided token"));
+
+        if (!jwtService.isRefreshTokenValid(refreshToken, user)) {
+            throw new IllegalArgumentException("Refresh token is expired or invalid");
+        }
+
+        String newAccessToken = jwtService.generateToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+
+        return new AuthResponse(newAccessToken, newRefreshToken, "Bearer", user.getUsername(), user.getEmail(), user.getRole());
     }
 }
