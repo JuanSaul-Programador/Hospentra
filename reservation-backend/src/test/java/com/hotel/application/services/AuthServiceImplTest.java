@@ -4,12 +4,15 @@ import com.hotel.application.services.impl.AuthServiceImpl;
 import com.hotel.domain.model.Guest;
 import com.hotel.domain.model.Role;
 import com.hotel.domain.model.User;
+import com.hotel.domain.model.VerificationCode;
 import com.hotel.domain.repository.GuestRepository;
 import com.hotel.domain.repository.UserRepository;
+import com.hotel.domain.repository.VerificationCodeRepository;
 import com.hotel.infrastructure.security.jwt.JwtService;
 import com.hotel.web.dto.AuthResponse;
 import com.hotel.web.dto.LoginRequest;
 import com.hotel.web.dto.RegisterRequest;
+import com.hotel.web.dto.VerifyEmailRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +38,12 @@ class AuthServiceImplTest {
 
     @Mock
     private GuestRepository guestRepository;
+
+    @Mock
+    private VerificationCodeRepository verificationCodeRepository;
+
+    @Mock
+    private EmailService emailService;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -52,6 +63,8 @@ class AuthServiceImplTest {
         authService = new AuthServiceImpl(
                 userRepository,
                 guestRepository,
+                verificationCodeRepository,
+                emailService,
                 passwordEncoder,
                 jwtService,
                 authenticationManager
@@ -64,6 +77,7 @@ class AuthServiceImplTest {
                 .password("encoded_pass")
                 .role(Role.ROLE_CUSTOMER)
                 .enabled(true)
+                .emailVerified(true)
                 .build();
     }
 
@@ -83,16 +97,41 @@ class AuthServiceImplTest {
         when(guestRepository.save(any(Guest.class))).thenAnswer(i -> i.getArgument(0));
         when(passwordEncoder.encode("Password123!")).thenReturn("encoded_pass");
         when(userRepository.save(any(User.class))).thenReturn(sampleUser);
-        when(jwtService.generateToken(sampleUser)).thenReturn("access_token_123");
-        when(jwtService.generateRefreshToken(sampleUser)).thenReturn("refresh_token_456");
+        when(verificationCodeRepository.save(any(VerificationCode.class))).thenAnswer(i -> i.getArgument(0));
 
         AuthResponse response = authService.register(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.token()).isEqualTo("access_token_123");
-        assertThat(response.refreshToken()).isEqualTo("refresh_token_456");
+        assertThat(response.verificationRequired()).isTrue();
         assertThat(response.username()).isEqualTo("john_doe");
         assertThat(response.role()).isEqualTo(Role.ROLE_CUSTOMER);
+        verify(emailService).sendVerificationOtp(eq("john@example.com"), eq("John"), anyString());
+    }
+
+    @Test
+    void verifyEmail_ShouldActivateUserAndReturnTokens() {
+        VerifyEmailRequest request = new VerifyEmailRequest("john@example.com", "123456");
+        VerificationCode vCode = VerificationCode.builder()
+                .id(1L)
+                .user(sampleUser)
+                .code("123456")
+                .type("REGISTRATION_OTP")
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .used(false)
+                .build();
+
+        when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("john@example.com", "123456", "REGISTRATION_OTP"))
+                .thenReturn(List.of(vCode));
+        when(userRepository.save(any(User.class))).thenReturn(sampleUser);
+        when(jwtService.generateToken(any(User.class))).thenReturn("access_token_123");
+        when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refresh_token_456");
+
+        AuthResponse response = authService.verifyEmail(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.token()).isEqualTo("access_token_123");
+        assertThat(response.verificationRequired()).isFalse();
+        assertThat(vCode.isUsed()).isTrue();
     }
 
     @Test

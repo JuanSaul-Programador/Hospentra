@@ -34,4 +34,15 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Long countByRoomId(Long roomId);
 
     List<Review> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    @Query("SELECT r FROM Review r WHERE " +
+           "(:rating IS NULL OR r.rating = :rating) AND " +
+           "(:unansweredOnly IS NULL OR (:unansweredOnly = true AND r.managementResponse IS NULL) OR (:unansweredOnly = false AND r.managementResponse IS NOT NULL)) " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findAdminReviews(@Param("rating") Integer rating, @Param("unansweredOnly") Boolean unansweredOnly, Pageable pageable);
+
+    long countByManagementResponseIsNull();
+
+    @Query("SELECT AVG(r.rating) FROM Review r")
+    Double calculateOverallAverageRating();
 }

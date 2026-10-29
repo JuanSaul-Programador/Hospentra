@@ -9,6 +9,7 @@ import com.hotel.domain.model.User;
 import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.ReviewRepository;
 import com.hotel.domain.repository.UserRepository;
+import com.hotel.web.dto.ReviewAdminMetricsResponse;
 import com.hotel.web.dto.ReviewRequest;
 import com.hotel.web.dto.ReviewResponse;
 import com.hotel.web.dto.ReviewSummaryResponse;
@@ -164,6 +165,39 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public boolean hasReviewed(Long reservationId) {
         return reviewRepository.existsByReservationId(reservationId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsForAdmin(Integer ratingFilter, Boolean unansweredOnly, Pageable pageable) {
+        return reviewRepository.findAdminReviews(ratingFilter, unansweredOnly, pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReviewAdminMetricsResponse getAdminMetrics() {
+        long total = reviewRepository.count();
+        long unanswered = reviewRepository.countByManagementResponseIsNull();
+        long answered = total - unanswered;
+        Double avg = reviewRepository.calculateOverallAverageRating();
+        double roundedAvg = avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0;
+
+        double satisfactionRate = 0.0;
+        if (total > 0) {
+            long positive = reviewRepository.findAll().stream()
+                    .filter(r -> r.getRating() != null && r.getRating() >= 4)
+                    .count();
+            satisfactionRate = Math.round((positive * 100.0 / total) * 10.0) / 10.0;
+        }
+
+        return ReviewAdminMetricsResponse.builder()
+                .totalReviews(total)
+                .averageRating(roundedAvg)
+                .unansweredCount(unanswered)
+                .answeredCount(answered)
+                .satisfactionRate(satisfactionRate)
+                .build();
     }
 
     private ReviewResponse toResponse(Review review) {

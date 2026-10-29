@@ -2,6 +2,7 @@ package com.hotel.application.services.impl;
 
 import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.mapper.ReservationMapper;
+import com.hotel.application.services.EmailService;
 import com.hotel.application.services.ReservationService;
 import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
@@ -36,6 +37,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final UserRepository userRepository;
     private final ReservationMapper reservationMapper;
     private final SseNotificationService sseNotificationService;
+    private final EmailService emailService;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -141,6 +143,16 @@ public class ReservationServiceImpl implements ReservationService {
                 response
         );
         sseNotificationService.broadcast(event);
+
+        emailService.sendBookingConfirmation(
+                guest.getEmail(),
+                guest.getFirstName(),
+                room.getRoomType().getName(),
+                saved.getCheckInDate().toString(),
+                saved.getCheckOutDate().toString(),
+                totalPrice.doubleValue(),
+                saved.getAuthCode() != null ? saved.getAuthCode() : ("AUTH-" + saved.getId())
+        );
 
         return response;
     }

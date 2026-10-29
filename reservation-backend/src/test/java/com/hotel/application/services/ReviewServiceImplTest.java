@@ -13,6 +13,7 @@ import com.hotel.domain.model.User;
 import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.ReviewRepository;
 import com.hotel.domain.repository.UserRepository;
+import com.hotel.web.dto.ReviewAdminMetricsResponse;
 import com.hotel.web.dto.ReviewRequest;
 import com.hotel.web.dto.ReviewResponse;
 import com.hotel.web.dto.ReviewSummaryResponse;
@@ -496,5 +497,72 @@ class ReviewServiceImplTest {
         assertThatThrownBy(() -> reviewService.addManagementResponse(999L, "Respuesta"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Reseña no encontrada");
+    }
+
+    @Test
+    void getReviewsForAdmin_ReturnsPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Review r1 = Review.builder().id(1L).rating(5).comment("Super").room(testRoom).reservation(testReservation).build();
+        Page<Review> page = new PageImpl<>(List.of(r1), pageable, 1);
+
+        when(reviewRepository.findAdminReviews(null, null, pageable)).thenReturn(page);
+
+        Page<ReviewResponse> result = reviewService.getReviewsForAdmin(null, null, pageable);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void getAdminMetrics_ReturnsCalculatedMetrics() {
+        when(reviewRepository.count()).thenReturn(10L);
+        when(reviewRepository.countByManagementResponseIsNull()).thenReturn(3L);
+        when(reviewRepository.calculateOverallAverageRating()).thenReturn(4.6);
+
+        Review r1 = Review.builder().id(1L).rating(5).build();
+        Review r2 = Review.builder().id(2L).rating(4).build();
+        Review r3 = Review.builder().id(3L).rating(3).build();
+        when(reviewRepository.findAll()).thenReturn(List.of(r1, r2, r3));
+
+        ReviewAdminMetricsResponse metrics = reviewService.getAdminMetrics();
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.getTotalReviews()).isEqualTo(10L);
+        assertThat(metrics.getUnansweredCount()).isEqualTo(3L);
+        assertThat(metrics.getAnsweredCount()).isEqualTo(7L);
+        assertThat(metrics.getAverageRating()).isEqualTo(4.6);
+        assertThat(metrics.getSatisfactionRate()).isGreaterThan(0.0);
+    }
+
+    @Test
+    void getAdminMetrics_WhenNoReviews_ReturnsZeroMetrics() {
+        when(reviewRepository.count()).thenReturn(0L);
+        when(reviewRepository.countByManagementResponseIsNull()).thenReturn(0L);
+        when(reviewRepository.calculateOverallAverageRating()).thenReturn(null);
+
+        ReviewAdminMetricsResponse metrics = reviewService.getAdminMetrics();
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.getTotalReviews()).isEqualTo(0L);
+        assertThat(metrics.getUnansweredCount()).isEqualTo(0L);
+        assertThat(metrics.getAnsweredCount()).isEqualTo(0L);
+        assertThat(metrics.getAverageRating()).isEqualTo(0.0);
+        assertThat(metrics.getSatisfactionRate()).isEqualTo(0.0);
+    }
+
+    @Test
+    void getReviewsForAdmin_WithFilters_AppliesFiltersCorrectly() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Review r1 = Review.builder().id(2L).rating(5).room(testRoom).reservation(testReservation).build();
+        Page<Review> page = new PageImpl<>(List.of(r1), pageable, 1);
+
+        when(reviewRepository.findAdminReviews(5, true, pageable)).thenReturn(page);
+
+        Page<ReviewResponse> result = reviewService.getReviewsForAdmin(5, true, pageable);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(2L);
     }
 }

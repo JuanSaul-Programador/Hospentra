@@ -1,5 +1,6 @@
 package com.hotel.application.services;
 
+import com.hotel.web.dto.ReviewAdminMetricsResponse;
 import com.hotel.web.dto.ReviewRequest;
 import com.hotel.web.dto.ReviewResponse;
 import com.hotel.web.dto.ReviewSummaryResponse;
@@ -19,4 +20,8 @@ public interface ReviewService {
     ReviewResponse getReviewByReservation(Long reservationId);
 
     boolean hasReviewed(Long reservationId);
+
+    Page<ReviewResponse> getReviewsForAdmin(Integer ratingFilter, Boolean unansweredOnly, Pageable pageable);
+
+    ReviewAdminMetricsResponse getAdminMetrics();
 }

@@ -3,6 +3,7 @@ package com.hotel.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hotel.application.services.ReviewService;
 import com.hotel.web.dto.ManagementResponseRequest;
+import com.hotel.web.dto.ReviewAdminMetricsResponse;
 import com.hotel.web.dto.ReviewRequest;
 import com.hotel.web.dto.ReviewResponse;
 import com.hotel.web.dto.ReviewSummaryResponse;
@@ -224,5 +225,35 @@ class ReviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getReviewsForAdmin_Returns200() throws Exception {
+        ReviewResponse rev = ReviewResponse.builder().id(1L).rating(5).comment("Excelente").build();
+        when(reviewService.getReviewsForAdmin(any(), any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(rev), PageRequest.of(0, 15), 1));
+
+        mockMvc.perform(get("/api/reviews/admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(1L));
+    }
+
+    @Test
+    void getAdminMetrics_Returns200() throws Exception {
+        ReviewAdminMetricsResponse metrics = ReviewAdminMetricsResponse.builder()
+                .totalReviews(15L)
+                .averageRating(4.8)
+                .unansweredCount(2L)
+                .answeredCount(13L)
+                .satisfactionRate(93.3)
+                .build();
+
+        when(reviewService.getAdminMetrics()).thenReturn(metrics);
+
+        mockMvc.perform(get("/api/reviews/admin/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalReviews").value(15))
+                .andExpect(jsonPath("$.averageRating").value(4.8))
+                .andExpect(jsonPath("$.unansweredCount").value(2));
     }
 }

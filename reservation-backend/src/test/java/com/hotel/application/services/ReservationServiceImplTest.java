@@ -50,6 +50,9 @@ class ReservationServiceImplTest {
     @Mock
     private SseNotificationService sseNotificationService;
 
+    @Mock
+    private EmailService emailService;
+
     private ReservationServiceImpl reservationService;
 
     private RoomType standardRoomType;
@@ -69,7 +72,8 @@ class ReservationServiceImplTest {
                 roomRepository,
                 userRepository,
                 reservationMapper,
-                sseNotificationService
+                sseNotificationService,
+                emailService
         );
 
         standardRoomType = RoomType.builder()
