@@ -179,7 +179,7 @@
                         <span class="room-num-badge">{{ i18n.t('myReservations.roomBadgeNumber', { n: res.room.roomNumber }) }}</span>
                         <span class="rating-badge">
                           <span class="material-symbols-outlined star-icon">star</span>
-                          4.98
+                          4.4
                         </span>
                       </div>
                     </div>
@@ -272,6 +272,11 @@
                         <span>{{ i18n.t('myReservations.voucherBtn') }}</span>
                       </button>
 
+                      <button type="button" class="btn btn-outline w-full folio-btn" (click)="openFolio(res)">
+                        <span class="material-symbols-outlined">description</span>
+                        <span>Folio / Factura</span>
+                      </button>
+
                       <button type="button" class="btn btn-outline w-full" (click)="openConcierge()">
                         <span class="material-symbols-outlined">concierge</span>
                         <span>{{ i18n.t('myReservations.conciergeBtn') }}</span>
@@ -336,6 +341,10 @@
                   <button type="button" class="btn btn-outline" (click)="openVoucher(res)">
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>{{ i18n.t('myReservations.historyVoucherBtn') }}</span>
+                  </button>
+                  <button type="button" class="btn btn-outline folio-btn" (click)="openFolio(res)" title="Descargar Folio Fiscal oficial">
+                    <span class="material-symbols-outlined">description</span>
+                    <span>Factura Fiscal</span>
                   </button>
                 </div>
               </article>
@@ -436,6 +445,12 @@
     (closeModal)="closeVoucher()"
     (print)="printVoucher()"
   ></app-guest-voucher-modal>
+
+  <app-hotel-folio-modal
+    [reservation]="selectedFolioReservation()"
+    [isOpen]="isFolioModalOpen()"
+    (closeModal)="closeFolio()"
+  ></app-hotel-folio-modal>
 
   <app-cancellation-modal
     [reservation]="reservationToCancel()"

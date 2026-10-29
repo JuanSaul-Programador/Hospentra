@@ -21,7 +21,7 @@
 }
 
 .corp-header-subnav {
-  background-color: rgba(15, 23, 42, 0.85);
+  background-color: rgba(15, 23, 42, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 
   .subnav-container {
@@ -29,45 +29,60 @@
     margin: 0 auto;
     padding: 0 1.5rem;
     display: flex;
-    gap: 0.5rem;
+    gap: 0.35rem;
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .subnav-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.25rem;
+    gap: 0.45rem;
+    padding: 0.75rem 0.95rem;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
     color: #94a3b8;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
     cursor: pointer;
     transition: all 0.2s ease;
 
     .material-symbols-outlined {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
     }
 
     &:hover {
       color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.03);
     }
 
     &.active {
       color: #c59b27;
       border-bottom-color: #c59b27;
-      background-color: rgba(197, 155, 39, 0.05);
+      background-color: rgba(197, 155, 39, 0.08);
     }
 
     .subnav-badge {
       background-color: rgba(197, 155, 39, 0.2);
       color: #c59b27;
-      padding: 0.15rem 0.5rem;
+      padding: 0.125rem 0.45rem;
       border-radius: 9999px;
       font-size: 0.6875rem;
       font-weight: 700;
+
+      &.badge-warning {
+        background-color: rgba(245, 158, 11, 0.25);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+      }
     }
   }
 }
@@ -1050,6 +1065,18 @@
     &:hover {
       background-color: #f1f5f9;
       color: #0f172a;
+    }
+  }
+
+  &.folio-btn {
+    background-color: rgba(197, 155, 39, 0.12);
+    border-color: rgba(197, 155, 39, 0.35);
+    color: #C59B27;
+
+    &:hover {
+      background-color: rgba(197, 155, 39, 0.22);
+      border-color: #C59B27;
+      color: #0F172A;
     }
   }
 

@@ -69,7 +69,7 @@
           (click)="switchSection('OPERATIONS')"
         >
           <span class="material-symbols-outlined">concierge</span>
-          <span>Operaciones Front Desk & Room Rack</span>
+          <span>Front Desk & Rack</span>
         </button>
         <button
           type="button"
@@ -78,7 +78,7 @@
           (click)="switchSection('ROOM_SERVICE')"
         >
           <span class="material-symbols-outlined">room_service</span>
-          <span>Comandas & Room Service</span>
+          <span>Room Service</span>
           @if (roomOrders().length > 0) {
             <span class="subnav-badge">{{ roomOrders().length }}</span>
           }
@@ -90,7 +90,7 @@
           title="Abrir terminal digital de cocina KDS en nueva pestaña"
         >
           <span class="material-symbols-outlined">skillet</span>
-          <span>Terminal KDS Cocina</span>
+          <span>Cocina KDS</span>
           <span class="material-symbols-outlined icon-ext">open_in_new</span>
         </a>
         @if (isAdmin()) {
@@ -101,8 +101,8 @@
             (click)="switchSection('SUITES_INVENTORY')"
           >
             <span class="material-symbols-outlined">hotel_class</span>
-            <span>Inventario de Suites & Habitaciones</span>
-            <span class="subnav-badge">{{ rooms().length }} suites</span>
+            <span>Suites & Tarifas</span>
+            <span class="subnav-badge">{{ rooms().length }}</span>
           </button>
           <button
             type="button"
@@ -111,8 +111,31 @@
             (click)="switchSection('STAFF')"
           >
             <span class="material-symbols-outlined">badge</span>
-            <span>Gestión de Personal & Turnos</span>
-            <span class="subnav-badge">{{ staffMetrics().total }} personal</span>
+            <span>Personal & Turnos</span>
+            <span class="subnav-badge">{{ staffMetrics().total }}</span>
+          </button>
+        }
+        <button
+          type="button"
+          class="subnav-btn"
+          [class.active]="activeSection() === 'REVIEWS'"
+          (click)="switchSection('REVIEWS')"
+        >
+          <span class="material-symbols-outlined">rate_review</span>
+          <span>Reseñas & Reputación</span>
+          @if (unansweredReviewsCount() > 0) {
+            <span class="subnav-badge badge-warning">{{ unansweredReviewsCount() }}</span>
+          }
+        </button>
+        @if (isAdmin()) {
+          <button
+            type="button"
+            class="subnav-btn"
+            [class.active]="activeSection() === 'ANALYTICS'"
+            (click)="switchSection('ANALYTICS')"
+          >
+            <span class="material-symbols-outlined">analytics</span>
+            <span>Métricas & BI</span>
           </button>
         }
       </div>
@@ -530,6 +553,16 @@
                             <span>Voucher</span>
                           </button>
 
+                          <button
+                            type="button"
+                            class="action-btn folio-btn"
+                            (click)="openFolio(res)"
+                            title="Generar y descargar Folio Fiscal oficial en PDF"
+                          >
+                            <span class="material-symbols-outlined">description</span>
+                            <span>Folio</span>
+                          </button>
+
                           @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {
                             <button
                               type="button"
@@ -882,6 +915,14 @@
             </div>
           }
         </section>
+      }
+
+      @if (activeSection() === 'REVIEWS') {
+        <app-review-moderation></app-review-moderation>
+      }
+
+      @if (isAdmin() && activeSection() === 'ANALYTICS') {
+        <app-executive-analytics></app-executive-analytics>
       }
     </div>
   </main>
@@ -1281,6 +1322,12 @@
     [folioOrders]="voucherOrders()"
     (close)="closeVoucher()"
   ></app-voucher-modal>
+
+  <app-hotel-folio-modal
+    [reservation]="selectedFolioReservation()"
+    [isOpen]="isFolioModalOpen()"
+    (closeModal)="closeFolio()"
+  ></app-hotel-folio-modal>
 
   @if (isCancelModalOpen() && reservationToCancel()) {
     <div class="modal-backdrop" (click)="closeCancelDialog()">

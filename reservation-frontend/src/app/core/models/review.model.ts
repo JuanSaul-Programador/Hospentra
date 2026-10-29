@@ -53,3 +53,11 @@ export interface PageResponse<T> {
   last: boolean;
   empty: boolean;
 }
+
+export interface ReviewAdminMetrics {
+  totalReviews: number;
+  averageRating: number;
+  unansweredCount: number;
+  answeredCount: number;
+  satisfactionRate: number;
+}

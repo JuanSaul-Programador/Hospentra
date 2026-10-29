@@ -22,6 +22,10 @@ import { TherapistDirectoryModalComponent } from './components/therapist-directo
 import { AssignTherapistModalComponent } from './components/assign-therapist-modal/assign-therapist-modal.component';
 import { TapeChartComponent } from './components/tape-chart/tape-chart.component';
 import { SuiteInventoryComponent } from './components/suite-inventory/suite-inventory.component';
+import { ReviewModerationComponent } from './components/review-moderation/review-moderation.component';
+import { HotelFolioModalComponent } from '../../../shared/components/hotel-folio-modal/hotel-folio-modal.component';
+import { ExecutiveAnalyticsComponent } from './components/executive-analytics/executive-analytics.component';
+import { ReviewService } from '../../../core/services/review.service';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
@@ -37,7 +41,10 @@ export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPA
     TherapistDirectoryModalComponent,
     AssignTherapistModalComponent,
     TapeChartComponent,
-    SuiteInventoryComponent
+    SuiteInventoryComponent,
+    ReviewModerationComponent,
+    HotelFolioModalComponent,
+    ExecutiveAnalyticsComponent
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
@@ -48,6 +55,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly staffService = inject(StaffService);
   private readonly roomOrderService = inject(RoomOrderService);
   private readonly therapistService = inject(TherapistService);
+  private readonly reviewService = inject(ReviewService);
   readonly authService = inject(AuthService);
   readonly sseService = inject(SseService);
   private readonly router = inject(Router);
@@ -57,7 +65,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
   readonly isReceptionist = computed(() => this.authService.userRole() === 'ROLE_RECEPTIONIST');
 
-  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF'>('OPERATIONS');
+  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS'>('OPERATIONS');
+  readonly unansweredReviewsCount = signal<number>(0);
 
   readonly reservations = signal<Reservation[]>([]);
   readonly rooms = signal<Room[]>([]);
@@ -140,6 +149,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     return (Number(v.totalPrice) || 0) + this.voucherExtrasTotal();
   });
   readonly isVoucherModalOpen = signal<boolean>(false);
+  readonly selectedFolioReservation = signal<Reservation | null>(null);
+  readonly isFolioModalOpen = signal<boolean>(false);
 
   readonly reservationToCancel = signal<Reservation | null>(null);
   readonly isCancelModalOpen = signal<boolean>(false);
@@ -262,6 +273,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadData();
     this.loadOrders();
+    this.loadReviewMetrics();
     if (this.isAdmin()) {
       this.loadStaff();
     }
@@ -612,8 +624,15 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF'): void {
-    if ((section === 'STAFF' || section === 'SUITES_INVENTORY') && !this.isAdmin()) return;
+  loadReviewMetrics(): void {
+    this.reviewService.getAdminMetrics().subscribe({
+      next: (m) => this.unansweredReviewsCount.set(m.unansweredCount),
+      error: () => {}
+    });
+  }
+
+  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS'): void {
+    if ((section === 'STAFF' || section === 'SUITES_INVENTORY' || section === 'ANALYTICS') && !this.isAdmin()) return;
     this.activeSection.set(section);
     if (section === 'STAFF' && this.staffList().length === 0) {
       this.loadStaff();
@@ -624,6 +643,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (section === 'SUITES_INVENTORY') {
       this.loadRoomTypes();
       this.loadRooms();
+    }
+    if (section === 'REVIEWS') {
+      this.loadReviewMetrics();
     }
   }
 
@@ -894,6 +916,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.isVoucherModalOpen.set(false);
     this.selectedVoucher.set(null);
     this.voucherOrders.set([]);
+  }
+
+  openFolio(res: Reservation): void {
+    this.selectedFolioReservation.set(res);
+    this.isFolioModalOpen.set(true);
+  }
+
+  closeFolio(): void {
+    this.isFolioModalOpen.set(false);
+    this.selectedFolioReservation.set(null);
   }
 
   printVoucher(): void {

@@ -21,6 +21,7 @@ export interface AuthResponse {
   username: string;
   email: string;
   role: Role;
+  verificationRequired?: boolean;
 }
 
 export interface RefreshTokenRequest {

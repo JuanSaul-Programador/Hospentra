@@ -14,6 +14,7 @@ import { ExtraService, RoomOrder } from '../../../core/models/room-order.model';
 import { GuestVoucherModalComponent } from './components/guest-voucher-modal/guest-voucher-modal.component';
 import { CancellationModalComponent, RefundCalculation } from './components/cancellation-modal/cancellation-modal.component';
 import { GuestRoomServiceModalComponent, RoomOrderSubmitPayload } from './components/guest-room-service-modal/guest-room-service-modal.component';
+import { HotelFolioModalComponent } from '../../../shared/components/hotel-folio-modal/hotel-folio-modal.component';
 
 export type { RefundCalculation };
 
@@ -26,7 +27,8 @@ export type { RefundCalculation };
     RouterModule,
     GuestVoucherModalComponent,
     CancellationModalComponent,
-    GuestRoomServiceModalComponent
+    GuestRoomServiceModalComponent,
+    HotelFolioModalComponent
   ],
   templateUrl: './my-reservations.component.html',
   styleUrl: './my-reservations.component.scss'
@@ -63,6 +65,8 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
   readonly selectedVoucherReservation = signal<Reservation | null>(null);
   readonly isVoucherModalOpen = signal<boolean>(false);
+  readonly selectedFolioReservation = signal<Reservation | null>(null);
+  readonly isFolioModalOpen = signal<boolean>(false);
 
   readonly reservationToCancel = signal<Reservation | null>(null);
   readonly isCancelModalOpen = signal<boolean>(false);
@@ -254,6 +258,16 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   closeVoucher(): void {
     this.isVoucherModalOpen.set(false);
     this.selectedVoucherReservation.set(null);
+  }
+
+  openFolio(res: Reservation): void {
+    this.selectedFolioReservation.set(res);
+    this.isFolioModalOpen.set(true);
+  }
+
+  closeFolio(): void {
+    this.isFolioModalOpen.set(false);
+    this.selectedFolioReservation.set(null);
   }
 
   hasReviewed(reservationId: number): boolean {

@@ -1,0 +1,238 @@
+@if (isOpen && reservation) {
+  <div class="folio-backdrop" (click)="onClose()">
+    <div class="folio-modal-wrapper" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="folio-actions-bar no-print">
+        <div class="bar-info">
+          <span class="material-symbols-outlined icon-doc">receipt_long</span>
+          <span>Folio Fiscal & Factura Digital Oficial</span>
+        </div>
+        <div class="bar-buttons">
+          <button type="button" class="btn-print" (click)="onPrint()" title="Descargar como PDF o imprimir en alta resolución">
+            <span class="material-symbols-outlined">picture_as_pdf</span>
+            <span>Descargar / Imprimir PDF</span>
+          </button>
+          <button type="button" class="btn-close" (click)="onClose()" title="Cerrar vista de folio">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="folio-sheet print-area">
+        <header class="folio-header">
+          <div class="header-brand">
+            <div class="resort-crest">
+              <span class="material-symbols-outlined">hotel_class</span>
+            </div>
+            <div class="resort-details">
+              <h1 class="resort-name">Hospentra Luxury Sanctuary</h1>
+              <span class="resort-sub">Boutique Resort, Private Villas & Signature Spa</span>
+              <span class="resort-tax">RFC: HLS-980124-LUX • Licencia Hotelera 5 Diamantes Nº 44102</span>
+              <span class="resort-address">Av. de las Altas Cumbres 777, Zona Diamante • Reservaciones: +1 (800) 467-7368</span>
+            </div>
+          </div>
+
+          <div class="header-invoice-badge">
+            <div class="invoice-box">
+              <span class="invoice-label">FOLIO FISCAL DE HOSPEDAJE</span>
+              <span class="invoice-num">{{ invoiceNumber() }}</span>
+              <span class="invoice-date">Emisión: {{ issueDate | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+
+            @if (reservation.paymentMethod === 'CREDIT_CARD' || reservation.paymentStatus === 'PAID') {
+              <div class="payment-stamp stamp-paid">
+                <span class="material-symbols-outlined stamp-icon">verified</span>
+                <div class="stamp-text">
+                  <span class="stamp-title">PAGADO EN LÍNEA</span>
+                  <span class="stamp-auth">AUTH: {{ reservation.authCode || 'AUTH-901844' }}</span>
+                  <span class="stamp-detail">STRIPE DIRECT SECURE</span>
+                </div>
+              </div>
+            } @else {
+              <div class="payment-stamp stamp-reception">
+                <span class="material-symbols-outlined stamp-icon">storefront</span>
+                <div class="stamp-text">
+                  <span class="stamp-title">LIQUIDACIÓN EN RECEPCIÓN</span>
+                  <span class="stamp-auth">FRONT DESK POS / EFECTIVO</span>
+                  <span class="stamp-detail">ESTADO: {{ reservation.status }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </header>
+
+        <section class="folio-meta-grid">
+          <div class="meta-card">
+            <h3 class="meta-heading">
+              <span class="material-symbols-outlined">person</span>
+              <span>Datos del Huésped (Receptor)</span>
+            </h3>
+            <div class="meta-rows">
+              <div class="meta-row">
+                <span class="meta-label">Titular:</span>
+                <strong class="meta-val">{{ reservation.guest ? (reservation.guest.firstName + ' ' + reservation.guest.lastName) : 'Huésped Distinguido' }}</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Correo:</span>
+                <span class="meta-val">{{ reservation.guest ? reservation.guest.email : 'contacto@hospentra.com' }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Teléfono:</span>
+                <span class="meta-val">{{ reservation.guest?.phone || '+1 (555) 019-2834' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <h3 class="meta-heading">
+              <span class="material-symbols-outlined">key</span>
+              <span>Detalles de Estancia</span>
+            </h3>
+            <div class="meta-rows">
+              <div class="meta-row">
+                <span class="meta-label">Suite Asignada:</span>
+                <strong class="meta-val">{{ reservation.room?.roomType?.name || 'Suite Boutique' }} • Hab. {{ reservation.room?.roomNumber || reservation.room?.id }}</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Check-In / Out:</span>
+                <span class="meta-val">{{ reservation.checkInDate }} (15:00) $\rightarrow$ {{ reservation.checkOutDate }} (12:00)</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Duración:</span>
+                <span class="meta-val">{{ stayNights() }} {{ stayNights() === 1 ? 'Noche' : 'Noches' }} • Cód: HOSP-{{ reservation.id }}-2026</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="folio-table-section">
+          <table class="folio-table">
+            <thead>
+              <tr>
+                <th class="th-desc">Concepto / Descripción del Servicio</th>
+                <th class="th-center">Fecha / Servicio</th>
+                <th class="th-center">Cant.</th>
+                <th class="th-right">Precio Unit.</th>
+                <th class="th-right">Importe Neto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="item-title">Estancia en {{ reservation.room?.roomType?.name || 'Suite Boutique' }}</div>
+                  <div class="item-sub">Tarifa de alojamiento base por noche • Check-in formalizado</div>
+                </td>
+                <td class="td-center">{{ reservation.checkInDate }}</td>
+                <td class="td-center">{{ stayNights() }}</td>
+                <td class="td-right">${{ pricePerNight() | number:'1.2-2' }}</td>
+                <td class="td-right"><strong>${{ baseRoomTotal() | number:'1.2-2' }}</strong></td>
+              </tr>
+
+              @for (order of roomOrders(); track order.id) {
+                <tr class="order-row">
+                  <td>
+                    <div class="item-title">
+                      <span class="order-tag">{{ order.status === 'DELIVERED' ? 'Comanda Entregada' : 'Consumo Suite' }}</span>
+                      <span>Comanda Nº {{ order.id }}</span>
+                    </div>
+                    <div class="item-sub">
+                      @for (item of order.items; track item.id; let last = $last) {
+                        <span>{{ item.quantity }}x {{ item.serviceName || ('Servicio ' + item.extraServiceId) }} (${{ item.unitPrice | number:'1.2-2' }}){{ !last ? ', ' : '' }}</span>
+                      }
+                      @if (order.notes) {
+                        <span class="order-note">• Nota: "{{ order.notes }}"</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="td-center">{{ order.orderedAt | date:'dd/MM/yyyy' }}</td>
+                  <td class="td-center">{{ order.items.length }}</td>
+                  <td class="td-right">—</td>
+                  <td class="td-right"><strong>${{ order.totalAmount | number:'1.2-2' }}</strong></td>
+                </tr>
+              }
+
+              @if (isLoadingOrders()) {
+                <tr>
+                  <td colspan="5" class="td-loading">
+                    <span>Consultando comandas y folios de suite...</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+
+        <section class="folio-financial-summary">
+          <div class="summary-notes">
+            <span class="notes-title">Términos Fiscales & Políticas de Hospitalidad:</span>
+            <p class="notes-text">
+              Comprobante oficial expedido por Hospentra Luxury Sanctuary de conformidad con los estándares del Registro Nacional de Turismo.
+              Los cargos por gastronomía en suite y spa han sido formalmente imputados al folio consolidado de la habitación y liquidados bajo los términos acordados.
+            </p>
+            <div class="security-signatures">
+              <div class="sig-box">
+                <span class="sig-line"></span>
+                <span class="sig-role">Firma Autorizada • Front Desk</span>
+              </div>
+              <div class="sig-box">
+                <span class="sig-line"></span>
+                <span class="sig-role">Conformidad del Huésped</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-breakdown">
+            <div class="breakdown-row">
+              <span class="row-label">Subtotal Hospedaje:</span>
+              <span class="row-val">${{ baseRoomTotal() | number:'1.2-2' }} USD</span>
+            </div>
+
+            @if (extrasTotal() > 0) {
+              <div class="breakdown-row">
+                <span class="row-label">Consumos Extras (Room Service / Spa):</span>
+                <span class="row-val">${{ extrasTotal() | number:'1.2-2' }} USD</span>
+              </div>
+            }
+
+            <div class="breakdown-row">
+              <span class="row-label">Subtotal Neto:</span>
+              <span class="row-val">${{ netSubtotal() | number:'1.2-2' }} USD</span>
+            </div>
+
+            <div class="breakdown-row">
+              <span class="row-label">IVA & Impuesto al Hospedaje (16% Incl.):</span>
+              <span class="row-val">${{ taxAmount() | number:'1.2-2' }} USD</span>
+            </div>
+
+            <div class="breakdown-row grand-total-row">
+              <span class="row-label">Gran Total Liquidado:</span>
+              <span class="row-val">${{ grandTotal() | number:'1.2-2' }} USD</span>
+            </div>
+
+            @if (reservation.paymentMethod === 'CREDIT_CARD' || reservation.paymentStatus === 'PAID') {
+              <div class="payment-method-desc">
+                <span class="material-symbols-outlined check-icon">check_circle</span>
+                <span>Cobrado a {{ reservation.cardBrand || 'VISA' }} **** {{ reservation.cardLast4 || '4242' }} • Saldo en Recepción: $0.00 USD</span>
+              </div>
+            } @else {
+              <div class="payment-method-desc reception-desc">
+                <span class="material-symbols-outlined">payments</span>
+                <span>Modalidad Pago en Front Desk • Estado: {{ reservation.paymentStatus }}</span>
+              </div>
+            }
+          </div>
+        </section>
+
+        <footer class="folio-footer">
+          <div class="barcode-block">
+            <div class="barcode-lines"></div>
+            <span class="barcode-text">*INV-HOSP-{{ reservation.id }}-2026-STAY*</span>
+          </div>
+          <div class="footer-guarantee">
+            <span class="material-symbols-outlined seal-gold">verified_user</span>
+            <span>Documento Oficial Certificado • Hospentra Sanctuary Systems • www.hospentra.com</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

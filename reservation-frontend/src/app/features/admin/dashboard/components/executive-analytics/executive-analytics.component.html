@@ -1,0 +1,245 @@
+<div class="executive-analytics-root">
+  <div class="analytics-title-bar">
+    <div class="title-meta">
+      <div class="title-crest">
+        <span class="material-symbols-outlined">analytics</span>
+      </div>
+      <div>
+        <h3 class="section-title">Business Intelligence & Métricas Ejecutivas</h3>
+        <p class="section-desc">Indicadores clave de rendimiento hotelero (RevPAR, ADR, Ocupación y Flujos Financieros)</p>
+      </div>
+    </div>
+    <div class="actions-right">
+      <button type="button" class="btn-refresh" (click)="loadAnalytics()" [disabled]="isLoading()">
+        <span class="material-symbols-outlined" [class.spinning]="isLoading()">refresh</span>
+        <span>Actualizar Datos</span>
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      <span>Calculando métricas financieras y operativas del resort...</span>
+    </div>
+  } @else if (analytics(); as data) {
+    <div class="kpi-grid">
+      <div class="kpi-card highlight-gold">
+        <div class="kpi-header">
+          <span class="kpi-label">Facturación Bruta Consolidada</span>
+          <span class="material-symbols-outlined kpi-icon gold">payments</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-val">${{ data.totalRevenue | number:'1.2-2' }}</span>
+          <span class="kpi-unit">USD</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-sub">Estancias: ${{ data.roomRevenue | number:'1.2-2' }} • Extras: ${{ data.extrasRevenue | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">ADR (Average Daily Rate)</span>
+          <span class="material-symbols-outlined kpi-icon blue">price_change</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-val">${{ data.adr | number:'1.2-2' }}</span>
+          <span class="kpi-unit">USD / Noche</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-sub">Tarifa promedio diaria por suite ocupada</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">RevPAR (Ingreso x Suite Disponible)</span>
+          <span class="material-symbols-outlined kpi-icon green">trending_up</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-val">${{ data.revpar | number:'1.2-2' }}</span>
+          <span class="kpi-unit">USD</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-sub">Revenue per Available Room (Eficiencia Total)</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Tasa de Ocupación Global</span>
+          <span class="material-symbols-outlined kpi-icon purple">hotel</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-val text-emerald">{{ data.occupancyRate }}%</span>
+        </div>
+        <div class="kpi-footer">
+          <div class="occupancy-bar-track">
+            <div class="occupancy-bar-fill" [style.width.%]="data.occupancyRate"></div>
+          </div>
+          <span class="kpi-sub">{{ data.totalNightsSold }} noches vendidas • {{ data.totalReservations }} reservas</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card trends-card">
+        <div class="card-header">
+          <div>
+            <h4 class="card-title">Tendencia de Ingresos Mensuales</h4>
+            <span class="card-subtitle">Evolución de facturación de alojamiento y Room Service</span>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot dot-room"></span>Alojamiento</span>
+            <span class="legend-item"><span class="legend-dot dot-extras"></span>Extras & Spa</span>
+          </div>
+        </div>
+
+        <div class="bar-chart-container">
+          @for (m of data.monthlyTrends; track m.month) {
+            <div class="chart-col">
+              <div class="col-bar-wrap">
+                <div class="bar-tooltip">
+                  <span class="tip-month">{{ m.month }}</span>
+                  <span class="tip-amount">${{ m.totalRevenue | number:'1.2-2' }} USD</span>
+                </div>
+                <div class="bar-stack" [style.height.%]="getBarHeightPercentage(m.totalRevenue)">
+                  <div class="bar-segment segment-extras" [style.height.%]="m.totalRevenue > 0 ? (m.extrasRevenue * 100 / m.totalRevenue) : 0"></div>
+                  <div class="bar-segment segment-room" [style.height.%]="m.totalRevenue > 0 ? (m.roomRevenue * 100 / m.totalRevenue) : 100"></div>
+                </div>
+              </div>
+              <span class="col-label">{{ m.month }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="chart-card breakdown-card">
+        <div class="card-header">
+          <div>
+            <h4 class="card-title">Unidades de Negocio</h4>
+            <span class="card-subtitle">Contribución porcentual a los ingresos del resort</span>
+          </div>
+        </div>
+
+        <div class="units-breakdown-list">
+          <div class="unit-item">
+            <div class="unit-meta">
+              <div class="unit-icon-title">
+                <span class="material-symbols-outlined unit-icon gold">meeting_room</span>
+                <span class="unit-name">Alojamiento en Suites</span>
+              </div>
+              <strong class="unit-amount">${{ data.roomRevenue | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="unit-bar-track">
+              <div class="unit-bar-fill fill-gold" [style.width.%]="roomRevenuePercentage()"></div>
+            </div>
+            <span class="unit-share">{{ roomRevenuePercentage() }}% de los ingresos totales</span>
+          </div>
+
+          <div class="unit-item">
+            <div class="unit-meta">
+              <div class="unit-icon-title">
+                <span class="material-symbols-outlined unit-icon amber">restaurant</span>
+                <span class="unit-name">Gastronomía de Autor (KDS)</span>
+              </div>
+              <strong class="unit-amount">${{ data.gastronomyRevenue | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="unit-bar-track">
+              <div class="unit-bar-fill fill-amber" [style.width.%]="gastronomyPercentage()"></div>
+            </div>
+            <span class="unit-share">{{ gastronomyPercentage() }}% de consumos extras</span>
+          </div>
+
+          <div class="unit-item">
+            <div class="unit-meta">
+              <div class="unit-icon-title">
+                <span class="material-symbols-outlined unit-icon purple">wine_bar</span>
+                <span class="unit-name">Cava & Vinos Finos</span>
+              </div>
+              <strong class="unit-amount">${{ data.barRevenue | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="unit-bar-track">
+              <div class="unit-bar-fill fill-purple" [style.width.%]="barPercentage()"></div>
+            </div>
+            <span class="unit-share">{{ barPercentage() }}% de consumos extras</span>
+          </div>
+
+          <div class="unit-item">
+            <div class="unit-meta">
+              <div class="unit-icon-title">
+                <span class="material-symbols-outlined unit-icon emerald">self_improvement</span>
+                <span class="unit-name">Rituales de Bienestar & Spa</span>
+              </div>
+              <strong class="unit-amount">${{ data.spaRevenue | number:'1.2-2' }} USD</strong>
+            </div>
+            <div class="unit-bar-track">
+              <div class="unit-bar-fill fill-emerald" [style.width.%]="spaPercentage()"></div>
+            </div>
+            <span class="unit-share">{{ spaPercentage() }}% de consumos extras</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="suites-performance-section">
+      <div class="table-header-row">
+        <div>
+          <h4 class="card-title">Ranking de Rendimiento por Suite</h4>
+          <span class="card-subtitle">Desempeño financiero individual ordenado por facturación total generada</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="perf-table">
+          <thead>
+            <tr>
+              <th class="th-rank">#</th>
+              <th>Suite & Habitación</th>
+              <th>Tipo de Habitación</th>
+              <th class="th-center">Noches Vendidas</th>
+              <th class="th-center">Tasa Ocupación</th>
+              <th class="th-right">ADR Suite</th>
+              <th class="th-right">Facturación Generada</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (suite of data.suitePerformances; track suite.roomId; let idx = $index) {
+              <tr>
+                <td class="td-rank">
+                  <span class="rank-pill" [class.rank-gold]="idx === 0" [class.rank-silver]="idx === 1" [class.rank-bronze]="idx === 2">
+                    {{ idx + 1 }}
+                  </span>
+                </td>
+                <td>
+                  <div class="suite-cell">
+                    <span class="material-symbols-outlined suite-icon">hotel_class</span>
+                    <strong>Hab. {{ suite.roomNumber }}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span class="type-tag">{{ suite.roomTypeName }}</span>
+                </td>
+                <td class="td-center">
+                  <strong class="nights-val">{{ suite.nightsOccupied }}</strong> noches
+                </td>
+                <td class="td-center">
+                  <span class="occ-badge" [class.occ-high]="suite.occupancyRate >= 60" [class.occ-mid]="suite.occupancyRate >= 30 && suite.occupancyRate < 60">
+                    {{ suite.occupancyRate }}%
+                  </span>
+                </td>
+                <td class="td-right">
+                  <span>${{ suite.adr | number:'1.2-2' }}</span>
+                </td>
+                <td class="td-right">
+                  <strong class="revenue-val">${{ suite.revenue | number:'1.2-2' }} USD</strong>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

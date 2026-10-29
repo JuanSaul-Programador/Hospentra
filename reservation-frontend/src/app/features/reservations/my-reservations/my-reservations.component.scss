@@ -979,6 +979,16 @@
   }
 }
 
+.btn.folio-btn {
+  border-color: rgba(197, 155, 39, 0.4);
+  color: #c59b27;
+
+  &:hover {
+    background-color: rgba(197, 155, 39, 0.12);
+    border-color: #c59b27;
+  }
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

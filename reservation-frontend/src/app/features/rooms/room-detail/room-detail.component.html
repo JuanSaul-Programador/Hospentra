@@ -141,7 +141,7 @@
               <div class="policy-item">
                 <span class="material-symbols-outlined policy-icon">verified_user</span>
                 <div>
-                  <strong>{{ i18n.t('myReservations.cancelPolicyBadge') }}</strong>
+                  <strong>{{ i18n.t('roomDetail.cancelPolicyBadge') }}</strong>
                   <p>{{ i18n.t('roomDetail.cancelPolicy') }}</p>
                 </div>
               </div>
@@ -153,27 +153,35 @@
               <div>
                 <h2 class="section-heading">{{ i18n.t('roomDetail.reviewsTitle') }}</h2>
                 <p class="section-subtext">
-                  {{ i18n.t('roomDetail.basedOnReviews', { n: reviewSummary()?.totalReviews || 0 }) }}
+                  @if (hasReviews()) {
+                    {{ i18n.t('roomDetail.basedOnReviews', { n: effectiveTotalReviews() }) }}
+                  } @else {
+                    {{ i18n.t('roomDetail.noReviewsYetSubtext') }}
+                  }
                 </p>
               </div>
-              <div class="recommendation-badge">
-                <span class="material-symbols-outlined">recommend</span>
-                <span>{{ i18n.t('roomDetail.recommendationPct', { pct: recommendationRate() }) }}</span>
-              </div>
+              @if (hasReviews()) {
+                <div class="recommendation-badge">
+                  <span class="material-symbols-outlined">recommend</span>
+                  <span>{{ i18n.t('roomDetail.recommendationPct', { pct: recommendationRate() }) }}</span>
+                </div>
+              }
             </div>
 
-            <div class="playstore-rating-box">
+            @if (hasReviews()) {
+              <div class="playstore-rating-box">
               <div class="hero-score-column">
-                <div class="score-number">{{ reviewSummary()?.averageRating | number:'1.1-1' }}</div>
+                <div class="score-number">{{ effectiveAverageRating() | number:'1.1-1' }}</div>
                 <div class="stars-display">
-                  <span class="material-symbols-outlined star-fill">star</span>
-                  <span class="material-symbols-outlined star-fill">star</span>
-                  <span class="material-symbols-outlined star-fill">star</span>
-                  <span class="material-symbols-outlined star-fill">star</span>
-                  <span class="material-symbols-outlined star-fill">star_half</span>
+                  @for (star of starRange; track star) {
+                    <span
+                      class="material-symbols-outlined"
+                      [ngClass]="getStarClass(star, effectiveAverageRating())"
+                    >{{ getStarIcon(star, effectiveAverageRating()) }}</span>
+                  }
                 </div>
-                <span class="score-subtext">{{ i18n.t('roomDetail.ratingOut5', { score: reviewSummary()?.averageRating | number:'1.1-1' }) }}</span>
-                <span class="reviews-total-chip">{{ reviewSummary()?.totalReviews || 0 }} {{ i18n.t('catalog.roomReviews') }}</span>
+                <span class="score-subtext">{{ i18n.t('roomDetail.ratingOut5', { score: effectiveAverageRating() | number:'1.1-1' }) }}</span>
+                <span class="reviews-total-chip">{{ effectiveTotalReviews() }} {{ i18n.t('roomDetail.reviewsLabel') }}</span>
               </div>
 
               <div class="histogram-column">
@@ -252,19 +260,19 @@
             <div class="dimensional-scores-grid">
               <div class="dim-card">
                 <span class="dim-label">{{ i18n.t('roomDetail.cleanlinessScore') }}</span>
-                <strong class="dim-val">{{ reviewSummary()?.cleanlinessAverage || 4.9 | number:'1.1-1' }}</strong>
+                <strong class="dim-val">{{ effectiveCleanliness() | number:'1.1-1' }}</strong>
               </div>
               <div class="dim-card">
                 <span class="dim-label">{{ i18n.t('roomDetail.serviceScore') }}</span>
-                <strong class="dim-val">{{ reviewSummary()?.serviceAverage || 4.8 | number:'1.1-1' }}</strong>
+                <strong class="dim-val">{{ effectiveService() | number:'1.1-1' }}</strong>
               </div>
               <div class="dim-card">
                 <span class="dim-label">{{ i18n.t('roomDetail.comfortScore') }}</span>
-                <strong class="dim-val">{{ reviewSummary()?.comfortAverage || 4.9 | number:'1.1-1' }}</strong>
+                <strong class="dim-val">{{ effectiveComfort() | number:'1.1-1' }}</strong>
               </div>
               <div class="dim-card">
                 <span class="dim-label">{{ i18n.t('roomDetail.locationScore') }}</span>
-                <strong class="dim-val">{{ reviewSummary()?.locationAverage || 5.0 | number:'1.1-1' }}</strong>
+                <strong class="dim-val">{{ effectiveLocation() | number:'1.1-1' }}</strong>
               </div>
             </div>
 
@@ -275,7 +283,7 @@
                 [class.active]="activeRatingFilter() === null"
                 (click)="setRatingFilter(null)"
               >
-                {{ i18n.t('roomDetail.filterAll', { n: reviewSummary()?.totalReviews || 0 }) }}
+                {{ i18n.t('roomDetail.filterAll', { n: effectiveTotalReviews() }) }}
               </button>
               <button
                 type="button"
@@ -361,6 +369,15 @@
                 }
               </div>
             }
+            } @else {
+              <div class="empty-reviews-sanctuary">
+                <div class="empty-icon-halo">
+                  <span class="material-symbols-outlined empty-hero-icon">hotel_class</span>
+                </div>
+                <h3 class="empty-hero-title">{{ i18n.t('roomDetail.noReviewsTitle') }}</h3>
+                <p class="empty-hero-desc">{{ i18n.t('roomDetail.noReviewsDesc') }}</p>
+              </div>
+            }
           </section>
         </div>
 
@@ -372,11 +389,13 @@
                 <span class="price-amount">{{ room()?.roomType?.pricePerNight | number:'1.2-2' }}</span>
                 <span class="price-unit">USD {{ i18n.t('roomDetail.perNight') }}</span>
               </div>
-              <div class="widget-rating-chip">
-                <span class="material-symbols-outlined star-icon">star</span>
-                <strong>{{ reviewSummary()?.averageRating | number:'1.1-1' }}</strong>
-                <span class="reviews-count">({{ reviewSummary()?.totalReviews || 0 }})</span>
-              </div>
+              @if (hasReviews()) {
+                <div class="widget-rating-chip">
+                  <span class="material-symbols-outlined star-icon">star</span>
+                  <strong>{{ effectiveAverageRating() | number:'1.1-1' }}</strong>
+                  <span class="reviews-count">({{ effectiveTotalReviews() }})</span>
+                </div>
+              }
             </div>
 
             <div class="widget-body">

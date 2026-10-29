@@ -56,6 +56,37 @@ export class RoomDetailComponent implements OnInit {
     return this.resolveGallery(currentRoom.id);
   });
 
+  readonly starRange = [1, 2, 3, 4, 5];
+
+  readonly hasReviews = computed<boolean>(() => {
+    const summary = this.reviewSummary();
+    return !!summary && summary.totalReviews > 0;
+  });
+
+  readonly effectiveAverageRating = computed<number>(() => {
+    return this.reviewSummary()?.averageRating || 0;
+  });
+
+  readonly effectiveTotalReviews = computed<number>(() => {
+    return this.reviewSummary()?.totalReviews || 0;
+  });
+
+  readonly effectiveCleanliness = computed<number>(() => {
+    return this.reviewSummary()?.cleanlinessAverage || 0;
+  });
+
+  readonly effectiveService = computed<number>(() => {
+    return this.reviewSummary()?.serviceAverage || 0;
+  });
+
+  readonly effectiveComfort = computed<number>(() => {
+    return this.reviewSummary()?.comfortAverage || 0;
+  });
+
+  readonly effectiveLocation = computed<number>(() => {
+    return this.reviewSummary()?.locationAverage || 0;
+  });
+
   readonly ratingPercentage5 = computed<number>(() => this.getPercentage(5));
   readonly ratingPercentage4 = computed<number>(() => this.getPercentage(4));
   readonly ratingPercentage3 = computed<number>(() => this.getPercentage(3));
@@ -70,7 +101,7 @@ export class RoomDetailComponent implements OnInit {
 
   readonly recommendationRate = computed<number>(() => {
     const summary = this.reviewSummary();
-    if (!summary || summary.totalReviews === 0) return 98;
+    if (!summary || summary.totalReviews === 0) return 0;
     const pos = (summary.ratingDistribution[5] || 0) + (summary.ratingDistribution[4] || 0);
     return Math.round((pos * 100) / summary.totalReviews);
   });
@@ -132,14 +163,14 @@ export class RoomDetailComponent implements OnInit {
       error: () => {
         this.reviewSummary.set({
           roomId: roomId,
-          averageRating: 4.8,
-          totalReviews: 5,
-          cleanlinessAverage: 4.9,
-          serviceAverage: 4.8,
-          comfortAverage: 4.9,
-          locationAverage: 5.0,
-          ratingDistribution: { 5: 3, 4: 1, 3: 1, 2: 0, 1: 0 },
-          ratingPercentages: { 5: 60.0, 4: 20.0, 3: 20.0, 2: 0.0, 1: 0.0 }
+          averageRating: 0,
+          totalReviews: 0,
+          cleanlinessAverage: 0,
+          serviceAverage: 0,
+          comfortAverage: 0,
+          locationAverage: 0,
+          ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+          ratingPercentages: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
         });
       }
     });
@@ -210,15 +241,32 @@ export class RoomDetailComponent implements OnInit {
     }
   }
 
+  getStarIcon(star: number, rating: number): string {
+    if (rating >= star) {
+      return 'star';
+    } else if (rating >= star - 0.5) {
+      return 'star_half';
+    } else {
+      return 'star';
+    }
+  }
+
+  getStarClass(star: number, rating: number): string {
+    if (rating >= star - 0.5) {
+      return 'star-fill';
+    }
+    return 'star-empty';
+  }
+
   private getPercentage(rating: number): number {
     const summary = this.reviewSummary();
-    if (!summary || !summary.ratingPercentages) return 0;
+    if (!summary || !summary.ratingPercentages || summary.totalReviews === 0) return 0;
     return summary.ratingPercentages[rating] || 0;
   }
 
   private getCount(rating: number): number {
     const summary = this.reviewSummary();
-    if (!summary || !summary.ratingDistribution) return 0;
+    if (!summary || !summary.ratingDistribution || summary.totalReviews === 0) return 0;
     return summary.ratingDistribution[rating] || 0;
   }
 

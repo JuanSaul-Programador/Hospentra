@@ -38,15 +38,37 @@ export class AuthService {
   register(data: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, data).pipe(
       tap((response) => {
-        this.tokenService.saveToken(response.token);
-        if (response.refreshToken) {
-          this.tokenService.saveRefreshToken(response.refreshToken);
+        if (!response.verificationRequired && response.token) {
+          this.tokenService.saveToken(response.token);
+          if (response.refreshToken) {
+            this.tokenService.saveRefreshToken(response.refreshToken);
+          }
+          const user = { username: response.username, email: response.email, role: response.role };
+          this.tokenService.saveUser(user);
+          this.currentUserSignal.set(user);
         }
-        const user = { username: response.username, email: response.email, role: response.role };
-        this.tokenService.saveUser(user);
-        this.currentUserSignal.set(user);
       })
     );
+  }
+
+  verifyEmail(email: string, code: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/verify-email`, { email, code }).pipe(
+      tap((response) => {
+        if (response.token) {
+          this.tokenService.saveToken(response.token);
+          if (response.refreshToken) {
+            this.tokenService.saveRefreshToken(response.refreshToken);
+          }
+          const user = { username: response.username, email: response.email, role: response.role };
+          this.tokenService.saveUser(user);
+          this.currentUserSignal.set(user);
+        }
+      })
+    );
+  }
+
+  resendVerification(email: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/resend-verification`, { email });
   }
 
   refreshToken(): Observable<AuthResponse> {

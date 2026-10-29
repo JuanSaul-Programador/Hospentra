@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { RoomService } from '../../core/services/room.service';
+import { ReviewService } from '../../core/services/review.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { Room, RoomType } from '../../core/models/room.model';
@@ -17,11 +18,13 @@ import { AuthModalComponent } from '../../shared/components/auth-modal/auth-moda
 })
 export class HomeComponent implements OnInit {
   private readonly roomService = inject(RoomService);
+  private readonly reviewService = inject(ReviewService);
   readonly authService = inject(AuthService);
   readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
   readonly rooms = signal<Room[]>([]);
+  readonly roomRatings = signal<Record<number, { score: number; count: number }>>({});
   readonly isLoading = signal<boolean>(true);
   readonly selectedCategory = signal<string>('all');
   readonly sortBy = signal<string>('featured');
@@ -177,16 +180,45 @@ export class HomeComponent implements OnInit {
       next: (data) => {
         if (data && data.length > 0) {
           this.rooms.set(data);
+          this.loadRoomRatings(data);
         } else {
           this.rooms.set(this.defaultRooms);
+          this.loadRoomRatings(this.defaultRooms);
         }
         this.isLoading.set(false);
       },
       error: () => {
         this.rooms.set(this.defaultRooms);
+        this.loadRoomRatings(this.defaultRooms);
         this.isLoading.set(false);
       }
     });
+  }
+
+  loadRoomRatings(rooms: Room[]): void {
+    rooms.forEach(r => {
+      this.reviewService.getReviewSummary(r.id).subscribe({
+        next: (summary) => {
+          this.roomRatings.update(map => ({
+            ...map,
+            [r.id]: {
+              score: summary.averageRating || 0,
+              count: summary.totalReviews || 0
+            }
+          }));
+        },
+        error: () => {
+          this.roomRatings.update(map => ({
+            ...map,
+            [r.id]: { score: 0, count: 0 }
+          }));
+        }
+      });
+    });
+  }
+
+  getRoomRating(room: Room): { score: number; count: number } {
+    return this.roomRatings()[room.id] || { score: 0, count: 0 };
   }
 
   getRoomImage(room: Room): string {

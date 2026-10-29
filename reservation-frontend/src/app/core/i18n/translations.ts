@@ -62,6 +62,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       perNight: '/ noche',
       bookNow: 'Reservar ahora',
       viewDetails: 'Ver Detalles',
+      roomReviews: 'opiniones',
       empty: 'No se encontraron suites disponibles para las fechas o criterios seleccionados.'
     },
     amenities: {
@@ -248,6 +249,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       canceledEmptyDesc: 'Todas sus solicitudes programadas permanecen activas o han sido disfrutadas conforme a los itinerarios de autor.',
       canceledBadge: 'Reserva Cancelada',
       canceledLateTitle: 'Cancelación tardía (<48h)',
+      cancelPolicyBadge: 'Política de Cancelación',
       canceledLateDesc: 'Se retiene la primera noche (${penalty} USD) por política boutique y se reembolsa el saldo restante (${refund} USD) a su tarjeta •••• {last4}.',
       canceledFullTitle: 'Reembolso del 100% procesado',
       canceledFullDesc: 'Monto de ${total} USD abonado a su tarjeta •••• {last4}.',
@@ -343,6 +345,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       specsKingBed: 'Cama King Size de Algodón Egipcio',
       specsArea: '{n} m² de Espacio Exclusivo',
       policiesTitle: 'Políticas de la Estancia',
+      cancelPolicyBadge: 'Política de Cancelación',
       checkInPolicy: 'Check-in a partir de las 15:00 hrs',
       checkOutPolicy: 'Check-out hasta las 12:00 hrs',
       cancelPolicy: 'Cancelación flexible con reembolso íntegro hasta 48h antes',
@@ -357,6 +360,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       secureGuarantee: 'Garantía de mejor tarifa directa y pago seguro',
       reviewsTitle: 'Opiniones de Huéspedes Verificados',
       basedOnReviews: 'Basado en {n} opiniones de estancias completadas',
+      reviewsLabel: 'opiniones',
       ratingOut5: '{score} de 5',
       filterAll: 'Todas ({n})',
       filterStars: '{n} Estrellas ({count})',
@@ -368,7 +372,11 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       serviceScore: 'Atención del Personal',
       comfortScore: 'Instalaciones y Confort',
       locationScore: 'Ubicación y Entorno',
-      recommendationPct: '{pct}% de los huéspedes recomiendan esta suite'
+      recommendationPct: '{pct}% de los huéspedes recomiendan esta suite',
+      noReviewsYetSubtext: 'Esta suite aún no registra opiniones de huéspedes.',
+      noReviewsTitle: 'Suite recientemente incorporada',
+      noReviewsDesc: 'Sea el primer huésped en disfrutar de esta estancia y compartir su experiencia de autor.',
+      newSuiteBadge: 'Suite Nueva'
     },
     roomService: {
       title: 'Room Service Boutique & Spa Concierge',
@@ -511,6 +519,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       perNight: '/ night',
       bookNow: 'Book Now',
       viewDetails: 'View Details',
+      roomReviews: 'reviews',
       empty: 'No suites available matching the selected dates or criteria.'
     },
     amenities: {
@@ -697,6 +706,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       canceledEmptyDesc: 'All your scheduled requests remain active or have been enjoyed according to author itineraries.',
       canceledBadge: 'Cancelled Reservation',
       canceledLateTitle: 'Late Cancellation (<48h)',
+      cancelPolicyBadge: 'Cancellation Policy',
       canceledLateDesc: 'First night is retained (${penalty} USD) per boutique policy and remaining balance (${refund} USD) is refunded to your card •••• {last4}.',
       canceledFullTitle: '100% Refund Processed',
       canceledFullDesc: 'Amount of ${total} USD credited to your card •••• {last4}.',
@@ -792,6 +802,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       specsKingBed: 'Egyptian Cotton King Size Bed',
       specsArea: '{n} m² of Private Sanctuary',
       policiesTitle: 'Stay Policies',
+      cancelPolicyBadge: 'Cancellation Policy',
       checkInPolicy: 'Check-in from 3:00 PM',
       checkOutPolicy: 'Check-out until 12:00 PM',
       cancelPolicy: 'Flexible cancellation with 100% refund up to 48h before',
@@ -806,6 +817,7 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       secureGuarantee: 'Best direct rate guarantee & bank-grade encryption',
       reviewsTitle: 'Verified Guest Experiences',
       basedOnReviews: 'Based on {n} reviews from completed stays',
+      reviewsLabel: 'reviews',
       ratingOut5: '{score} out of 5',
       filterAll: 'All ({n})',
       filterStars: '{n} Stars ({count})',
@@ -817,7 +829,11 @@ export const TRANSLATIONS: Record<'es' | 'en', TranslationDictionary> = {
       serviceScore: 'Staff & Attention',
       comfortScore: 'Facilities & Comfort',
       locationScore: 'Location & Surroundings',
-      recommendationPct: '{pct}% of guests recommend this suite'
+      recommendationPct: '{pct}% of guests recommend this suite',
+      noReviewsYetSubtext: 'This suite does not have guest reviews yet.',
+      noReviewsTitle: 'Recently added suite',
+      noReviewsDesc: 'Be the first guest to enjoy this retreat and share your signature experience.',
+      newSuiteBadge: 'New Suite'
     },
     roomService: {
       title: 'Boutique Room Service & Spa Concierge',

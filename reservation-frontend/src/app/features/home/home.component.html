@@ -193,11 +193,13 @@
                   <span class="room-badge">
                     {{ getCategoryBadge(room.roomType.name) }}
                   </span>
-                  <div class="room-rating-chip">
-                    <span class="material-symbols-outlined star-icon">star</span>
-                    <span class="rating-val">4.8</span>
-                    <span class="reviews-count">(5)</span>
-                  </div>
+                  @if (getRoomRating(room).count > 0) {
+                    <div class="room-rating-chip">
+                      <span class="material-symbols-outlined star-icon">star</span>
+                      <span class="rating-val">{{ getRoomRating(room).score | number:'1.1-1' }}</span>
+                      <span class="reviews-count">({{ getRoomRating(room).count }})</span>
+                    </div>
+                  }
                 </div>
               </a>
 

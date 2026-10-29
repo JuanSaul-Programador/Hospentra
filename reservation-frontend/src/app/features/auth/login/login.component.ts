@@ -45,7 +45,9 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        if (err.status === 401) {
+        if (err.error?.detail) {
+          this.errorMessage.set(err.error.detail);
+        } else if (err.status === 401) {
           this.errorMessage.set('Usuario o contraseña incorrectos.');
         } else {
           this.errorMessage.set('No se pudo conectar con el servidor. Verifique su conexión.');
