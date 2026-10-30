@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Room, RoomRequest, RoomStatus, RoomType, RoomTypeRequest } from '../models/room.model';
+import { HousekeepingUpdateRequest, Room, RoomImage, RoomRequest, RoomStatus, RoomType, RoomTypeRequest } from '../models/room.model';
 
 @Injectable({
   providedIn: 'root'
@@ -39,6 +39,17 @@ export class RoomService {
     return this.http.patch<Room>(`${this.roomsUrl}/${id}/status?status=${status}`, {});
   }
 
+  updateHousekeeping(id: number, request: HousekeepingUpdateRequest): Observable<Room> {
+    return this.http.patch<Room>(`${this.roomsUrl}/${id}/housekeeping`, request);
+  }
+
+  markRoomReady(id: number, notes?: string): Observable<Room> {
+    return this.http.patch<Room>(`${this.roomsUrl}/${id}/housekeeping`, {
+      markReady: true,
+      housekeepingNotes: notes
+    });
+  }
+
   getRoomTypes(): Observable<RoomType[]> {
     return this.http.get<RoomType[]>(this.roomTypesUrl);
   }
@@ -57,5 +68,34 @@ export class RoomService {
 
   deleteRoomType(id: number): Observable<void> {
     return this.http.delete<void>(`${this.roomTypesUrl}/${id}`);
+  }
+
+  getRoomImages(roomTypeId: number): Observable<RoomImage[]> {
+    return this.http.get<RoomImage[]>(`${this.roomTypesUrl}/${roomTypeId}/images`);
+  }
+
+  uploadRoomImage(roomTypeId: number, file: File, isCover: boolean = false): Observable<RoomImage> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<RoomImage>(`${this.roomTypesUrl}/${roomTypeId}/images?isCover=${isCover}`, formData);
+  }
+
+  setCoverImage(imageId: number): Observable<RoomImage> {
+    return this.http.patch<RoomImage>(`${environment.apiUrl}/room-images/${imageId}/set-cover`, {});
+  }
+
+  deleteRoomImage(imageId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/room-images/${imageId}`);
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    if (!url) {
+      return 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80';
+    }
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const backendBase = environment.apiUrl.replace(/\/api\/?$/, '');
+    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 }

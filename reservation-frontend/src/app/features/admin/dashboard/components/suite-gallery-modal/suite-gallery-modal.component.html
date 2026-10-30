@@ -1,0 +1,196 @@
+@if (isOpen && roomType) {
+  <div class="modal-backdrop" (click)="closeModal.emit()">
+    <div class="modal-dialog-gallery" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="header-titles">
+          <div class="header-pretitle">
+            <span class="material-symbols-outlined pretitle-icon">photo_camera</span>
+            <span>Gestor Multimedia de Autor</span>
+          </div>
+          <h2 class="suite-title">{{ roomType.name }}</h2>
+          <span class="suite-badge">Suite ID #{{ roomType.id }} • {{ images().length }} fotografías registradas</span>
+        </div>
+
+        <button type="button" class="btn-close-modal" (click)="closeModal.emit()" aria-label="Cerrar ventana">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      @if (feedback(); as fb) {
+        <div class="feedback-banner" [class.success]="fb.type === 'success'" [class.error]="fb.type === 'error'">
+          <span class="material-symbols-outlined">{{ fb.type === 'success' ? 'check_circle' : 'error' }}</span>
+          <span>{{ fb.text }}</span>
+        </div>
+      }
+
+      <div class="modal-body-scroll">
+        <section class="upload-section">
+          <div class="section-title-row">
+            <span class="material-symbols-outlined section-icon">add_photo_alternate</span>
+            <h3 class="section-title">Subir Nueva Fotografía a la Suite</h3>
+          </div>
+
+          <div
+            class="dropzone-box"
+            (drop)="onDrop($event)"
+            (dragover)="onDragOver($event)"
+            [class.has-file]="!!selectedFile()"
+          >
+            @if (!previewUrl()) {
+              <div class="dropzone-idle">
+                <span class="material-symbols-outlined cloud-icon">cloud_upload</span>
+                <p class="dropzone-text">Arrastre y suelte una fotografía aquí o selecciónela desde su equipo</p>
+                <span class="dropzone-hint">Formatos válidos: JPG, PNG, WEBP (Máx. 10 MB)</span>
+                <label class="btn-browse-file">
+                  <span class="material-symbols-outlined">folder_open</span>
+                  <span>Explorar Archivos</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" hidden />
+                </label>
+              </div>
+            } @else {
+              <div class="preview-layout">
+                <div class="preview-image-wrapper">
+                  <img [src]="previewUrl()" alt="Vista previa de subida" class="preview-img" />
+                  <span class="preview-pill">Previsualización</span>
+                </div>
+
+                <div class="preview-actions-panel">
+                  <div class="file-info-badge">
+                    <span class="material-symbols-outlined">image</span>
+                    <span class="file-name">{{ selectedFile()?.name }}</span>
+                  </div>
+
+                  <label class="cover-toggle-label">
+                    <input type="checkbox" [(ngModel)]="uploadAsCover" class="cover-checkbox" />
+                    <span class="checkbox-text">Establecer inmediatamente como Foto de Portada Principal</span>
+                  </label>
+
+                  <div class="upload-btn-group">
+                    <button
+                      type="button"
+                      class="btn-upload-confirm"
+                      (click)="uploadImage()"
+                      [disabled]="isUploading()"
+                    >
+                      @if (isUploading()) {
+                        <span class="spinner-mini"></span>
+                        <span>Guardando en el servidor...</span>
+                      } @else {
+                        <span class="material-symbols-outlined">publish</span>
+                        <span>Confirmar y Subir</span>
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-upload-cancel"
+                      (click)="cancelSelectedFile()"
+                      [disabled]="isUploading()"
+                    >
+                      <span>Descartar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="cover-section">
+          <div class="section-title-row">
+            <span class="material-symbols-outlined section-icon star-icon">star</span>
+            <h3 class="section-title">Foto de Portada Principal (Presentación del Catálogo)</h3>
+          </div>
+
+          @if (coverImage; as cover) {
+            <div class="cover-card-hero">
+              <div class="cover-img-container">
+                <img [src]="resolveUrl(cover.imageUrl)" [alt]="roomType.name + ' Portada'" class="cover-img-hero" />
+                <div class="cover-pill-gold">
+                  <span class="material-symbols-outlined">stars</span>
+                  <span>Portada Activa en Catálogo</span>
+                </div>
+              </div>
+
+              <div class="cover-footer-meta">
+                <div class="meta-left">
+                  <span class="meta-label">Ubicación física:</span>
+                  <span class="meta-url" [title]="cover.imageUrl">{{ cover.imageUrl }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn-delete-cover"
+                  (click)="deleteImage(cover.id)"
+                  title="Eliminar foto de portada"
+                >
+                  <span class="material-symbols-outlined">delete</span>
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="empty-cover-box">
+              <span class="material-symbols-outlined">no_photography</span>
+              <p>Esta suite aún no tiene una foto de portada establecida. Suba una imagen para activarla en el catálogo.</p>
+            </div>
+          }
+        </section>
+
+        <section class="gallery-section">
+          <div class="section-title-row">
+            <span class="material-symbols-outlined section-icon">grid_view</span>
+            <h3 class="section-title">Fotos Referenciales y Galería de Ambientes ({{ referentialImages.length }})</h3>
+          </div>
+
+          @if (referentialImages.length === 0) {
+            <div class="empty-gallery-box">
+              <span class="material-symbols-outlined">collections</span>
+              <p>No hay fotografías referenciales registradas. Agregue fotos del baño, jacuzzi, balcón o vistas.</p>
+            </div>
+          } @else {
+            <div class="referential-grid">
+              @for (img of referentialImages; track img.id) {
+                <div class="gallery-card">
+                  <div class="gallery-thumb-wrapper">
+                    <img [src]="resolveUrl(img.imageUrl)" [alt]="roomType.name + ' Ambiente'" class="gallery-thumb-img" />
+                    <span class="photo-index-pill">#{{ $index + 1 }}</span>
+                  </div>
+
+                  <div class="gallery-card-actions">
+                    <button
+                      type="button"
+                      class="btn-make-cover"
+                      (click)="setCover(img.id)"
+                      title="Convertir en foto de portada principal"
+                    >
+                      <span class="material-symbols-outlined">star_rate</span>
+                      <span>Hacer Portada</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-delete-thumb"
+                      (click)="deleteImage(img.id)"
+                      title="Eliminar fotografía"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <footer class="modal-footer">
+        <span class="footer-tip">
+          <span class="material-symbols-outlined icon-tip">lightbulb</span>
+          <span>La foto marcada como portada se sincroniza automáticamente en las tarjetas de reserva y el buscador público.</span>
+        </span>
+        <button type="button" class="btn-done" (click)="closeModal.emit()">
+          <span>Completar Gestión</span>
+          <span class="material-symbols-outlined">check</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+}

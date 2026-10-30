@@ -19,13 +19,44 @@
     } @else {
       <section class="gallery-section">
         <div class="gallery-grid">
-          <div class="main-photo-wrapper">
+          <div class="main-photo-wrapper" (click)="openLightbox(activeImageIndex())">
             <img [src]="galleryImages()[activeImageIndex()]" [alt]="room()?.roomType?.name" class="main-photo" />
+
+            <button
+              type="button"
+              class="photo-nav-arrow prev"
+              (click)="$event.stopPropagation(); prevImage()"
+              [disabled]="galleryImages().length <= 1"
+              title="Foto anterior"
+            >
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            <button
+              type="button"
+              class="photo-nav-arrow next"
+              (click)="$event.stopPropagation(); nextImage()"
+              [disabled]="galleryImages().length <= 1"
+              title="Foto siguiente"
+            >
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+
             <div class="photo-overlay-badge">
               <span class="material-symbols-outlined">photo_camera</span>
               <span>{{ activeImageIndex() + 1 }} / {{ galleryImages().length }}</span>
             </div>
+
+            <button
+              type="button"
+              class="btn-expand-gallery-pill"
+              (click)="$event.stopPropagation(); openLightbox(activeImageIndex())"
+            >
+              <span class="material-symbols-outlined">fullscreen</span>
+              <span>Ver Fotos en Pantalla Completa</span>
+            </button>
           </div>
+
           <div class="thumbnails-grid">
             @for (img of galleryImages(); track $index) {
               <button
@@ -453,4 +484,63 @@
       </div>
     }
   </div>
+
+  @if (isLightboxOpen()) {
+    <div class="lightbox-backdrop" (click)="closeLightbox()">
+      <div class="lightbox-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <header class="lightbox-header">
+          <div class="lightbox-meta">
+            <span class="lightbox-counter">{{ activeImageIndex() + 1 }} / {{ galleryImages().length }}</span>
+            <h3 class="lightbox-title">{{ (i18n.currentLang() === 'en' && room()?.roomType?.nameEn) ? room()?.roomType?.nameEn : room()?.roomType?.name }}</h3>
+          </div>
+          <button type="button" class="btn-lightbox-close" (click)="closeLightbox()" aria-label="Cerrar vista completa">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div class="lightbox-stage">
+          <button
+            type="button"
+            class="lightbox-arrow prev"
+            (click)="prevImage()"
+            [disabled]="galleryImages().length <= 1"
+            aria-label="Foto anterior"
+          >
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+
+          <div class="lightbox-photo-wrap">
+            <img
+              [src]="galleryImages()[activeImageIndex()]"
+              [alt]="room()?.roomType?.name"
+              class="lightbox-photo"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="lightbox-arrow next"
+            (click)="nextImage()"
+            [disabled]="galleryImages().length <= 1"
+            aria-label="Foto siguiente"
+          >
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+
+        <footer class="lightbox-strip">
+          @for (thumb of galleryImages(); track $index) {
+            <button
+              type="button"
+              class="lightbox-thumb-btn"
+              [class.active]="activeImageIndex() === $index"
+              (click)="setActiveImage($index)"
+            >
+              <img [src]="thumb" [alt]="room()?.roomType?.name" class="lightbox-thumb-img" />
+            </button>
+          }
+        </footer>
+      </div>
+    </div>
+  }
 </div>

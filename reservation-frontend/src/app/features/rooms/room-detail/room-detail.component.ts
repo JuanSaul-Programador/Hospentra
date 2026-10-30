@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -50,9 +50,21 @@ export class RoomDetailComponent implements OnInit {
     return currentRoom.roomType.pricePerNight * this.nightsCount();
   });
 
+  readonly suiteImages = signal<string[]>([]);
+  readonly isLightboxOpen = signal<boolean>(false);
+
   readonly galleryImages = computed<string[]>(() => {
+    const realImages = this.suiteImages();
+    if (realImages.length > 0) {
+      return realImages;
+    }
     const currentRoom = this.room();
     if (!currentRoom) return [];
+    if (currentRoom.roomType?.coverImageUrl) {
+      const cover = this.roomService.resolveImageUrl(currentRoom.roomType.coverImageUrl);
+      const fallbacks = this.resolveGallery(currentRoom.id).slice(1);
+      return [cover, ...fallbacks];
+    }
     return this.resolveGallery(currentRoom.id);
   });
 
@@ -136,6 +148,9 @@ export class RoomDetailComponent implements OnInit {
       next: (data) => {
         this.room.set(data);
         this.isLoadingRoom.set(false);
+        if (data.roomType?.id) {
+          this.loadSuiteImages(data.roomType.id);
+        }
       },
       error: () => {
         this.room.set({
@@ -155,6 +170,60 @@ export class RoomDetailComponent implements OnInit {
         this.isLoadingRoom.set(false);
       }
     });
+  }
+
+  loadSuiteImages(roomTypeId: number): void {
+    this.roomService.getRoomImages(roomTypeId).subscribe({
+      next: (images) => {
+        if (images && images.length > 0) {
+          const sorted = [...images].sort((a, b) => {
+            if (a.isCover) return -1;
+            if (b.isCover) return 1;
+            return a.displayOrder - b.displayOrder;
+          });
+          this.suiteImages.set(sorted.map(img => this.roomService.resolveImageUrl(img.imageUrl)));
+        } else {
+          const currentRoom = this.room();
+          if (currentRoom?.roomType?.coverImageUrl) {
+            this.suiteImages.set([this.roomService.resolveImageUrl(currentRoom.roomType.coverImageUrl)]);
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  openLightbox(index: number = 0): void {
+    this.activeImageIndex.set(index);
+    this.isLightboxOpen.set(true);
+  }
+
+  closeLightbox(): void {
+    this.isLightboxOpen.set(false);
+  }
+
+  nextImage(): void {
+    const total = this.galleryImages().length;
+    if (total <= 1) return;
+    this.activeImageIndex.update(idx => (idx + 1) % total);
+  }
+
+  prevImage(): void {
+    const total = this.galleryImages().length;
+    if (total <= 1) return;
+    this.activeImageIndex.update(idx => (idx - 1 + total) % total);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyDown(event: KeyboardEvent): void {
+    if (!this.isLightboxOpen()) return;
+    if (event.key === 'Escape') {
+      this.closeLightbox();
+    } else if (event.key === 'ArrowRight') {
+      this.nextImage();
+    } else if (event.key === 'ArrowLeft') {
+      this.prevImage();
+    }
   }
 
   loadReviewSummary(roomId: number): void {

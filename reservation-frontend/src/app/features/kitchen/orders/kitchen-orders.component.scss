@@ -308,50 +308,55 @@
 }
 
 .stat-box {
-  background-color: #0f172a;
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background-color: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.35rem;
   display: flex;
   align-items: center;
   gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease;
 
   .stat-num {
-    font-size: 2rem;
+    font-size: 1.85rem;
     font-weight: 800;
     line-height: 1;
+    color: #ffffff;
   }
 
   .stat-label {
     font-size: 0.8125rem;
     font-weight: 600;
     color: #94a3b8;
+    letter-spacing: 0.01em;
   }
 
   &.amber {
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: rgba(217, 119, 6, 0.3);
     .stat-num {
-      color: #fbbf24;
+      color: #f59e0b;
     }
   }
 
   &.blue {
-    border-color: rgba(59, 130, 246, 0.3);
+    border-color: rgba(37, 99, 235, 0.3);
     .stat-num {
       color: #60a5fa;
     }
   }
 
   &.emerald {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(5, 150, 105, 0.3);
     .stat-num {
       color: #34d399;
     }
   }
 
   &.gray {
+    border-color: rgba(255, 255, 255, 0.08);
     .stat-num {
-      color: #cbd5e1;
+      color: #e2e8f0;
     }
   }
 }
@@ -368,31 +373,32 @@
 }
 
 .kanban-col {
-  background-color: #0d1322;
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background-color: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   display: flex;
   flex-direction: column;
   min-height: 600px;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 
   &.col-received {
-    border-top: 4px solid #f59e0b;
+    border-top: 3px solid #d97706;
   }
 
   &.col-preparing {
-    border-top: 4px solid #3b82f6;
+    border-top: 3px solid #2563eb;
   }
 
   &.col-ready {
-    border-top: 4px solid #10b981;
+    border-top: 3px solid #059669;
   }
 }
 
 .col-header {
   padding: 1.125rem 1.25rem;
-  background-color: rgba(15, 23, 42, 0.7);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -412,23 +418,20 @@
 }
 
 .status-indicator-dot {
-  width: 0.625rem;
-  height: 0.625rem;
+  width: 0.55rem;
+  height: 0.55rem;
   border-radius: 50%;
 
   &.dot-amber {
     background-color: #f59e0b;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
   }
 
   &.dot-blue {
     background-color: #3b82f6;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
   }
 
   &.dot-emerald {
     background-color: #10b981;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
   }
 }
 
@@ -437,20 +440,26 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 800;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 
   &.count-amber {
-    background-color: rgba(245, 158, 11, 0.2);
     color: #fbbf24;
+    background-color: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
   }
 
   &.count-blue {
-    background-color: rgba(59, 130, 246, 0.2);
     color: #60a5fa;
+    background-color: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.25);
   }
 
   &.count-emerald {
-    background-color: rgba(16, 185, 129, 0.2);
     color: #34d399;
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.25);
   }
 }
 
@@ -467,31 +476,36 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1rem;
+  padding: 4.5rem 1rem;
   color: #64748b;
   text-align: center;
-  gap: 0.75rem;
+  gap: 1rem;
 
   .material-symbols-outlined {
-    font-size: 3rem;
-    opacity: 0.4;
+    font-size: 2.75rem;
+    color: #475569;
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   p {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
     margin: 0;
   }
 }
 
 .order-card {
-  background-color: #151d30;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background-color: #182234;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.875rem;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   transition: transform 0.2s ease, border-color 0.2s ease;
 
   &:hover {

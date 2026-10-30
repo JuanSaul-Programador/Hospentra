@@ -222,6 +222,9 @@ export class HomeComponent implements OnInit {
   }
 
   getRoomImage(room: Room): string {
+    if (room.roomType?.coverImageUrl) {
+      return this.roomService.resolveImageUrl(room.roomType.coverImageUrl);
+    }
     return this.roomImages[room.id] ||
       this.roomImages[((room.id - 1) % 6) + 1] ||
       'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80';

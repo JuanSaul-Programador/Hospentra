@@ -90,6 +90,15 @@
       } @else {
         @for (rt of roomTypes; track rt.id) {
           <article class="type-card">
+            @if (rt.coverImageUrl) {
+              <div class="type-card-cover-wrapper">
+                <img [src]="resolveImageUrl(rt.coverImageUrl)" [alt]="rt.name" class="type-card-cover-img" />
+                <button type="button" class="btn-change-photo-pill" (click)="openGalleryModal(rt)" title="Gestionar multimedia">
+                  <span class="material-symbols-outlined">photo_camera</span>
+                  <span>Fotos</span>
+                </button>
+              </div>
+            }
             <div class="type-card-head">
               <div class="type-meta-left">
                 <span class="type-id-tag">TIPO #{{ rt.id }}</span>
@@ -127,6 +136,10 @@
               </div>
 
               <div class="card-action-btns">
+                <button type="button" class="btn-card-action gallery" (click)="openGalleryModal(rt)" title="Gestionar fotografías">
+                  <span class="material-symbols-outlined">photo_library</span>
+                  <span>Fotos</span>
+                </button>
                 <button type="button" class="btn-card-action edit" (click)="openEditRoomTypeModal(rt)" title="Editar categoría">
                   <span class="material-symbols-outlined">edit</span>
                   <span>Editar</span>
@@ -289,6 +302,67 @@
           </div>
         </div>
 
+        <div class="form-group cover-upload-group">
+          <label class="form-label">Fotografía de Portada de la Suite (Catálogo Principal)</label>
+          @if (coverFilePreview()) {
+            <div class="cover-preview-card">
+              <img [src]="coverFilePreview()" alt="Previsualización de portada" class="cover-preview-img" />
+              <div class="cover-preview-info">
+                <span class="preview-badge new">Nueva Portada</span>
+                <span class="preview-filename">{{ selectedCoverFile()?.name }}</span>
+                <span class="preview-filesize">{{ ((selectedCoverFile()?.size || 0) / (1024 * 1024)) | number:'1.2-2' }} MB</span>
+              </div>
+              <button type="button" class="btn-remove-cover" (click)="removeSelectedCoverFile()" title="Remover imagen seleccionada">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Quitar</span>
+              </button>
+            </div>
+          } @else if (existingCoverUrl()) {
+            <div class="cover-preview-card existing">
+              <img [src]="resolveImageUrl(existingCoverUrl()!)" alt="Portada actual" class="cover-preview-img" />
+              <div class="cover-preview-info">
+                <span class="preview-badge existing">Portada Actual</span>
+                <span class="preview-filename">Imagen vigente en catálogo</span>
+              </div>
+              <button type="button" class="btn-change-cover" (click)="coverFileInput.click()" title="Cambiar imagen de portada">
+                <span class="material-symbols-outlined">sync</span>
+                <span>Cambiar</span>
+              </button>
+            </div>
+            <input
+              #coverFileInput
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              class="hidden-file-input"
+              (change)="onCoverFileSelected($event)"
+            />
+          } @else {
+            <div
+              class="cover-dropzone"
+              [class.dragover]="isCoverDropOver()"
+              (click)="coverFileInput.click()"
+              (dragover)="onCoverDragOver($event)"
+              (dragleave)="onCoverDragLeave($event)"
+              (drop)="onCoverDrop($event)"
+            >
+              <input
+                #coverFileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                class="hidden-file-input"
+                (change)="onCoverFileSelected($event)"
+              />
+              <div class="dropzone-icon-halo">
+                <span class="material-symbols-outlined dropzone-icon">add_photo_alternate</span>
+              </div>
+              <div class="dropzone-text">
+                <strong class="dropzone-title">Haga clic o arrastre aquí la foto principal</strong>
+                <span class="dropzone-hint">Formatos soportados: JPG, PNG, WebP o AVIF (Máximo 10 MB)</span>
+              </div>
+            </div>
+          }
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="rtDesc">Descripción en Español</label>
           <textarea
@@ -445,3 +519,10 @@
     </div>
   </div>
 }
+
+<app-suite-gallery-modal
+  [roomType]="galleryTargetRoomType()"
+  [isOpen]="isGalleryModalOpen()"
+  (closeModal)="closeGalleryModal()"
+  (galleryUpdated)="onGalleryUpdated()"
+></app-suite-gallery-modal>

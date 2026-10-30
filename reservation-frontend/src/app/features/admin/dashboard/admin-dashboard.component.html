@@ -242,6 +242,7 @@
           [rooms]="rooms()"
           [isActionProcessing]="isActionProcessing()"
           (markClean)="markRoomClean($event)"
+          (saveHousekeeping)="updateRoomHousekeeping($event)"
         ></app-room-rack>
 
         <section class="operations-panel">
@@ -507,7 +508,7 @@
                           @if (res.status === 'PENDING') {
                             <button
                               type="button"
-                              class="action-btn confirm-btn"
+                              class="action-btn confirm-btn primary-action"
                               (click)="confirmReservation(res.id)"
                               [disabled]="isActionProcessing()"
                               title="Confirmar reserva"
@@ -520,7 +521,7 @@
                           @if (res.status === 'CONFIRMED') {
                             <button
                               type="button"
-                              class="action-btn checkin-btn"
+                              class="action-btn checkin-btn primary-action"
                               (click)="openCheckInModal(res)"
                               [disabled]="isActionProcessing()"
                               title="Registrar Check-In del huésped y entregar llaves"
@@ -533,7 +534,7 @@
                           @if (res.status === 'CHECKED_IN') {
                             <button
                               type="button"
-                              class="action-btn checkout-btn"
+                              class="action-btn checkout-btn primary-action"
                               (click)="openCheckOutModal(res)"
                               [disabled]="isActionProcessing()"
                               title="Registrar Check-Out y salida del huésped"
@@ -543,37 +544,39 @@
                             </button>
                           }
 
-                          <button
-                            type="button"
-                            class="action-btn voucher-btn"
-                            (click)="openVoucher(res)"
-                            title="Ver o imprimir voucher corporativo"
-                          >
-                            <span class="material-symbols-outlined">receipt_long</span>
-                            <span>Voucher</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            class="action-btn folio-btn"
-                            (click)="openFolio(res)"
-                            title="Generar y descargar Folio Fiscal oficial en PDF"
-                          >
-                            <span class="material-symbols-outlined">description</span>
-                            <span>Folio</span>
-                          </button>
-
-                          @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {
+                          <div class="secondary-actions-row">
                             <button
                               type="button"
-                              class="action-btn cancel-btn"
-                              (click)="openCancelDialog(res)"
-                              [disabled]="isActionProcessing()"
-                              title="Cancelar reserva"
+                              class="action-btn voucher-btn"
+                              (click)="openVoucher(res)"
+                              title="Ver o imprimir voucher corporativo"
                             >
-                              <span class="material-symbols-outlined">cancel</span>
+                              <span class="material-symbols-outlined">receipt_long</span>
+                              <span>Voucher</span>
                             </button>
-                          }
+
+                            <button
+                              type="button"
+                              class="action-btn folio-btn"
+                              (click)="openFolio(res)"
+                              title="Generar y descargar Folio Fiscal oficial en PDF"
+                            >
+                              <span class="material-symbols-outlined">description</span>
+                              <span>Folio</span>
+                            </button>
+
+                            @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {
+                              <button
+                                type="button"
+                                class="action-btn cancel-btn"
+                                (click)="openCancelDialog(res)"
+                                [disabled]="isActionProcessing()"
+                                title="Cancelar reserva"
+                              >
+                                <span class="material-symbols-outlined">cancel</span>
+                              </button>
+                            }
+                          </div>
                         </div>
                       </td>
                     </tr>

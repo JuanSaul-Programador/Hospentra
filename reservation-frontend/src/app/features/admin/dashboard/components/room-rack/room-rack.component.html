@@ -1,54 +1,375 @@
 <section class="room-rack-section">
   <div class="rack-header-row">
     <div class="rack-title-group">
-      <span class="material-symbols-outlined rack-icon">bed</span>
-      <h3 class="rack-title">Room Rack & Estado de Limpieza (Housekeeping)</h3>
+      <div class="rack-icon-halo">
+        <span class="material-symbols-outlined rack-icon">bed</span>
+      </div>
+      <div>
+        <h3 class="rack-title">Room Rack & Módulo de Limpieza (Housekeeping)</h3>
+        <p class="rack-meta">Supervisión en vivo de suites, asignación de camaristas por piso e inspección de entrega</p>
+      </div>
     </div>
-    <span class="rack-meta">Control de llaves y mantenimiento de suites</span>
+
+    <div class="rack-kpi-strip">
+      <div class="kpi-pill total">
+        <span class="kpi-label">Total Suites</span>
+        <strong class="kpi-val">{{ totalRoomsCount() }}</strong>
+      </div>
+      <div class="kpi-pill available">
+        <span class="kpi-dot"></span>
+        <span class="kpi-label">Disponibles</span>
+        <strong class="kpi-val">{{ availableRoomsCount() }}</strong>
+      </div>
+      <div class="kpi-pill maintenance">
+        <span class="kpi-dot"></span>
+        <span class="kpi-label">En Limpieza</span>
+        <strong class="kpi-val">{{ maintenanceRoomsCount() }}</strong>
+      </div>
+      <div class="kpi-pill occupied">
+        <span class="kpi-dot"></span>
+        <span class="kpi-label">En Casa</span>
+        <strong class="kpi-val">{{ occupiedRoomsCount() }}</strong>
+      </div>
+      @if (highPriorityCount() > 0) {
+        <div class="kpi-pill high-priority" title="Suites en limpieza con huéspedes por llegar hoy">
+          <span class="material-symbols-outlined">priority_high</span>
+          <span class="kpi-label">Prioridad Alta</span>
+          <strong class="kpi-val">{{ highPriorityCount() }}</strong>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="rack-filters-bar">
+    <div class="filter-pills-row">
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedFilter() === 'ALL'"
+        (click)="setFilter('ALL')"
+      >
+        <span>Todas las Suites</span>
+        <span class="pill-badge">{{ totalRoomsCount() }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill warning"
+        [class.active]="selectedFilter() === 'CLEANING'"
+        (click)="setFilter('CLEANING')"
+      >
+        <span class="material-symbols-outlined">sanitizer</span>
+        <span>Requieren Limpieza</span>
+        <span class="pill-badge warning">{{ maintenanceRoomsCount() }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedFilter() === '1'"
+        (click)="setFilter('1')"
+      >
+        <span>Piso 1 (Jardín)</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedFilter() === '2'"
+        (click)="setFilter('2')"
+      >
+        <span>Piso 2 (Océano)</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedFilter() === '3'"
+        (click)="setFilter('3')"
+      >
+        <span>Piso 3 (Panorámico)</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedFilter() === '4'"
+        (click)="setFilter('4')"
+      >
+        <span>Piso 4 (Penthouses)</span>
+      </button>
+    </div>
+
+    <div class="rack-search-wrap">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        type="text"
+        class="rack-search-input"
+        placeholder="Buscar por hab., camarista o nota..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+      />
+      @if (searchQuery()) {
+        <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      }
+    </div>
   </div>
 
   <div class="rooms-grid">
-    @for (room of rooms; track room.id) {
-      <div class="room-rack-card" [ngClass]="'status-' + room.status.toLowerCase()">
-        <div class="room-card-top">
-          <span class="room-number-pill">Hab. {{ room.roomNumber }}</span>
+    @for (room of filteredRooms(); track room.id) {
+      <article class="room-rack-card" [ngClass]="'status-' + room.status.toLowerCase()">
+        <header class="room-card-header">
+          <div class="room-id-box">
+            <span class="room-number-pill">Hab. {{ room.roomNumber }}</span>
+            <span class="room-floor-tag">{{ getFloorLabel(room.roomNumber) }}</span>
+          </div>
+
           <span class="room-status-badge" [ngClass]="'badge-' + room.status.toLowerCase()">
             @if (room.status === 'AVAILABLE') {
-              <span class="status-dot"></span> Lista / Disponible
+              <span class="status-dot"></span>
+              <span>Disponible</span>
             } @else if (room.status === 'OCCUPIED') {
-              <span class="status-dot"></span> Huésped en Casa
+              <span class="status-dot"></span>
+              <span>En Casa</span>
             } @else {
-              <span class="status-dot"></span> En Limpieza
+              <span class="status-dot"></span>
+              <span>En Limpieza</span>
             }
           </span>
-        </div>
-        <h4 class="room-type-title">{{ room.roomType.name }}</h4>
+        </header>
 
-        <div class="room-card-actions">
+        @if (room.status === 'MAINTENANCE' && room.cleaningPriority === 'HIGH') {
+          <div class="priority-strip">
+            <span class="material-symbols-outlined">stars</span>
+            <span>Check-In Hoy • Prioridad Alta</span>
+          </div>
+        }
+
+        <div class="room-info-body">
+          <h4 class="room-type-title">{{ room.roomType.name }}</h4>
+
+          <div class="housekeeper-row">
+            <div class="housekeeper-badge" [class.unassigned]="!room.housekeeperName">
+              <span class="material-symbols-outlined icon-staff">person_pin</span>
+              <span class="staff-name">{{ room.housekeeperName || 'Camarista Sin Asignar' }}</span>
+            </div>
+          </div>
+
+          @if (room.housekeepingNotes) {
+            <div class="inspection-snippet" [class.has-incident]="room.housekeepingNotes.includes('[INCIDENCIA]')">
+              @if (room.housekeepingNotes.includes('[INCIDENCIA]')) {
+                <div class="incident-tag">
+                  <span class="material-symbols-outlined">warning</span>
+                  <span>Incidencia Reportada</span>
+                </div>
+              }
+              <p class="notes-text">{{ room.housekeepingNotes }}</p>
+            </div>
+          }
+
+          <div class="last-cleaned-line">
+            <span class="material-symbols-outlined icon-clock">schedule</span>
+            <span class="cleaned-text">Higienización: {{ formatCleanedDate(room.lastCleanedAt) }}</span>
+          </div>
+        </div>
+
+        <footer class="room-card-actions">
           @if (room.status === 'MAINTENANCE') {
             <button
               type="button"
-              class="btn-clean-action"
-              (click)="onMarkClean(room.id)"
+              class="btn-rack-action primary-ready"
+              (click)="onQuickClean(room)"
               [disabled]="isActionProcessing"
-              title="Marcar suite como limpia y lista para entrega"
+              title="Marcar suite limpia y disponible para el próximo huésped"
             >
-              <span class="material-symbols-outlined">sanitizer</span>
-              <span>Marcar Limpia y Lista</span>
+              <span class="material-symbols-outlined">task_alt</span>
+              <span>Marcar Lista</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-rack-action secondary-inspect"
+              (click)="openHousekeepingModal(room)"
+              [disabled]="isActionProcessing"
+              title="Asignar camarista, notas y checklist"
+            >
+              <span class="material-symbols-outlined">checklist</span>
+              <span>Inspección</span>
             </button>
           } @else if (room.status === 'AVAILABLE') {
-            <span class="ready-notice">
-              <span class="material-symbols-outlined">check</span>
-              Acondicionada para venta
-            </span>
+            <div class="available-bar">
+              <span class="ready-badge">
+                <span class="material-symbols-outlined">verified</span>
+                Acondicionada para entrega
+              </span>
+              <button
+                type="button"
+                class="btn-inspect-mini"
+                (click)="openHousekeepingModal(room)"
+                title="Ver o editar ficha de limpieza"
+              >
+                <span class="material-symbols-outlined">tune</span>
+              </button>
+            </div>
           } @else {
-            <span class="inhouse-notice">
-              <span class="material-symbols-outlined">vpn_key</span>
-              Llaves entregadas a huésped
-            </span>
+            <div class="inhouse-bar">
+              <span class="inhouse-badge">
+                <span class="material-symbols-outlined">vpn_key</span>
+                Estancia activa
+              </span>
+              <button
+                type="button"
+                class="btn-inspect-mini"
+                (click)="openHousekeepingModal(room)"
+                title="Registrar solicitud de repaso o notas"
+              >
+                <span class="material-symbols-outlined">edit_note</span>
+              </button>
+            </div>
           }
-        </div>
+        </footer>
+      </article>
+    } @empty {
+      <div class="empty-rack-state">
+        <span class="material-symbols-outlined empty-icon">hotel</span>
+        <h4>No se encontraron habitaciones</h4>
+        <p>Ajuste el filtro de piso o el término de búsqueda para ver otras suites.</p>
       </div>
     }
   </div>
 </section>
+
+@if (activeModalRoom()) {
+  <div class="housekeeping-modal-backdrop" (click)="closeHousekeepingModal()">
+    <div class="housekeeping-modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <button type="button" class="btn-close-modal" (click)="closeHousekeepingModal()" aria-label="Cerrar modal">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <header class="modal-dialog-header">
+        <div class="header-icon-wrap">
+          <span class="material-symbols-outlined">cleaning_services</span>
+        </div>
+        <div>
+          <h3 class="modal-dialog-title">Ficha de Housekeeping & Inspección</h3>
+          <p class="modal-dialog-sub">
+            Suite {{ activeModalRoom()?.roomNumber }} • {{ activeModalRoom()?.roomType?.name }} • {{ getFloorLabel(activeModalRoom()?.roomNumber || '') }}
+          </p>
+        </div>
+      </header>
+
+      <div class="modal-dialog-body">
+        <div class="form-row-grid">
+          <div class="dialog-field">
+            <label class="field-label" for="hkStaffSelect">Camarista Responsable Asignada</label>
+            <select
+              id="hkStaffSelect"
+              class="field-select"
+              [ngModel]="modalHousekeeper()"
+              (ngModelChange)="modalHousekeeper.set($event)"
+            >
+              <option value="">-- Sin Asignar (Pendiente de Asignación) --</option>
+              @for (staff of housekeepersList; track staff) {
+                <option [value]="staff">{{ staff }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="dialog-field">
+            <label class="field-label" for="hkPrioritySelect">Prioridad Operativa de Suite</label>
+            <select
+              id="hkPrioritySelect"
+              class="field-select"
+              [ngModel]="modalPriority()"
+              (ngModelChange)="modalPriority.set($event)"
+            >
+              <option value="NORMAL">Normal • Limpieza Estándar</option>
+              <option value="HIGH">Alta Prioridad • Check-In Programado Hoy</option>
+              <option value="LOW">Baja • Mantenimiento Preventivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="checklist-section">
+          <span class="checklist-heading">Checklist Rápido de Inspección de Entrega</span>
+          <div class="checklist-chips-wrap">
+            @for (item of standardChecklist; track item) {
+              <button
+                type="button"
+                class="checklist-chip"
+                [class.checked]="modalChecklist().includes(item)"
+                (click)="toggleChecklistItem(item)"
+              >
+                <span class="material-symbols-outlined chip-icon">
+                  {{ modalChecklist().includes(item) ? 'check_box' : 'check_box_outline_blank' }}
+                </span>
+                <span>{{ item }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="incident-bar-row">
+          <button
+            type="button"
+            class="btn-toggle-incident"
+            [class.active]="modalIncidentReported()"
+            (click)="toggleIncidentReport()"
+          >
+            <span class="material-symbols-outlined">
+              {{ modalIncidentReported() ? 'report' : 'report_problem' }}
+            </span>
+            <span>
+              {{ modalIncidentReported() ? 'Incidencia Reportada (Se notificará a Recepción)' : 'Reportar Incidencia o Mantenimiento Menor' }}
+            </span>
+          </button>
+        </div>
+
+        <div class="dialog-field">
+          <label class="field-label" for="hkNotesArea">Observaciones Especiales o Reporte de Gobernanta</label>
+          <textarea
+            id="hkNotesArea"
+            rows="3"
+            class="field-textarea"
+            placeholder="Ej. Minibar reabastecido al 100%, lencería de cama cambiada. Dejar copa de bienvenida fría para las 15:00 hrs..."
+            [ngModel]="modalNotes()"
+            (ngModelChange)="modalNotes.set($event)"
+          ></textarea>
+        </div>
+      </div>
+
+      <footer class="modal-dialog-footer">
+        <button
+          type="button"
+          class="btn-modal-cancel"
+          (click)="closeHousekeepingModal()"
+          [disabled]="isSavingModal()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          class="btn-modal-save"
+          (click)="saveModal(false)"
+          [disabled]="isSavingModal()"
+        >
+          <span class="material-symbols-outlined">save</span>
+          <span>Guardar Ficha</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-modal-ready"
+          (click)="saveModal(true)"
+          [disabled]="isSavingModal()"
+        >
+          <span class="material-symbols-outlined">verified</span>
+          <span>Guardar y Marcar Lista</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+}

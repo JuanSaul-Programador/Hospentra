@@ -11,7 +11,7 @@ import { RoomOrderService } from '../../../core/services/room-order.service';
 import { TherapistService } from '../../../core/services/therapist.service';
 import { SseService } from '../../../core/services/sse.service';
 import { Reservation, ReservationStatus } from '../../../core/models/reservation.model';
-import { Room, RoomStatus, RoomType } from '../../../core/models/room.model';
+import { HousekeepingUpdateRequest, Room, RoomStatus, RoomType } from '../../../core/models/room.model';
 import { Role } from '../../../core/models/auth.model';
 import { Shift, UserResponse, WorkStatus } from '../../../core/models/staff.model';
 import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
@@ -858,6 +858,22 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.isActionProcessing.set(false);
         this.rooms.update(rooms => rooms.map(r => r.id === roomId ? { ...r, status: 'AVAILABLE' } : r));
         this.showToast('Habitación marcada como disponible.');
+      }
+    });
+  }
+
+  updateRoomHousekeeping(event: { roomId: number; request: HousekeepingUpdateRequest }): void {
+    this.isActionProcessing.set(true);
+    this.roomService.updateHousekeeping(event.roomId, event.request).subscribe({
+      next: (updatedRoom) => {
+        this.isActionProcessing.set(false);
+        this.rooms.update(rooms => rooms.map(r => r.id === event.roomId ? updatedRoom : r));
+        const statusMsg = updatedRoom.status === 'AVAILABLE' ? 'marcada como lista e inspeccionada.' : 'ficha de limpieza actualizada.';
+        this.showToast(`Suite ${updatedRoom.roomNumber} ${statusMsg}`);
+      },
+      error: () => {
+        this.isActionProcessing.set(false);
+        this.showToast('Error al actualizar housekeeping de la suite.');
       }
     });
   }

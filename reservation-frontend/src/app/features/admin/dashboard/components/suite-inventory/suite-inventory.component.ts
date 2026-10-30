@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Room, RoomRequest, RoomStatus, RoomType, RoomTypeRequest } from '../../../../../core/models/room.model';
 import { RoomService } from '../../../../../core/services/room.service';
+import { SuiteGalleryModalComponent } from '../suite-gallery-modal/suite-gallery-modal.component';
 
 @Component({
   selector: 'app-suite-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SuiteGalleryModalComponent],
   templateUrl: './suite-inventory.component.html',
   styleUrl: './suite-inventory.component.scss'
 })
@@ -48,6 +49,14 @@ export class SuiteInventoryComponent {
   readonly isSaving = signal<boolean>(false);
   readonly formError = signal<string | null>(null);
 
+  readonly isGalleryModalOpen = signal<boolean>(false);
+  readonly galleryTargetRoomType = signal<RoomType | null>(null);
+
+  readonly selectedCoverFile = signal<File | null>(null);
+  readonly coverFilePreview = signal<string | null>(null);
+  readonly existingCoverUrl = signal<string | null>(null);
+  readonly isCoverDropOver = signal<boolean>(false);
+
   readonly availableRoomsCount = computed(() => this.rooms.filter(r => r.status === 'AVAILABLE').length);
   readonly occupiedRoomsCount = computed(() => this.rooms.filter(r => r.status === 'OCCUPIED').length);
   readonly maintenanceRoomsCount = computed(() => this.rooms.filter(r => r.status === 'MAINTENANCE').length);
@@ -64,6 +73,9 @@ export class SuiteInventoryComponent {
   openCreateRoomTypeModal(): void {
     this.editingRoomTypeId.set(null);
     this.formError.set(null);
+    this.selectedCoverFile.set(null);
+    this.coverFilePreview.set(null);
+    this.existingCoverUrl.set(null);
     this.roomTypeForm.set({
       name: '',
       nameEn: '',
@@ -78,6 +90,9 @@ export class SuiteInventoryComponent {
   openEditRoomTypeModal(rt: RoomType): void {
     this.editingRoomTypeId.set(rt.id);
     this.formError.set(null);
+    this.selectedCoverFile.set(null);
+    this.coverFilePreview.set(null);
+    this.existingCoverUrl.set(rt.coverImageUrl || null);
     this.roomTypeForm.set({
       name: rt.name,
       nameEn: rt.nameEn || '',
@@ -92,6 +107,62 @@ export class SuiteInventoryComponent {
   closeRoomTypeModal(): void {
     this.isRoomTypeModalOpen.set(false);
     this.formError.set(null);
+    this.selectedCoverFile.set(null);
+    this.coverFilePreview.set(null);
+    this.existingCoverUrl.set(null);
+  }
+
+  onCoverFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.processCoverFile(input.files[0]);
+    }
+  }
+
+  onCoverDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isCoverDropOver.set(true);
+  }
+
+  onCoverDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isCoverDropOver.set(false);
+  }
+
+  onCoverDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isCoverDropOver.set(false);
+    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
+      this.processCoverFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  processCoverFile(file: File): void {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+    if (!allowed.includes(file.type)) {
+      this.formError.set('Formato no compatible. Utilice imágenes JPG, PNG, WEBP o AVIF.');
+      return;
+    }
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      this.formError.set('La imagen excede el límite permitido de 10 MB.');
+      return;
+    }
+    this.formError.set(null);
+    this.selectedCoverFile.set(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.coverFilePreview.set(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeSelectedCoverFile(): void {
+    this.selectedCoverFile.set(null);
+    this.coverFilePreview.set(null);
   }
 
   saveRoomType(): void {
@@ -122,17 +193,23 @@ export class SuiteInventoryComponent {
     };
 
     const editId = this.editingRoomTypeId();
+    const coverFile = this.selectedCoverFile();
+
     if (editId) {
       this.roomService.updateRoomType(editId, payload).subscribe({
         next: (updated) => {
-          this.isSaving.set(false);
-          this.closeRoomTypeModal();
-          this.refreshRoomTypes.emit();
-          this.refreshRooms.emit();
-          this.notify.emit({
-            type: 'success',
-            message: `Categoría de Suite "${updated.name}" actualizada con éxito.`
-          });
+          if (coverFile) {
+            this.roomService.uploadRoomImage(editId, coverFile, true).subscribe({
+              next: () => {
+                this.finishSaveRoomType(updated.name, 'actualizada con nueva fotografía de portada');
+              },
+              error: () => {
+                this.finishSaveRoomType(updated.name, 'actualizada, pero ocurrió un problema al cargar la foto');
+              }
+            });
+          } else {
+            this.finishSaveRoomType(updated.name, 'actualizada con éxito');
+          }
         },
         error: (err) => {
           this.isSaving.set(false);
@@ -143,13 +220,18 @@ export class SuiteInventoryComponent {
     } else {
       this.roomService.createRoomType(payload).subscribe({
         next: (created) => {
-          this.isSaving.set(false);
-          this.closeRoomTypeModal();
-          this.refreshRoomTypes.emit();
-          this.notify.emit({
-            type: 'success',
-            message: `Nueva categoría de suite "${created.name}" creada con éxito.`
-          });
+          if (coverFile) {
+            this.roomService.uploadRoomImage(created.id, coverFile, true).subscribe({
+              next: () => {
+                this.finishSaveRoomType(created.name, 'creada exitosamente con su foto de portada');
+              },
+              error: () => {
+                this.finishSaveRoomType(created.name, 'creada, pero ocurrió un problema al cargar la portada');
+              }
+            });
+          } else {
+            this.finishSaveRoomType(created.name, 'creada con éxito');
+          }
         },
         error: (err) => {
           this.isSaving.set(false);
@@ -158,6 +240,36 @@ export class SuiteInventoryComponent {
         }
       });
     }
+  }
+
+  private finishSaveRoomType(name: string, actionText: string): void {
+    this.isSaving.set(false);
+    this.closeRoomTypeModal();
+    this.refreshRoomTypes.emit();
+    this.refreshRooms.emit();
+    this.notify.emit({
+      type: 'success',
+      message: `Categoría de Suite "${name}" ${actionText}.`
+    });
+  }
+
+  openGalleryModal(roomType: RoomType): void {
+    this.galleryTargetRoomType.set(roomType);
+    this.isGalleryModalOpen.set(true);
+  }
+
+  closeGalleryModal(): void {
+    this.isGalleryModalOpen.set(false);
+    this.galleryTargetRoomType.set(null);
+  }
+
+  onGalleryUpdated(): void {
+    this.refreshRoomTypes.emit();
+    this.refreshRooms.emit();
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    return this.roomService.resolveImageUrl(url);
   }
 
   openCreateRoomModal(): void {
