@@ -1,6 +1,7 @@
 package com.hotel.application.services;
 
 import com.hotel.domain.model.RoomStatus;
+import com.hotel.web.dto.HousekeepingUpdateRequest;
 import com.hotel.web.dto.RoomRequest;
 import com.hotel.web.dto.RoomResponse;
 
@@ -19,6 +20,8 @@ public interface RoomService {
     RoomResponse update(Long id, RoomRequest request);
 
     RoomResponse updateStatus(Long id, RoomStatus status);
+
+    RoomResponse updateHousekeeping(Long id, HousekeepingUpdateRequest request);
 
     void delete(Long id);
 }

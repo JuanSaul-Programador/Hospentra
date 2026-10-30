@@ -35,4 +35,7 @@ public class RoomType {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight;
+
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
 }

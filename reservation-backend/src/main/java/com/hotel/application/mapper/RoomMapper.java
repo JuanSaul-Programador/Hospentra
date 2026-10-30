@@ -18,7 +18,11 @@ public class RoomMapper {
                 room.getId(),
                 room.getRoomNumber(),
                 room.getStatus(),
-                roomTypeMapper.toResponse(room.getRoomType())
+                roomTypeMapper.toResponse(room.getRoomType()),
+                room.getHousekeeperName(),
+                room.getHousekeepingNotes(),
+                room.getLastCleanedAt(),
+                room.getCleaningPriority() != null ? room.getCleaningPriority() : "NORMAL"
         );
     }
 
@@ -27,6 +31,7 @@ public class RoomMapper {
                 .roomNumber(request.roomNumber())
                 .status(request.status())
                 .roomType(roomType)
+                .cleaningPriority("NORMAL")
                 .build();
     }
 }

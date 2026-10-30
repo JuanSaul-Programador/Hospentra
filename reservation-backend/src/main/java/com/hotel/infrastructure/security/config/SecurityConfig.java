@@ -82,8 +82,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/room-types/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/room-images/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/extra-services/**").permitAll()
                         .requestMatchers("/api/reviews/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
@@ -95,8 +97,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/room-types/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/room-types/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/room-types/**").hasRole("ADMIN")
+                        .requestMatchers("/api/room-images/**").hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/*/status").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/*/status", "/api/rooms/*/housekeeping").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")

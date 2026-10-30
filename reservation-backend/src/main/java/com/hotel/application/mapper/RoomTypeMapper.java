@@ -16,7 +16,8 @@ public class RoomTypeMapper {
                 roomType.getDescription(),
                 roomType.getDescriptionEn(),
                 roomType.getCapacity(),
-                roomType.getPricePerNight()
+                roomType.getPricePerNight(),
+                roomType.getCoverImageUrl()
         );
     }
 

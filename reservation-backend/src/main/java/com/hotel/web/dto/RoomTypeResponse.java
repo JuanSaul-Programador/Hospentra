@@ -9,5 +9,6 @@ public record RoomTypeResponse(
         String description,
         String descriptionEn,
         int capacity,
-        BigDecimal pricePerNight
+        BigDecimal pricePerNight,
+        String coverImageUrl
 ) {}

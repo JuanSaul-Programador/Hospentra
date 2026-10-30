@@ -1,0 +1,5 @@
+ALTER TABLE rooms
+ADD COLUMN housekeeper_name VARCHAR(100),
+ADD COLUMN housekeeping_notes TEXT,
+ADD COLUMN last_cleaned_at TIMESTAMP WITHOUT TIME ZONE,
+ADD COLUMN cleaning_priority VARCHAR(20) DEFAULT 'NORMAL';

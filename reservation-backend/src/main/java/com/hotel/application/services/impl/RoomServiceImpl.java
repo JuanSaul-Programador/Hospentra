@@ -10,12 +10,14 @@ import com.hotel.domain.model.RoomStatus;
 import com.hotel.domain.model.RoomType;
 import com.hotel.domain.repository.RoomRepository;
 import com.hotel.domain.repository.RoomTypeRepository;
+import com.hotel.web.dto.HousekeepingUpdateRequest;
 import com.hotel.web.dto.RoomRequest;
 import com.hotel.web.dto.RoomResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -80,6 +82,9 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
         room.setStatus(status);
+        if (status == RoomStatus.AVAILABLE) {
+            room.setLastCleanedAt(LocalDateTime.now());
+        }
         RoomResponse response = roomMapper.toResponse(roomRepository.save(room));
 
         NotificationEvent event = NotificationEvent.of(
@@ -88,6 +93,47 @@ public class RoomServiceImpl implements RoomService {
                 room.getId(),
                 "Estado de Suite " + room.getRoomNumber() + " Actualizado",
                 "La habitación ahora está " + status,
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public RoomResponse updateHousekeeping(Long id, HousekeepingUpdateRequest request) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+
+        if (request.housekeeperName() != null) {
+            room.setHousekeeperName(request.housekeeperName().trim().isEmpty() ? null : request.housekeeperName().trim());
+        }
+        if (request.housekeepingNotes() != null) {
+            room.setHousekeepingNotes(request.housekeepingNotes().trim().isEmpty() ? null : request.housekeepingNotes().trim());
+        }
+        if (request.cleaningPriority() != null && !request.cleaningPriority().trim().isEmpty()) {
+            room.setCleaningPriority(request.cleaningPriority().trim().toUpperCase());
+        }
+        if (request.status() != null) {
+            room.setStatus(request.status());
+            if (request.status() == RoomStatus.AVAILABLE) {
+                room.setLastCleanedAt(LocalDateTime.now());
+            }
+        }
+        if (Boolean.TRUE.equals(request.markReady())) {
+            room.setStatus(RoomStatus.AVAILABLE);
+            room.setLastCleanedAt(LocalDateTime.now());
+        }
+
+        RoomResponse response = roomMapper.toResponse(roomRepository.save(room));
+
+        NotificationEvent event = NotificationEvent.of(
+                "ROOM_STATUS_CHANGED",
+                "ROOM_RACK",
+                room.getId(),
+                "Housekeeping actualizado en Suite " + room.getRoomNumber(),
+                "Estado: " + room.getStatus() + (room.getHousekeeperName() != null ? " • Camarista: " + room.getHousekeeperName() : ""),
                 response
         );
         sseNotificationService.broadcast(event);

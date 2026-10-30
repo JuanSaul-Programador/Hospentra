@@ -2,6 +2,7 @@ package com.hotel.web.controller;
 
 import com.hotel.application.services.RoomService;
 import com.hotel.domain.model.RoomStatus;
+import com.hotel.web.dto.HousekeepingUpdateRequest;
 import com.hotel.web.dto.RoomRequest;
 import com.hotel.web.dto.RoomResponse;
 import jakarta.validation.Valid;
@@ -47,6 +48,12 @@ public class RoomController {
     public ResponseEntity<RoomResponse> updateStatus(@PathVariable Long id,
                                                      @RequestParam RoomStatus status) {
         return ResponseEntity.ok(roomService.updateStatus(id, status));
+    }
+
+    @PatchMapping("/{id}/housekeeping")
+    public ResponseEntity<RoomResponse> updateHousekeeping(@PathVariable Long id,
+                                                           @RequestBody HousekeepingUpdateRequest request) {
+        return ResponseEntity.ok(roomService.updateHousekeeping(id, request));
     }
 
     @DeleteMapping("/{id}")

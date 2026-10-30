@@ -36,4 +36,5 @@ build/
 .env
 *.env
 .env.local
+uploads/
 
