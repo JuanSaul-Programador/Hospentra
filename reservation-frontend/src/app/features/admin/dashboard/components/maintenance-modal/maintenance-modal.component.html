@@ -1,0 +1,335 @@
+@if (isOpen) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="maintenance-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="header-title-wrap">
+          <div class="modal-badge-icon">
+            <span class="material-symbols-outlined">engineering</span>
+          </div>
+          <div>
+            <h3 class="modal-title">Gestión de Bloqueos de Mantenimiento Mayor</h3>
+            <p class="modal-subtitle">Inhabilitación temporal de suites por averías críticas (OOO) o reformas (OOS)</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="onClose()" title="Cerrar ventana">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      @if (externalErrorMessage) {
+        <div class="alert-box error-alert">
+          <span class="material-symbols-outlined">warning</span>
+          <span>{{ externalErrorMessage }}</span>
+        </div>
+      }
+
+      <div class="tabs-nav-bar">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'LIST'"
+          (click)="activeTab.set('LIST')"
+        >
+          <span class="material-symbols-outlined">format_list_bulleted</span>
+          <span>Bloqueos Registrados</span>
+          @if (activeBlocksCount() > 0) {
+            <span class="counter-badge">{{ activeBlocksCount() }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'CREATE'"
+          (click)="activeTab.set('CREATE')"
+        >
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nuevo Bloqueo</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (activeTab() === 'LIST') {
+          <div class="list-section">
+            <div class="filter-pills-row">
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="statusFilter() === 'ACTIVE'"
+                (click)="statusFilter.set('ACTIVE')"
+              >
+                Activos ({{ activeBlocksCount() }})
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="statusFilter() === 'ALL'"
+                (click)="statusFilter.set('ALL')"
+              >
+                Todos ({{ blocks.length }})
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="statusFilter() === 'RESOLVED'"
+                (click)="statusFilter.set('RESOLVED')"
+              >
+                Resueltos
+              </button>
+              <button
+                type="button"
+                class="filter-pill"
+                [class.active]="statusFilter() === 'CANCELLED'"
+                (click)="statusFilter.set('CANCELLED')"
+              >
+                Cancelados
+              </button>
+            </div>
+
+            @if (filteredBlocks().length === 0) {
+              <div class="empty-state">
+                <span class="material-symbols-outlined empty-icon">check_circle</span>
+                <h4>Sin bloqueos bajo este criterio</h4>
+                <p>No existen registros de inhabilitación técnica con el filtro seleccionado.</p>
+                <button type="button" class="btn-create-first" (click)="activeTab.set('CREATE')">
+                  <span class="material-symbols-outlined">add</span>
+                  <span>Registrar Nuevo Bloqueo</span>
+                </button>
+              </div>
+            } @else {
+              <div class="blocks-list">
+                @for (block of filteredBlocks(); track block.id) {
+                  <div class="block-card" [class.is-active]="block.status === 'ACTIVE'">
+                    <div class="block-card-header">
+                      <div class="suite-info-group">
+                        <span class="room-number">Suite {{ block.roomNumber }}</span>
+                        @if (block.roomTypeName) {
+                          <span class="room-type">{{ block.roomTypeName }}</span>
+                        }
+                      </div>
+
+                      <div class="badges-group">
+                        <span
+                          class="type-badge"
+                          [class.ooo]="block.blockType === 'OUT_OF_ORDER'"
+                          [class.oos]="block.blockType === 'OUT_OF_SERVICE'"
+                        >
+                          {{ block.blockType === 'OUT_OF_ORDER' ? 'Avería Crítica (OOO)' : 'Mantenimiento (OOS)' }}
+                        </span>
+                        <span
+                          class="status-badge"
+                          [class.status-active]="block.status === 'ACTIVE'"
+                          [class.status-resolved]="block.status === 'RESOLVED'"
+                          [class.status-cancelled]="block.status === 'CANCELLED'"
+                        >
+                          {{ block.status }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="block-details">
+                      <div class="detail-row">
+                        <span class="detail-label">Periodo de Inhabilitación:</span>
+                        <span class="detail-value">
+                          <span class="material-symbols-outlined inline-icon">date_range</span>
+                          {{ block.startDate }} al {{ block.endDate }} ({{ block.durationDays }} noches)
+                        </span>
+                      </div>
+
+                      <div class="detail-row">
+                        <span class="detail-label">Motivo Técnico:</span>
+                        <span class="detail-value reason-highlight">{{ block.reason }}</span>
+                      </div>
+
+                      <div class="detail-row">
+                        <span class="detail-label">Responsable / Contratista:</span>
+                        <span class="detail-value">{{ block.contractorName || 'Equipo Interno Hospentra' }}</span>
+                      </div>
+
+                      <div class="detail-row meta-row">
+                        <span class="meta-item">Registrado por: <strong>{{ block.createdBy || 'Sistema' }}</strong></span>
+                        <span class="meta-item">Fecha: {{ block.createdAt | date:'short' }}</span>
+                        @if (block.resolvedAt) {
+                          <span class="meta-item resolved-meta">Resuelto: {{ block.resolvedAt | date:'short' }}</span>
+                        }
+                      </div>
+                    </div>
+
+                    @if (block.status === 'ACTIVE') {
+                      <div class="block-actions">
+                        <button
+                          type="button"
+                          class="btn-action btn-resolve"
+                          (click)="onResolve(block.id)"
+                          [disabled]="isProcessing"
+                          title="Habilitar nuevamente la suite para operaciones y reservas"
+                        >
+                          <span class="material-symbols-outlined">task_alt</span>
+                          <span>Levantar Bloqueo (Marcar Resuelto)</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-action btn-cancel"
+                          (click)="onCancel(block.id)"
+                          [disabled]="isProcessing"
+                          title="Anular este registro de bloqueo"
+                        >
+                          <span class="material-symbols-outlined">cancel</span>
+                          <span>Cancelar Bloqueo</span>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="create-section">
+            @if (formValidationError()) {
+              <div class="alert-box error-alert">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ formValidationError() }}</span>
+              </div>
+            }
+
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label for="blockRoomSelect" class="form-label">Suite Afectada *</label>
+                <select
+                  id="blockRoomSelect"
+                  class="form-control"
+                  [ngModel]="formRoomId()"
+                  (ngModelChange)="formRoomId.set($event)"
+                >
+                  <option [ngValue]="null" disabled>Seleccionar una suite...</option>
+                  @for (room of rooms; track room.id) {
+                    <option [ngValue]="room.id">
+                      Suite {{ room.roomNumber }} • {{ room.roomType.name }} [Estado actual: {{ room.status }}]
+                    </option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label class="form-label">Nivel de Bloqueo *</label>
+                <div class="type-selector-cards">
+                  <label
+                    class="type-card-option"
+                    [class.selected]="formBlockType() === 'OUT_OF_ORDER'"
+                  >
+                    <input
+                      type="radio"
+                      name="blockTypeOption"
+                      value="OUT_OF_ORDER"
+                      [ngModel]="formBlockType()"
+                      (ngModelChange)="formBlockType.set($event)"
+                    />
+                    <div class="type-card-content">
+                      <div class="type-header">
+                        <span class="material-symbols-outlined icon-ooo">report</span>
+                        <strong>Out of Order (OOO)</strong>
+                      </div>
+                      <p>Avería crítica imprevista (fuga hidromasaje, falla eléctrica, climatización rota). Excluye la habitación de disponibilidad y afecta el índice operativo.</p>
+                    </div>
+                  </label>
+
+                  <label
+                    class="type-card-option"
+                    [class.selected]="formBlockType() === 'OUT_OF_SERVICE'"
+                  >
+                    <input
+                      type="radio"
+                      name="blockTypeOption"
+                      value="OUT_OF_SERVICE"
+                      [ngModel]="formBlockType()"
+                      (ngModelChange)="formBlockType.set($event)"
+                    />
+                    <div class="type-card-content">
+                      <div class="type-header">
+                        <span class="material-symbols-outlined icon-oos">handyman</span>
+                        <strong>Out of Service (OOS)</strong>
+                      </div>
+                      <p>Mantenimiento preventivo, pintura programada o remodelaciones planificadas. Bloquea reservas sin penalizar el índice de ocupación máxima teórica.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="blockStartDate" class="form-label">Fecha de Inicio *</label>
+                <input
+                  type="date"
+                  id="blockStartDate"
+                  class="form-control"
+                  [ngModel]="formStartDate()"
+                  (ngModelChange)="formStartDate.set($event)"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="blockEndDate" class="form-label">Fecha de Finalización *</label>
+                <input
+                  type="date"
+                  id="blockEndDate"
+                  class="form-control"
+                  [ngModel]="formEndDate()"
+                  (ngModelChange)="formEndDate.set($event)"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <div class="duration-preview-pill">
+                  <span class="material-symbols-outlined">timelapse</span>
+                  <span>Duración de inhabilitación calculada: <strong>{{ calculatedNights() }} noches</strong></span>
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="blockReason" class="form-label">Diagnóstico / Motivo Técnico *</label>
+                <textarea
+                  id="blockReason"
+                  rows="3"
+                  class="form-control textarea"
+                  placeholder="Ej: Fuga detectada en racor de tubería principal de jacuzzi. Requiere sustitución de bomba y sellado epóxico."
+                  [ngModel]="formReason()"
+                  (ngModelChange)="formReason.set($event)"
+                ></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="blockContractor" class="form-label">Empresa Contratista / Técnico Especialista</label>
+                <input
+                  type="text"
+                  id="blockContractor"
+                  class="form-control"
+                  placeholder="Ej: Soluciones Hidráulicas del Pacífico S.A.C. / Ing. Marco V."
+                  [ngModel]="formContractor()"
+                  (ngModelChange)="formContractor.set($event)"
+                />
+              </div>
+            </div>
+
+            <div class="form-actions-row">
+              <button
+                type="button"
+                class="btn-action-secondary"
+                (click)="activeTab.set('LIST')"
+              >
+                Volver al Listado
+              </button>
+              <button
+                type="button"
+                class="btn-action-primary"
+                (click)="submitCreate()"
+                [disabled]="isProcessing"
+              >
+                <span class="material-symbols-outlined">lock</span>
+                <span>{{ isProcessing ? 'Aplicando Bloqueo...' : 'Aplicar Bloqueo de Suite' }}</span>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

@@ -1981,21 +1981,109 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8125rem;
-    color: #059669;
     font-weight: 600;
 
-    .pulse-dot {
-      width: 0.5rem;
-      height: 0.5rem;
-      border-radius: 50%;
-      background-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    &.active {
+      color: #059669;
+      .pulse-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+      }
+    }
+
+    &.break {
+      color: #d97706;
+      .pulse-dot.break-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background-color: #f59e0b;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+      }
+    }
+
+    &.revoked {
+      color: #dc2626;
+      .status-dot-revoked {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+      }
     }
   }
 
   .staff-date-text {
     font-size: 0.8125rem;
     color: #64748b;
+  }
+
+  .staff-actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+
+  .btn-table-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    .material-symbols-outlined {
+      font-size: 1rem;
+    }
+
+    &.edit {
+      background: #f8fafc;
+      color: #0f172a;
+      border-color: #e2e8f0;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+    }
+
+    &.deactivate {
+      background: #fff1f2;
+      color: #e11d48;
+      border-color: #ffe4e6;
+
+      &:hover:not(:disabled) {
+        background: #ffe4e6;
+        border-color: #fecdd3;
+      }
+    }
+
+    &.activate {
+      background: #f0fdf4;
+      color: #15803d;
+      border-color: #dcfce7;
+
+      &:hover:not(:disabled) {
+        background: #dcfce7;
+        border-color: #bbf7d0;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
   }
 
   .access-note {
@@ -2099,6 +2187,15 @@
         background-position: right 0.75rem center;
         background-size: 1.25rem;
         padding-right: 2.25rem;
+      }
+    }
+
+    &.readonly-box {
+      .field-input {
+        background-color: #f1f5f9;
+        color: #64748b;
+        cursor: not-allowed;
+        border-color: #e2e8f0;
       }
     }
 

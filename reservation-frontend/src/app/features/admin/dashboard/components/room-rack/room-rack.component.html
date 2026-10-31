@@ -37,6 +37,16 @@
           <strong class="kpi-val">{{ highPriorityCount() }}</strong>
         </div>
       }
+
+      <button
+        type="button"
+        class="btn-rack-maintenance"
+        (click)="onOpenMaintenance()"
+        title="Gestionar inhabilitaciones de suites (OOO / OOS)"
+      >
+        <span class="material-symbols-outlined">engineering</span>
+        <span>Bloqueos OOO</span>
+      </button>
     </div>
   </div>
 
@@ -211,6 +221,14 @@
                 title="Ver o editar ficha de limpieza"
               >
                 <span class="material-symbols-outlined">tune</span>
+              </button>
+              <button
+                type="button"
+                class="btn-inspect-mini btn-block-suite"
+                (click)="onOpenMaintenance(room)"
+                title="Bloquear suite por avería técnica (OOO/OOS)"
+              >
+                <span class="material-symbols-outlined">handyman</span>
               </button>
             </div>
           } @else {

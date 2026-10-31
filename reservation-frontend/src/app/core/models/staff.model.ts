@@ -11,6 +11,13 @@ export interface CreateStaffRequest {
   shift?: Shift;
 }
 
+export interface UpdateStaffRequest {
+  email: string;
+  role: Role;
+  shift: Shift;
+  password?: string;
+}
+
 export interface UserResponse {
   id: number;
   username: string;

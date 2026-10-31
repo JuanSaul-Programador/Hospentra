@@ -73,6 +73,10 @@
                   {{ i18n.t('nav.myReservations') }}
                 </a>
               }
+              <a routerLink="/account/settings" class="dropdown-item" (click)="closeMenus()">
+                <span class="material-symbols-outlined">manage_accounts</span>
+                {{ i18n.t('nav.accountSettings') }}
+              </a>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item logout" (click)="logout()" type="button">
                 <span class="material-symbols-outlined">logout</span>
@@ -134,6 +138,10 @@
               {{ i18n.t('nav.myReservations') }}
             </a>
           }
+          <a routerLink="/account/settings" class="mobile-nav-link" (click)="closeMenus()">
+            <span class="material-symbols-outlined">manage_accounts</span>
+            {{ i18n.t('nav.accountSettings') }}
+          </a>
         }
       </nav>
       <div class="mobile-actions">

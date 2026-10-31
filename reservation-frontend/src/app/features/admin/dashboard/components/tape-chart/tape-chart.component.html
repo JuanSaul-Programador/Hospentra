@@ -30,16 +30,23 @@
         <span class="material-symbols-outlined">date_range</span>
         <span>{{ rangeLabel() }}</span>
       </div>
+
+      <button type="button" class="btn-tape-maintenance" (click)="onManageMaintenance()" title="Gestionar bloqueos de mantenimiento de suites">
+        <span class="material-symbols-outlined">engineering</span>
+        <span>Bloqueos OOO / OOS</span>
+      </button>
     </div>
   </div>
 
   <div class="tape-legend-bar">
-    <span class="legend-title">Estados de Estancia:</span>
+    <span class="legend-title">Estados de Estancia y Técnicos:</span>
     <div class="legend-items">
       <span class="legend-item"><span class="legend-dot inhouse"></span>En Casa (Check-In)</span>
       <span class="legend-item"><span class="legend-dot confirmed"></span>Confirmada (Por Ingresar)</span>
       <span class="legend-item"><span class="legend-dot pending"></span>Pendiente de Pago</span>
       <span class="legend-item"><span class="legend-dot completed"></span>Completada</span>
+      <span class="legend-item"><span class="legend-dot ooo"></span>Avería Crítica (OOO)</span>
+      <span class="legend-item"><span class="legend-dot oos"></span>Mantenimiento (OOS)</span>
     </div>
   </div>
 
@@ -115,6 +122,40 @@
                     </div>
 
                     @if (block.isEndClipped) {
+                      <span class="clip-indicator clip-right">›</span>
+                    }
+                  </div>
+                }
+
+                @for (mBlock of row.maintenanceBlocks; track mBlock.block.id) {
+                  <div
+                    class="gantt-reservation-block gantt-maintenance-block"
+                    [class]="mBlock.typeClass"
+                    [class.clipped-start]="mBlock.isStartClipped"
+                    [class.clipped-end]="mBlock.isEndClipped"
+                    [class.is-selected]="activeMaintenancePopover()?.id === mBlock.block.id"
+                    [style.grid-column]="(mBlock.startCol + 1) + ' / span ' + mBlock.colSpan"
+                    (click)="onMaintenanceBlockClick($event, mBlock.block)"
+                    [title]="mBlock.typeLabel + ' • ' + mBlock.block.reason + ' (' + mBlock.daysTotal + ' noches)'"
+                  >
+                    @if (mBlock.isStartClipped) {
+                      <span class="clip-indicator clip-left">‹</span>
+                    }
+
+                    <div class="block-content">
+                      <div class="block-guest-name">
+                        <span class="material-symbols-outlined block-icon">
+                          {{ mBlock.block.blockType === 'OUT_OF_ORDER' ? 'report' : 'handyman' }}
+                        </span>
+                        <strong class="name-text">{{ mBlock.typeLabel }}</strong>
+                      </div>
+                      <div class="block-meta">
+                        <span class="block-code">{{ mBlock.block.reason }}</span>
+                        <span class="block-nights">{{ mBlock.daysTotal }}n</span>
+                      </div>
+                    </div>
+
+                    @if (mBlock.isEndClipped) {
                       <span class="clip-indicator clip-right">›</span>
                     }
                   </div>
@@ -224,6 +265,55 @@
             <span>Check-Out</span>
           </button>
         }
+      </div>
+    </div>
+  }
+
+  @if (activeMaintenancePopover(); as mb) {
+    <div
+      class="tape-popover-card maintenance-popover"
+      (click)="$event.stopPropagation()"
+      [style.left.px]="maintenancePopoverPosition()?.x || 100"
+      [style.top.px]="maintenancePopoverPosition()?.y || 200"
+    >
+      <div class="popover-header header-maintenance">
+        <div class="pop-title-wrap">
+          <span class="pop-code">BLOQUEO #{{ mb.id }}</span>
+          <h4 class="pop-guest-name">{{ mb.blockType === 'OUT_OF_ORDER' ? 'Avería Crítica (OOO)' : 'Mantenimiento (OOS)' }}</h4>
+        </div>
+        <button type="button" class="btn-pop-close" (click)="closeMaintenancePopover()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="popover-body">
+        <div class="pop-info-row">
+          <span class="pop-lbl">Suite:</span>
+          <strong class="pop-val">Suite {{ mb.roomNumber }} {{ mb.roomTypeName ? '(' + mb.roomTypeName + ')' : '' }}</strong>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Periodo:</span>
+          <span class="pop-val">{{ mb.startDate }} al {{ mb.endDate }} ({{ mb.durationDays }} noches)</span>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Diagnóstico:</span>
+          <span class="pop-val reason-val">{{ mb.reason }}</span>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Contratista:</span>
+          <span class="pop-val">{{ mb.contractorName || 'Equipo Interno Hospentra' }}</span>
+        </div>
+        <div class="pop-info-row">
+          <span class="pop-lbl">Estado:</span>
+          <span class="pop-status-badge badge-active">{{ mb.status }}</span>
+        </div>
+      </div>
+
+      <div class="popover-actions">
+        <button type="button" class="btn-pop-action btn-pop-details" (click)="onManageMaintenance()">
+          <span class="material-symbols-outlined">settings</span>
+          <span>Gestionar Bloqueos</span>
+        </button>
       </div>
     </div>
   }

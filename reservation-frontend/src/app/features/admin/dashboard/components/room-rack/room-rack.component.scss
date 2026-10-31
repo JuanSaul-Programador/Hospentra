@@ -119,6 +119,31 @@
           }
         }
       }
+
+      .btn-rack-maintenance {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        background: #0f172a;
+        border: 1px solid #c59b27;
+        color: #f59e0b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        .material-symbols-outlined {
+          font-size: 0.95rem;
+        }
+
+        &:hover {
+          background: #1e293b;
+          color: #ffffff;
+          box-shadow: 0 0 10px rgba(197, 155, 39, 0.3);
+        }
+      }
     }
   }
 
@@ -601,6 +626,12 @@
             background: #0f172a;
             border-color: #0f172a;
             color: #ffffff;
+          }
+
+          &.btn-block-suite:hover {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
           }
         }
       }

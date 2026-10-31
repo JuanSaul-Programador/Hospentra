@@ -65,6 +65,15 @@ export const routes: Routes = [
     redirectTo: 'kitchen/orders'
   },
   {
+    path: 'account/settings',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/account/account-settings/account-settings.component').then(m => m.AccountSettingsComponent)
+  },
+  {
+    path: 'profile',
+    redirectTo: 'account/settings'
+  },
+  {
     path: '**',
     redirectTo: ''
   }

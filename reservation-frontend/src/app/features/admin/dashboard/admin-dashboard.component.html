@@ -137,6 +137,15 @@
             <span class="material-symbols-outlined">analytics</span>
             <span>Métricas & BI</span>
           </button>
+          <button
+            type="button"
+            class="subnav-btn"
+            [class.active]="activeSection() === 'AUDIT'"
+            (click)="switchSection('AUDIT')"
+          >
+            <span class="material-symbols-outlined">history_edu</span>
+            <span>Auditoría & Libros</span>
+          </button>
         }
       </div>
     </div>
@@ -243,6 +252,7 @@
           [isActionProcessing]="isActionProcessing()"
           (markClean)="markRoomClean($event)"
           (saveHousekeeping)="updateRoomHousekeeping($event)"
+          (openMaintenance)="openMaintenanceModal($event)"
         ></app-room-rack>
 
         <section class="operations-panel">
@@ -287,11 +297,13 @@
             <app-tape-chart
               [reservations]="reservations()"
               [rooms]="rooms()"
+              [maintenanceBlocks]="maintenanceBlocks()"
               [isActionProcessing]="isActionProcessing()"
               (viewDetails)="openVoucher($event)"
               (printVoucher)="openVoucher($event)"
               (checkIn)="openCheckInModal($event)"
               (checkOut)="openCheckOutModal($event)"
+              (openMaintenance)="openMaintenanceModal()"
             ></app-tape-chart>
           } @else {
             <div class="controls-bar">
@@ -851,6 +863,7 @@
                     <th>Turno Asignado</th>
                     <th>Estado Operativo</th>
                     <th>Fecha de Alta</th>
+                    <th>Acciones Operativas</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -895,7 +908,12 @@
                       </td>
 
                       <td>
-                        @if (staff.workStatus === 'ON_BREAK') {
+                        @if (!staff.enabled) {
+                          <span class="status-indicator revoked">
+                            <span class="status-dot-revoked"></span>
+                            <span>Acceso Revocado</span>
+                          </span>
+                        } @else if (staff.workStatus === 'ON_BREAK') {
                           <span class="status-indicator break">
                             <span class="pulse-dot break-dot"></span>
                             <span>En Break / Refrigerio</span>
@@ -903,13 +921,42 @@
                         } @else {
                           <span class="status-indicator active">
                             <span class="pulse-dot"></span>
-                            <span>{{ staff.workStatus === 'ON_DUTY' ? 'En Mostrador / Activo' : (staff.enabled ? 'Habilitado' : 'Inactivo') }}</span>
+                            <span>{{ staff.workStatus === 'ON_DUTY' ? 'En Mostrador / Activo' : 'Habilitado' }}</span>
                           </span>
                         }
                       </td>
 
                       <td>
                         <span class="staff-date-text">{{ staff.createdAt ? (staff.createdAt | date:'dd/MM/yyyy HH:mm') : 'Pre-instalado' }}</span>
+                      </td>
+
+                      <td>
+                        <div class="staff-actions-cell">
+                          <button
+                            type="button"
+                            class="btn-table-action edit"
+                            (click)="openEditStaffModal(staff)"
+                            title="Editar datos, rol o turno"
+                          >
+                            <span class="material-symbols-outlined">edit</span>
+                            <span>Editar</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            class="btn-table-action"
+                            [class.deactivate]="staff.enabled"
+                            [class.activate]="!staff.enabled"
+                            (click)="toggleStaffStatus(staff)"
+                            [disabled]="isTogglingStaffId() === staff.id || !canDeactivateStaff(staff)"
+                            [title]="getDeactivateTooltip(staff)"
+                          >
+                            <span class="material-symbols-outlined" [class.spinning]="isTogglingStaffId() === staff.id">
+                              {{ isTogglingStaffId() === staff.id ? 'sync' : (staff.enabled ? 'block' : 'check_circle') }}
+                            </span>
+                            <span>{{ staff.enabled ? 'Desactivar' : 'Reactivar' }}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   }
@@ -926,6 +973,10 @@
 
       @if (isAdmin() && activeSection() === 'ANALYTICS') {
         <app-executive-analytics></app-executive-analytics>
+      }
+
+      @if (isAdmin() && activeSection() === 'AUDIT') {
+        <app-audit-logs></app-audit-logs>
       }
     </div>
   </main>
@@ -1123,6 +1174,161 @@
               } @else {
                 <span class="material-symbols-outlined">person_add</span>
                 <span>Crear y Habilitar Acceso</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (isEditStaffModalOpen() && staffToEdit(); as staff) {
+    <div class="modal-backdrop" (click)="closeEditStaffModal()">
+      <div class="corp-dialog create-staff-dialog edit-staff-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeEditStaffModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="dialog-icon-badge staff-add">
+          <span class="material-symbols-outlined">manage_accounts</span>
+        </div>
+
+        <span class="prestige-tag">Gestión y Auditoría RBAC</span>
+        <h3 class="dialog-title">Modificar Personal Corporativo</h3>
+        <p class="dialog-desc">
+          Actualice el correo institucional, rol de estación, turno horario o restablezca la contraseña de <strong>{{ staff.username }}</strong>.
+        </p>
+
+        @if (editStaffFormError()) {
+          <div class="modal-alert-error">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ editStaffFormError() }}</span>
+          </div>
+        }
+
+        <form (ngSubmit)="submitUpdateStaff()" class="create-staff-form">
+          <div class="form-field-group">
+            <label class="field-label">Usuario Corporativo (Identificador Permanente)</label>
+            <div class="field-input-box readonly-box">
+              <span class="material-symbols-outlined field-icon">badge</span>
+              <input
+                type="text"
+                [value]="staff.username"
+                class="field-input"
+                disabled
+              />
+            </div>
+            <span class="field-helper">El nombre de usuario es un registro de auditoría inmutable del sistema</span>
+          </div>
+
+          <div class="form-field-group">
+            <label for="editEmail" class="field-label">Correo Electrónico Institucional</label>
+            <div class="field-input-box">
+              <span class="material-symbols-outlined field-icon">mail</span>
+              <input
+                id="editEmail"
+                type="email"
+                [ngModel]="editEmail()"
+                (ngModelChange)="editEmail.set($event)"
+                name="editEmail"
+                placeholder="personal@hospentra.com"
+                class="field-input"
+                required
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="form-row-two">
+            <div class="form-field-group">
+              <label for="editRole" class="field-label">Rol & Permisos</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">shield_person</span>
+                <select
+                  id="editRole"
+                  [ngModel]="editRole()"
+                  (ngModelChange)="editRole.set($event)"
+                  name="editRole"
+                  class="field-input field-select"
+                  [disabled]="isCurrentStaff(staff)"
+                >
+                  <option value="ROLE_RECEPTIONIST">Recepcionista Front Desk</option>
+                  <option value="ROLE_KITCHEN">Personal de Cocina & Bar (KDS)</option>
+                  <option value="ROLE_ADMIN">Administrador General</option>
+                </select>
+              </div>
+              @if (isCurrentStaff(staff)) {
+                <span class="field-helper">No puede revocar su propio rol de Administrador en sesión</span>
+              }
+            </div>
+
+            <div class="form-field-group">
+              <label for="editShift" class="field-label">Turno Horario Asignado</label>
+              <div class="field-input-box">
+                <span class="material-symbols-outlined field-icon">schedule</span>
+                <select
+                  id="editShift"
+                  [ngModel]="editShift()"
+                  (ngModelChange)="editShift.set($event)"
+                  name="editShift"
+                  class="field-input field-select"
+                >
+                  <option value="MORNING">Mañana (07:00 - 15:00)</option>
+                  <option value="EVENING">Tarde (15:00 - 23:00)</option>
+                  <option value="NIGHT">Noche (23:00 - 07:00)</option>
+                  <option value="FLEXIBLE">Turno Flexible / Estación</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field-group">
+            <label for="editPassword" class="field-label">Restablecer Contraseña (Opcional)</label>
+            <div class="field-input-box">
+              <span class="material-symbols-outlined field-icon">lock_reset</span>
+              <input
+                id="editPassword"
+                [type]="showEditPassword() ? 'text' : 'password'"
+                [ngModel]="editPassword()"
+                (ngModelChange)="editPassword.set($event)"
+                name="editPassword"
+                placeholder="Dejar vacío para conservar la contraseña actual"
+                class="field-input"
+              />
+              <button
+                type="button"
+                class="btn-toggle-eye"
+                (click)="toggleEditPasswordVisibility()"
+                aria-label="Alternar visibilidad"
+              >
+                <span class="material-symbols-outlined">
+                  {{ showEditPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+            <span class="field-helper">Solo ingrese un valor si necesita actualizar las credenciales de este colaborador</span>
+          </div>
+
+          <div class="dialog-actions-row">
+            <button
+              type="button"
+              class="btn btn-outline"
+              (click)="closeEditStaffModal()"
+              [disabled]="isSavingStaff()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="isSavingStaff()"
+            >
+              @if (isSavingStaff()) {
+                <span class="btn-spinner"></span>
+                <span>Guardando Cambios...</span>
+              } @else {
+                <span class="material-symbols-outlined">save</span>
+                <span>Guardar Cambios</span>
               }
             </button>
           </div>
@@ -1375,4 +1581,17 @@
     (assign)="confirmAssignFromChild($event)"
     (openDirectory)="openTherapistsDirectory()"
   ></app-assign-therapist-modal>
+
+  <app-maintenance-modal
+    [isOpen]="isMaintenanceModalOpen()"
+    [rooms]="rooms()"
+    [preselectedRoom]="preselectedRoomForMaintenance()"
+    [blocks]="maintenanceBlocks()"
+    [isProcessing]="isMaintenanceProcessing()"
+    [externalErrorMessage]="maintenanceErrorMessage()"
+    (close)="closeMaintenanceModal()"
+    (createBlock)="handleCreateMaintenanceBlock($event)"
+    (resolveBlock)="handleResolveMaintenanceBlock($event)"
+    (cancelBlock)="handleCancelMaintenanceBlock($event)"
+  ></app-maintenance-modal>
 </div>

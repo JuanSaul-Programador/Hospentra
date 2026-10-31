@@ -15,6 +15,7 @@ export class RoomRackComponent {
   @Input() isActionProcessing: boolean = false;
   @Output() markClean = new EventEmitter<number>();
   @Output() saveHousekeeping = new EventEmitter<{ roomId: number; request: HousekeepingUpdateRequest }>();
+  @Output() openMaintenance = new EventEmitter<Room | void>();
 
   selectedFilter = signal<'ALL' | '1' | '2' | '3' | '4' | 'CLEANING'>('ALL');
   searchQuery = signal<string>('');
@@ -130,7 +131,7 @@ export class RoomRackComponent {
 
     const cleanNotes = notes
       .replace(/\[INCIDENCIA\]/g, '')
-      .replace(/Reporte de Incidencia:\s*/g, '')
+      .replace(new RegExp('Reporte de Incidencia:\\s*', 'g'), '')
       .trim();
     this.modalNotes.set(cleanNotes);
   }
@@ -192,5 +193,9 @@ export class RoomRackComponent {
     });
 
     this.closeHousekeepingModal();
+  }
+
+  onOpenMaintenance(room?: Room): void {
+    this.openMaintenance.emit(room);
   }
 }

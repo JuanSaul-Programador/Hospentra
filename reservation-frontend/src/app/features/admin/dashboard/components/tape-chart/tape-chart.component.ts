@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, computed, signal } from '@angul
 import { CommonModule } from '@angular/common';
 import { Reservation, ReservationStatus } from '../../../../../core/models/reservation.model';
 import { Room } from '../../../../../core/models/room.model';
+import { MaintenanceBlock } from '../../../../../core/models/maintenance.model';
 
 export interface TapeDay {
   date: Date;
@@ -24,14 +25,27 @@ export interface TapeReservationBlock {
   statusLabel: string;
 }
 
+export interface TapeMaintenanceGanttBlock {
+  block: MaintenanceBlock;
+  startCol: number;
+  colSpan: number;
+  isStartClipped: boolean;
+  isEndClipped: boolean;
+  daysTotal: number;
+  typeClass: string;
+  typeLabel: string;
+}
+
 export interface TapeRoomRow {
   room: Room;
   blocks: TapeReservationBlock[];
+  maintenanceBlocks: TapeMaintenanceGanttBlock[];
 }
 
 export interface DailyOccupancy {
   dateStr: string;
   occupiedRooms: number;
+  maintenanceRooms: number;
   occupancyPercent: number;
 }
 
@@ -45,15 +59,20 @@ export interface DailyOccupancy {
 export class TapeChartComponent {
   @Input() reservations: Reservation[] = [];
   @Input() rooms: Room[] = [];
+  @Input() maintenanceBlocks: MaintenanceBlock[] = [];
   @Input() isActionProcessing: boolean = false;
 
   @Output() viewDetails = new EventEmitter<Reservation>();
   @Output() printVoucher = new EventEmitter<Reservation>();
   @Output() checkIn = new EventEmitter<Reservation>();
   @Output() checkOut = new EventEmitter<Reservation>();
+  @Output() openMaintenance = new EventEmitter<void>();
 
   readonly activeBlockPopover = signal<Reservation | null>(null);
   readonly popoverPosition = signal<{ x: number; y: number } | null>(null);
+
+  readonly activeMaintenancePopover = signal<MaintenanceBlock | null>(null);
+  readonly maintenancePopoverPosition = signal<{ x: number; y: number } | null>(null);
 
   private readonly daysSpan = 14;
   readonly startDate = signal<Date>(this.getInitialStartDate());
@@ -178,9 +197,53 @@ export class TapeChartComponent {
         });
       }
 
+      const roomMaintenance = this.maintenanceBlocks.filter(b =>
+        (b.roomId === room.id || b.roomNumber === room.roomNumber) &&
+        b.status === 'ACTIVE'
+      );
+
+      const maintenanceGanttBlocks: TapeMaintenanceGanttBlock[] = [];
+
+      for (const mBlock of roomMaintenance) {
+        if (!mBlock.startDate || !mBlock.endDate) continue;
+
+        const start = this.parseDateStr(mBlock.startDate);
+        const end = this.parseDateStr(mBlock.endDate);
+
+        if (end <= windowStart || start >= windowEnd) {
+          continue;
+        }
+
+        const daysTotal = Math.max(1, this.diffDays(start, end));
+        const rawStartOffset = this.diffDays(windowStart, start);
+        const rawEndOffset = this.diffDays(windowStart, end);
+
+        const startCol = Math.max(0, rawStartOffset);
+        const endCol = Math.min(this.daysSpan, rawEndOffset);
+        const colSpan = Math.max(1, endCol - startCol);
+
+        const isStartClipped = rawStartOffset < 0;
+        const isEndClipped = rawEndOffset > this.daysSpan;
+
+        const typeClass = mBlock.blockType === 'OUT_OF_ORDER' ? 'maintenance-ooo' : 'maintenance-oos';
+        const typeLabel = mBlock.blockType === 'OUT_OF_ORDER' ? 'OOO • Avería Crítica' : 'OOS • En Mantenimiento';
+
+        maintenanceGanttBlocks.push({
+          block: mBlock,
+          startCol,
+          colSpan,
+          isStartClipped,
+          isEndClipped,
+          daysTotal,
+          typeClass,
+          typeLabel
+        });
+      }
+
       return {
         room,
-        blocks
+        blocks,
+        maintenanceBlocks: maintenanceGanttBlocks
       };
     });
   });
@@ -197,11 +260,19 @@ export class TapeChartComponent {
         return day.dateStr >= checkInStr && day.dateStr < checkOutStr;
       }).length;
 
+      const maintenanceCount = this.maintenanceBlocks.filter(b => {
+        if (b.status !== 'ACTIVE' || !b.startDate || !b.endDate) return false;
+        const startStr = b.startDate.split('T')[0];
+        const endStr = b.endDate.split('T')[0];
+        return day.dateStr >= startStr && day.dateStr < endStr;
+      }).length;
+
       const occupancyPercent = Math.min(100, Math.round((activeCount / totalRooms) * 100));
 
       return {
         dateStr: day.dateStr,
         occupiedRooms: activeCount,
+        maintenanceRooms: maintenanceCount,
         occupancyPercent
       };
     });
@@ -237,9 +308,32 @@ export class TapeChartComponent {
     });
   }
 
+  onMaintenanceBlockClick(event: MouseEvent, block: MaintenanceBlock): void {
+    event.stopPropagation();
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    this.closePopover();
+    this.activeMaintenancePopover.set(block);
+    this.maintenancePopoverPosition.set({
+      x: Math.min(window.innerWidth - 320, Math.max(16, rect.left)),
+      y: rect.bottom + 8
+    });
+  }
+
+  closeMaintenancePopover(): void {
+    this.activeMaintenancePopover.set(null);
+    this.maintenancePopoverPosition.set(null);
+  }
+
   closePopover(): void {
     this.activeBlockPopover.set(null);
     this.popoverPosition.set(null);
+    this.closeMaintenancePopover();
+  }
+
+  onManageMaintenance(): void {
+    this.closePopover();
+    this.openMaintenance.emit();
   }
 
   onViewDetails(res: Reservation): void {

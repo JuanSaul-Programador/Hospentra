@@ -13,7 +13,7 @@ import { SseService } from '../../../core/services/sse.service';
 import { Reservation, ReservationStatus } from '../../../core/models/reservation.model';
 import { HousekeepingUpdateRequest, Room, RoomStatus, RoomType } from '../../../core/models/room.model';
 import { Role } from '../../../core/models/auth.model';
-import { Shift, UserResponse, WorkStatus } from '../../../core/models/staff.model';
+import { Shift, UpdateStaffRequest, UserResponse, WorkStatus } from '../../../core/models/staff.model';
 import { OrderStatus, RoomOrder } from '../../../core/models/room-order.model';
 import { Therapist } from '../../../core/models/therapist.model';
 import { RoomRackComponent } from './components/room-rack/room-rack.component';
@@ -25,7 +25,11 @@ import { SuiteInventoryComponent } from './components/suite-inventory/suite-inve
 import { ReviewModerationComponent } from './components/review-moderation/review-moderation.component';
 import { HotelFolioModalComponent } from '../../../shared/components/hotel-folio-modal/hotel-folio-modal.component';
 import { ExecutiveAnalyticsComponent } from './components/executive-analytics/executive-analytics.component';
+import { AuditLogsComponent } from './components/audit-logs/audit-logs.component';
+import { MaintenanceModalComponent } from './components/maintenance-modal/maintenance-modal.component';
 import { ReviewService } from '../../../core/services/review.service';
+import { MaintenanceService } from '../../../core/services/maintenance.service';
+import { CreateMaintenanceBlockRequest, MaintenanceBlock } from '../../../core/models/maintenance.model';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
@@ -44,7 +48,9 @@ export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPA
     SuiteInventoryComponent,
     ReviewModerationComponent,
     HotelFolioModalComponent,
-    ExecutiveAnalyticsComponent
+    ExecutiveAnalyticsComponent,
+    AuditLogsComponent,
+    MaintenanceModalComponent
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
@@ -56,6 +62,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly roomOrderService = inject(RoomOrderService);
   private readonly therapistService = inject(TherapistService);
   private readonly reviewService = inject(ReviewService);
+  private readonly maintenanceService = inject(MaintenanceService);
   readonly authService = inject(AuthService);
   readonly sseService = inject(SseService);
   private readonly router = inject(Router);
@@ -65,7 +72,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
   readonly isReceptionist = computed(() => this.authService.userRole() === 'ROLE_RECEPTIONIST');
 
-  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS'>('OPERATIONS');
+  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT'>('OPERATIONS');
   readonly unansweredReviewsCount = signal<number>(0);
 
   readonly reservations = signal<Reservation[]>([]);
@@ -94,6 +101,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly isActionProcessing = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
+
+  readonly maintenanceBlocks = signal<MaintenanceBlock[]>([]);
+  readonly isMaintenanceModalOpen = signal<boolean>(false);
+  readonly preselectedRoomForMaintenance = signal<Room | null>(null);
+  readonly isMaintenanceProcessing = signal<boolean>(false);
+  readonly maintenanceErrorMessage = signal<string | null>(null);
 
   readonly searchQuery = signal<string>('');
   readonly statusFilter = signal<AdminFilterTab>('ALL');
@@ -171,6 +184,17 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly newShift = signal<Shift>('MORNING');
   readonly showNewPassword = signal<boolean>(false);
 
+  readonly isEditStaffModalOpen = signal<boolean>(false);
+  readonly staffToEdit = signal<UserResponse | null>(null);
+  readonly editEmail = signal<string>('');
+  readonly editRole = signal<Role>('ROLE_RECEPTIONIST');
+  readonly editShift = signal<Shift>('MORNING');
+  readonly editPassword = signal<string>('');
+  readonly showEditPassword = signal<boolean>(false);
+  readonly editStaffFormError = signal<string | null>(null);
+  readonly isSavingStaff = signal<boolean>(false);
+  readonly isTogglingStaffId = signal<number | null>(null);
+
   readonly todayString = new Date().toISOString().split('T')[0];
 
   readonly staffMetrics = computed(() => {
@@ -184,6 +208,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       kitchenStaff,
       admins
     };
+  });
+
+  readonly activeAdminCount = computed(() => {
+    return this.staffList().filter(u => u.role === 'ROLE_ADMIN' && u.enabled).length;
   });
 
   readonly metrics = computed(() => {
@@ -312,6 +340,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
           } else {
             this.roomService.getRooms().subscribe(roomsData => this.rooms.set(roomsData || []));
           }
+          this.loadMaintenanceBlocks();
           this.showToast(event.title + ' — ' + event.message);
         }
       })
@@ -365,6 +394,85 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
 
     this.loadRoomTypes();
+    this.loadMaintenanceBlocks();
+  }
+
+  loadMaintenanceBlocks(): void {
+    this.maintenanceService.getBlocks().subscribe({
+      next: (blocks) => this.maintenanceBlocks.set(blocks || []),
+      error: () => {}
+    });
+  }
+
+  openMaintenanceModal(room?: Room | void | null): void {
+    const targetRoom = (room && typeof room === 'object') ? room : null;
+    this.preselectedRoomForMaintenance.set(targetRoom);
+    this.maintenanceErrorMessage.set(null);
+    this.isMaintenanceModalOpen.set(true);
+  }
+
+  closeMaintenanceModal(): void {
+    this.isMaintenanceModalOpen.set(false);
+    this.preselectedRoomForMaintenance.set(null);
+    this.maintenanceErrorMessage.set(null);
+  }
+
+  handleCreateMaintenanceBlock(request: CreateMaintenanceBlockRequest): void {
+    this.isMaintenanceProcessing.set(true);
+    this.maintenanceErrorMessage.set(null);
+
+    this.maintenanceService.createBlock(request).subscribe({
+      next: (created) => {
+        this.isMaintenanceProcessing.set(false);
+        this.showToast(`Bloqueo técnico para Suite ${created.roomNumber} registrado con éxito.`);
+        this.loadMaintenanceBlocks();
+        this.roomService.getRooms().subscribe(roomsData => this.rooms.set(roomsData || []));
+        this.closeMaintenanceModal();
+      },
+      error: (err) => {
+        this.isMaintenanceProcessing.set(false);
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'No fue posible registrar el bloqueo de mantenimiento.');
+        this.maintenanceErrorMessage.set(msg);
+      }
+    });
+  }
+
+  handleResolveMaintenanceBlock(id: number): void {
+    this.isMaintenanceProcessing.set(true);
+    this.maintenanceErrorMessage.set(null);
+
+    this.maintenanceService.resolveBlock(id).subscribe({
+      next: (resolved) => {
+        this.isMaintenanceProcessing.set(false);
+        this.showToast(`Bloqueo de Suite ${resolved.roomNumber} resuelto. Suite operativa.`);
+        this.loadMaintenanceBlocks();
+        this.roomService.getRooms().subscribe(roomsData => this.rooms.set(roomsData || []));
+      },
+      error: (err) => {
+        this.isMaintenanceProcessing.set(false);
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Error al levantar el bloqueo técnico.');
+        this.maintenanceErrorMessage.set(msg);
+      }
+    });
+  }
+
+  handleCancelMaintenanceBlock(id: number): void {
+    this.isMaintenanceProcessing.set(true);
+    this.maintenanceErrorMessage.set(null);
+
+    this.maintenanceService.cancelBlock(id).subscribe({
+      next: (cancelled) => {
+        this.isMaintenanceProcessing.set(false);
+        this.showToast(`Bloqueo de Suite ${cancelled.roomNumber} anulado.`);
+        this.loadMaintenanceBlocks();
+        this.roomService.getRooms().subscribe(roomsData => this.rooms.set(roomsData || []));
+      },
+      error: (err) => {
+        this.isMaintenanceProcessing.set(false);
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Error al anular el bloqueo técnico.');
+        this.maintenanceErrorMessage.set(msg);
+      }
+    });
   }
 
   loadRoomTypes(): void {
@@ -631,8 +739,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS'): void {
-    if ((section === 'STAFF' || section === 'SUITES_INVENTORY' || section === 'ANALYTICS') && !this.isAdmin()) return;
+  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT'): void {
+    if ((section === 'STAFF' || section === 'SUITES_INVENTORY' || section === 'ANALYTICS' || section === 'AUDIT') && !this.isAdmin()) return;
     this.activeSection.set(section);
     if (section === 'STAFF' && this.staffList().length === 0) {
       this.loadStaff();
@@ -740,6 +848,124 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.isCreatingStaff.set(false);
         const msg = err.error?.detail || err.error?.message || 'Error al crear las credenciales corporativas.';
         this.staffFormError.set(msg);
+      }
+    });
+  }
+
+  isCurrentStaff(staff: UserResponse): boolean {
+    return staff.username === this.authService.currentUser()?.username;
+  }
+
+  canDeactivateStaff(staff: UserResponse): boolean {
+    if (this.isCurrentStaff(staff)) {
+      return false;
+    }
+    if (staff.role === 'ROLE_ADMIN' && staff.enabled && this.activeAdminCount() <= 1) {
+      return false;
+    }
+    return true;
+  }
+
+  getDeactivateTooltip(staff: UserResponse): string {
+    if (this.isCurrentStaff(staff)) {
+      return 'No puede desactivar su propia cuenta en sesión';
+    }
+    if (staff.role === 'ROLE_ADMIN' && staff.enabled && this.activeAdminCount() <= 1) {
+      return 'No se puede desactivar al único administrador activo';
+    }
+    return staff.enabled ? 'Desactivar acceso al sistema' : 'Reactivar acceso al sistema';
+  }
+
+  openEditStaffModal(staff: UserResponse): void {
+    this.staffToEdit.set(staff);
+    this.editEmail.set(staff.email);
+    this.editRole.set(staff.role);
+    this.editShift.set(staff.shift || 'MORNING');
+    this.editPassword.set('');
+    this.showEditPassword.set(false);
+    this.editStaffFormError.set(null);
+    this.isEditStaffModalOpen.set(true);
+  }
+
+  closeEditStaffModal(): void {
+    this.isEditStaffModalOpen.set(false);
+    this.staffToEdit.set(null);
+    this.editStaffFormError.set(null);
+  }
+
+  toggleEditPasswordVisibility(): void {
+    this.showEditPassword.update(prev => !prev);
+  }
+
+  submitUpdateStaff(): void {
+    const staff = this.staffToEdit();
+    if (!staff) return;
+
+    const email = this.editEmail().trim();
+    const role = this.editRole();
+    const shift = this.editShift();
+    const password = this.editPassword().trim();
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailPattern.test(email)) {
+      this.editStaffFormError.set('Ingrese una dirección de correo institucional válida.');
+      return;
+    }
+
+    if (this.isCurrentStaff(staff) && role !== 'ROLE_ADMIN') {
+      this.editStaffFormError.set('No puede revocar su propio rol de Administrador.');
+      return;
+    }
+
+    if (password && password.length < 6) {
+      this.editStaffFormError.set('La nueva contraseña debe contener al menos 6 caracteres.');
+      return;
+    }
+
+    this.isSavingStaff.set(true);
+    this.editStaffFormError.set(null);
+
+    const payload: UpdateStaffRequest = {
+      email,
+      role,
+      shift,
+      password: password || undefined
+    };
+
+    this.staffService.updateStaff(staff.id, payload).subscribe({
+      next: (updatedUser) => {
+        this.isSavingStaff.set(false);
+        this.staffList.update(list => list.map(u => u.id === updatedUser.id ? updatedUser : u));
+        this.closeEditStaffModal();
+        this.showToast(`Perfil de '${updatedUser.username}' actualizado con éxito.`);
+      },
+      error: (err) => {
+        this.isSavingStaff.set(false);
+        const msg = err.error?.message || err.error?.detail || 'Error al actualizar el personal.';
+        this.editStaffFormError.set(msg);
+      }
+    });
+  }
+
+  toggleStaffStatus(staff: UserResponse): void {
+    if (!this.canDeactivateStaff(staff)) {
+      const reason = this.getDeactivateTooltip(staff);
+      this.showToast(reason);
+      return;
+    }
+
+    this.isTogglingStaffId.set(staff.id);
+    this.staffService.toggleStaffStatus(staff.id).subscribe({
+      next: (updatedUser) => {
+        this.isTogglingStaffId.set(null);
+        this.staffList.update(list => list.map(u => u.id === updatedUser.id ? updatedUser : u));
+        const statusLabel = updatedUser.enabled ? 'activada' : 'desactivada (acceso revocado)';
+        this.showToast(`Cuenta de '${updatedUser.username}' ${statusLabel} correctamente.`);
+      },
+      error: (err) => {
+        this.isTogglingStaffId.set(null);
+        const msg = err.error?.message || err.error?.detail || 'Error al modificar el estado de la cuenta.';
+        this.showToast(msg);
       }
     });
   }

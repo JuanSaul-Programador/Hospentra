@@ -1,0 +1,270 @@
+<div class="audit-section-container">
+  @if (toastMessage()) {
+    <div class="audit-toast">
+      <span class="material-symbols-outlined">check_circle</span>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
+
+  <div class="audit-header">
+    <div class="header-titles">
+      <div class="badge-title">
+        <span class="material-symbols-outlined">security</span>
+        <span>Control de Cumplimiento & Trazabilidad Inmutable</span>
+      </div>
+      <h2>Auditoría de Actividad & Libros Contables</h2>
+      <p>Supervisión cronológica de acciones operativas, cambios de estado en suites, asignación de turnos y exportación oficial de reportes.</p>
+    </div>
+
+    <div class="header-actions">
+      <button 
+        type="button" 
+        class="btn-export secondary" 
+        (click)="exportFinancialJournal()"
+        [disabled]="isExporting()">
+        <span class="material-symbols-outlined">account_balance_wallet</span>
+        <span>Diario Financiero (Excel/CSV)</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-export primary" 
+        (click)="exportReservations()"
+        [disabled]="isExporting()">
+        <span class="material-symbols-outlined">table_view</span>
+        <span>Libro de Reservas (Excel/CSV)</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="audit-kpis-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon total">
+        <span class="material-symbols-outlined">history</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Eventos Históricos</span>
+        <span class="kpi-value">{{ metrics()?.totalEvents || 0 }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon today">
+        <span class="material-symbols-outlined">today</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Actividad de Hoy</span>
+        <span class="kpi-value highlight">{{ metrics()?.todayEvents || 0 }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon safety">
+        <span class="material-symbols-outlined">shield</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Incidentes o Fallos</span>
+        <span class="kpi-value warning">{{ metrics()?.failedEvents || 0 }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon operators">
+        <span class="material-symbols-outlined">category</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Acciones Registradas</span>
+        <span class="kpi-value">{{ metrics()?.distinctOperators || 0 }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filter-group">
+      <label>Tipo de Acción</label>
+      <div class="input-wrapper">
+        <span class="material-symbols-outlined input-icon">filter_alt</span>
+        <select [ngModel]="filterAction()" (ngModelChange)="filterAction.set($event); onFilterChange()">
+          <option value="">Todas las Acciones</option>
+          @for (act of availableActions(); track act) {
+            <option [value]="act">{{ formatAction(act) }} ({{ act }})</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>Operador / Usuario</label>
+      <div class="input-wrapper">
+        <span class="material-symbols-outlined input-icon">person_search</span>
+        <input 
+          type="text" 
+          placeholder="Buscar por username..." 
+          [ngModel]="filterUsername()" 
+          (ngModelChange)="filterUsername.set($event)"
+          (keyup.enter)="onFilterChange()">
+      </div>
+    </div>
+
+    <div class="filter-group date">
+      <label>Desde</label>
+      <div class="input-wrapper">
+        <span class="material-symbols-outlined input-icon">calendar_today</span>
+        <input 
+          type="date" 
+          [ngModel]="filterStartDate()" 
+          (ngModelChange)="filterStartDate.set($event); onFilterChange()">
+      </div>
+    </div>
+
+    <div class="filter-group date">
+      <label>Hasta</label>
+      <div class="input-wrapper">
+        <span class="material-symbols-outlined input-icon">event</span>
+        <input 
+          type="date" 
+          [ngModel]="filterEndDate()" 
+          (ngModelChange)="filterEndDate.set($event); onFilterChange()">
+      </div>
+    </div>
+
+    <div class="filter-actions">
+      <button type="button" class="btn-filter apply" (click)="onFilterChange()">
+        <span class="material-symbols-outlined">search</span>
+        <span>Filtrar</span>
+      </button>
+
+      <button type="button" class="btn-filter reset" (click)="clearFilters()" title="Limpiar Filtros">
+        <span class="material-symbols-outlined">restart_alt</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    @if (isLoading()) {
+      <div class="table-loading">
+        <div class="luxury-spinner"></div>
+        <p>Consultando bitácora inmutable de eventos...</p>
+      </div>
+    } @else if (logs().length === 0) {
+      <div class="table-empty">
+        <span class="material-symbols-outlined empty-icon">manage_search</span>
+        <h3>No se encontraron registros de auditoría</h3>
+        <p>No hay eventos registrados que coincidan con los criterios de filtrado seleccionados.</p>
+        <button type="button" class="btn-reset-empty" (click)="clearFilters()">Restablecer Filtros</button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Fecha & Hora</th>
+              <th>Operador</th>
+              <th>Rol</th>
+              <th>Acción Operativa</th>
+              <th>Entidad / ID</th>
+              <th>IP Origen</th>
+              <th>Estatus</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of logs(); track log.id) {
+              <tr [class.expanded]="expandedLogId() === log.id">
+                <td class="col-timestamp">
+                  <div class="timestamp-box">
+                    <span class="date">{{ log.createdAt | date:'dd MMM yyyy' }}</span>
+                    <span class="time">{{ log.createdAt | date:'HH:mm:ss' }}</span>
+                  </div>
+                </td>
+                <td class="col-user">
+                  <div class="user-cell">
+                    <div class="user-avatar-mini">{{ log.username.charAt(0).toUpperCase() }}</div>
+                    <span class="username">{{ log.username }}</span>
+                  </div>
+                </td>
+                <td class="col-role">
+                  <span class="role-pill" [class.admin]="log.userRole.includes('ADMIN')" [class.reception]="log.userRole.includes('RECEPTIONIST')">
+                    {{ log.userRole.replace('ROLE_', '') }}
+                  </span>
+                </td>
+                <td class="col-action">
+                  <div class="action-tag">
+                    <span class="material-symbols-outlined action-icon">{{ getActionIcon(log.action) }}</span>
+                    <span class="action-name">{{ formatAction(log.action) }}</span>
+                  </div>
+                </td>
+                <td class="col-entity">
+                  <span class="entity-name">{{ log.entityName }}</span>
+                  @if (log.entityId) {
+                    <span class="entity-id">#{{ log.entityId }}</span>
+                  }
+                </td>
+                <td class="col-ip">
+                  <span class="ip-code">{{ log.ipAddress }}</span>
+                </td>
+                <td class="col-status">
+                  <span class="status-indicator" [class.success]="log.status === 'SUCCESS'" [class.failure]="log.status !== 'SUCCESS'">
+                    <span class="status-dot"></span>
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td class="col-detail-btn">
+                  <button type="button" class="btn-toggle-detail" (click)="toggleExpand(log.id)" [attr.aria-expanded]="expandedLogId() === log.id">
+                    <span class="material-symbols-outlined">{{ expandedLogId() === log.id ? 'expand_less' : 'expand_more' }}</span>
+                  </button>
+                </td>
+              </tr>
+              @if (expandedLogId() === log.id) {
+                <tr class="details-row">
+                  <td colspan="8">
+                    <div class="expanded-details-content">
+                      <div class="details-header">
+                        <span class="material-symbols-outlined">info</span>
+                        <strong>Descripción Detallada del Evento:</strong>
+                      </div>
+                      <p class="details-text">{{ log.details || 'Sin detalles adicionales registrados para esta operación.' }}</p>
+                      <div class="details-meta">
+                        <span><strong>Identificador de Auditoría:</strong> LOG-{{ log.id }}</span>
+                        <span><strong>Entidad Afectada:</strong> {{ log.entityName }} ({{ log.entityId || 'Global' }})</span>
+                        <span><strong>Firma de Tiempo:</strong> {{ log.createdAt }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-pagination">
+        <div class="pagination-info">
+          Mostrando página <strong>{{ currentPage() + 1 }}</strong> de <strong>{{ totalPages() }}</strong> (Total: {{ totalElements() }} eventos registrados)
+        </div>
+
+        <div class="pagination-controls">
+          <button 
+            type="button" 
+            class="btn-page" 
+            [disabled]="currentPage() === 0" 
+            (click)="prevPage()">
+            <span class="material-symbols-outlined">chevron_left</span>
+            <span>Anterior</span>
+          </button>
+
+          <span class="current-page-badge">{{ currentPage() + 1 }}</span>
+
+          <button 
+            type="button" 
+            class="btn-page" 
+            [disabled]="currentPage() >= totalPages() - 1" 
+            (click)="nextPage()">
+            <span>Siguiente</span>
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

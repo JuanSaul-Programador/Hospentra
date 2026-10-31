@@ -1,0 +1,508 @@
+<main class="settings-page">
+  <div class="settings-container">
+    <div class="settings-header">
+      <div class="header-prestige">
+        <span class="material-symbols-outlined header-icon">manage_accounts</span>
+        <span class="prestige-tag">Seguridad & Privacidad de Usuario</span>
+      </div>
+      <h1 class="settings-title">Configuración de Cuenta</h1>
+      <p class="settings-subtitle">
+        Administre sus credenciales de acceso, datos personales de huésped y preferencias de retención de cuenta.
+      </p>
+    </div>
+
+    @if (profile()?.pendingDeletion) {
+      <div class="grace-period-banner">
+        <div class="banner-icon-col">
+          <span class="material-symbols-outlined icon-alert">warning</span>
+        </div>
+        <div class="banner-info-col">
+          <div class="banner-badge-row">
+            <span class="badge-grace">Periodo de Gracia Activo</span>
+            <span class="badge-countdown">{{ remainingGraceDays() }} días restantes</span>
+          </div>
+          <h3 class="banner-title">Cuenta programada para eliminación definitiva</h3>
+          <p class="banner-desc">
+            Se ha registrado una solicitud de baja voluntaria. Su cuenta y datos personales serán permanentemente anonimizados el 
+            <strong>{{ profile()?.scheduledDeletionDate | date:'dd/MM/yyyy HH:mm' }}</strong>. 
+            Si desea conservar su perfil y reservas, puede cancelar esta solicitud en cualquier momento antes de dicha fecha.
+          </p>
+        </div>
+        <div class="banner-action-col">
+          <button 
+            type="button" 
+            class="btn-rescue" 
+            (click)="cancelDeletion()" 
+            [disabled]="isCancellingDeletion()"
+          >
+            <span class="material-symbols-outlined">restart_alt</span>
+            <span>{{ isCancellingDeletion() ? 'Restaurando...' : 'Cancelar Eliminación' }}</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="tabs-nav">
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'PROFILE'" 
+        (click)="switchTab('PROFILE')"
+      >
+        <span class="material-symbols-outlined">person</span>
+        <span>Perfil & Datos</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'SECURITY'" 
+        (click)="switchTab('SECURITY')"
+      >
+        <span class="material-symbols-outlined">lock_reset</span>
+        <span>Seguridad & Contraseña</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'PRIVACY'" 
+        (click)="switchTab('PRIVACY')"
+      >
+        <span class="material-symbols-outlined">shield_person</span>
+        <span>Privacidad & Retención (30 Días)</span>
+      </button>
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <span class="spinner-large"></span>
+        <p>Cargando información segura de su cuenta...</p>
+      </div>
+    } @else {
+      <div class="tab-panel">
+        @if (activeTab() === 'PROFILE') {
+          <section class="panel-section">
+            <div class="panel-section-header">
+              <h2 class="section-title">Datos Personales y de Contacto</h2>
+              <p class="section-desc">Esta información se utilizará para sus fichas de estancia, folios de reserva y comprobantes oficiales.</p>
+            </div>
+
+            <div class="readonly-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Usuario de la Cuenta</span>
+                <div class="meta-box">
+                  <span class="material-symbols-outlined">account_circle</span>
+                  <strong class="user-handle">{{ profile()?.username || '—' }}</strong>
+                </div>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Correo Registrado</span>
+                <div class="meta-box">
+                  <span class="material-symbols-outlined">mail</span>
+                  <span class="email-value">{{ profile()?.email || '—' }}</span>
+                  @if (profile()?.emailVerified) {
+                    <span class="verified-pill">
+                      <span class="material-symbols-outlined icon-v">verified</span>
+                      <span>Verificado</span>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Nivel de Acceso</span>
+                <div class="meta-box">
+                  <span class="material-symbols-outlined">verified_user</span>
+                  @if (profile()?.role) {
+                    <span class="role-pill">{{ getRoleDisplayName(profile()?.role) }}</span>
+                  } @else {
+                    <span class="role-placeholder">—</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <form (ngSubmit)="saveProfile()" class="profile-form">
+              <div class="form-row-two">
+                <div class="form-group">
+                  <label for="editFirstName" class="form-label">Nombre(s) *</label>
+                  <div class="input-wrap">
+                    <span class="material-symbols-outlined input-icon">person</span>
+                    <input 
+                      id="editFirstName" 
+                      type="text" 
+                      [ngModel]="editFirstName()" 
+                      (ngModelChange)="editFirstName.set($event)" 
+                      name="editFirstName" 
+                      class="form-control" 
+                      required 
+                      placeholder="Ej. Sofía"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="editLastName" class="form-label">Apellidos *</label>
+                  <div class="input-wrap">
+                    <span class="material-symbols-outlined input-icon">badge</span>
+                    <input 
+                      id="editLastName" 
+                      type="text" 
+                      [ngModel]="editLastName()" 
+                      (ngModelChange)="editLastName.set($event)" 
+                      name="editLastName" 
+                      class="form-control" 
+                      required 
+                      placeholder="Ej. Rodríguez"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="editPhone" class="form-label">Teléfono de Contacto (Opcional)</label>
+                <div class="input-wrap">
+                  <span class="material-symbols-outlined input-icon">phone</span>
+                  <input 
+                    id="editPhone" 
+                    type="tel" 
+                    [ngModel]="editPhone()" 
+                    (ngModelChange)="editPhone.set($event)" 
+                    name="editPhone" 
+                    class="form-control" 
+                    placeholder="Ej. +52 984 123 4567"
+                  />
+                </div>
+                <span class="form-hint">Utilizado por concierge para coordinar su llegada o solicitudes de Room Service</span>
+              </div>
+
+              <div class="form-actions">
+                <button 
+                  type="submit" 
+                  class="btn-save" 
+                  [disabled]="isSavingProfile()"
+                >
+                  <span class="material-symbols-outlined">{{ isSavingProfile() ? 'sync' : 'save' }}</span>
+                  <span>{{ isSavingProfile() ? 'Guardando Cambios...' : 'Guardar Información' }}</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        }
+
+        @if (activeTab() === 'SECURITY') {
+          <section class="panel-section">
+            <div class="panel-section-header">
+              <h2 class="section-title">Actualización de Contraseña</h2>
+              <p class="section-desc">
+                Para proteger su cuenta, el cambio de contraseña requiere un código de verificación enviado a su correo registrado: 
+                <strong>{{ profile()?.email }}</strong>.
+              </p>
+            </div>
+
+            <div class="security-flow-card">
+              <div class="flow-step-header">
+                <div class="step-num">1</div>
+                <div>
+                  <h3 class="step-title">Solicitar Código de Seguridad por Correo</h3>
+                  <p class="step-desc">Se enviará un código numérico de 6 dígitos con vigencia de 15 minutos.</p>
+                </div>
+              </div>
+
+              <div class="step-action-row">
+                <button 
+                  type="button" 
+                  class="btn-otp" 
+                  (click)="requestOtp()" 
+                  [disabled]="isSendingOtp() || otpCountdown() > 0"
+                >
+                  <span class="material-symbols-outlined" [class.spinning]="isSendingOtp()">
+                    {{ isSendingOtp() ? 'sync' : 'send' }}
+                  </span>
+                  <span>
+                    @if (otpCountdown() > 0) {
+                      Reenviar en {{ otpCountdown() }}s
+                    } @else if (isOtpSent()) {
+                      Reenviar Código de Seguridad
+                    } @else {
+                      Enviar Código al Correo
+                    }
+                  </span>
+                </button>
+
+                @if (isOtpSent()) {
+                  <span class="otp-sent-notice">
+                    <span class="material-symbols-outlined">mark_email_read</span>
+                    <span>Código enviado a su buzón. Revise su bandeja o carpeta de spam.</span>
+                  </span>
+                }
+              </div>
+            </div>
+
+            @if (isOtpSent()) {
+              <form (ngSubmit)="submitChangePassword()" class="password-form">
+                <div class="flow-step-header">
+                  <div class="step-num">2</div>
+                  <div>
+                    <h3 class="step-title">Ingresar Código y Nueva Contraseña</h3>
+                    <p class="step-desc">La nueva contraseña debe contener al menos 6 caracteres seguros.</p>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="otpCode" class="form-label">Código de Verificación (6 Dígitos) *</label>
+                  <div class="input-wrap otp-wrap">
+                    <span class="material-symbols-outlined input-icon">pin</span>
+                    <input 
+                      id="otpCode" 
+                      type="text" 
+                      maxlength="6" 
+                      [ngModel]="otpCode()" 
+                      (ngModelChange)="otpCode.set($event)" 
+                      name="otpCode" 
+                      class="form-control otp-input" 
+                      required 
+                      placeholder="000000"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-row-two">
+                  <div class="form-group">
+                    <label for="newPassword" class="form-label">Nueva Contraseña *</label>
+                    <div class="input-wrap">
+                      <span class="material-symbols-outlined input-icon">lock</span>
+                      <input 
+                        id="newPassword" 
+                        [type]="showNewPassword() ? 'text' : 'password'" 
+                        [ngModel]="newPassword()" 
+                        (ngModelChange)="newPassword.set($event)" 
+                        name="newPassword" 
+                        class="form-control" 
+                        required 
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                      <button 
+                        type="button" 
+                        class="btn-eye" 
+                        (click)="togglePasswordVisibility()" 
+                        aria-label="Alternar visibilidad"
+                      >
+                        <span class="material-symbols-outlined">
+                          {{ showNewPassword() ? 'visibility_off' : 'visibility' }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="confirmPassword" class="form-label">Confirmar Nueva Contraseña *</label>
+                    <div class="input-wrap">
+                      <span class="material-symbols-outlined input-icon">lock_reset</span>
+                      <input 
+                        id="confirmPassword" 
+                        [type]="showNewPassword() ? 'text' : 'password'" 
+                        [ngModel]="confirmPassword()" 
+                        (ngModelChange)="confirmPassword.set($event)" 
+                        name="confirmPassword" 
+                        class="form-control" 
+                        required 
+                        placeholder="Repita la contraseña"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button 
+                    type="submit" 
+                    class="btn-save" 
+                    [disabled]="isChangingPassword()"
+                  >
+                    <span class="material-symbols-outlined">{{ isChangingPassword() ? 'sync' : 'check_circle' }}</span>
+                    <span>{{ isChangingPassword() ? 'Actualizando Contraseña...' : 'Confirmar Cambio de Contraseña' }}</span>
+                  </button>
+                </div>
+              </form>
+            }
+          </section>
+        }
+
+        @if (activeTab() === 'PRIVACY') {
+          <section class="panel-section">
+            <div class="panel-section-header">
+              <h2 class="section-title">Privacidad & Protocolo de Eliminación (30 Días)</h2>
+              <p class="section-desc">
+                En cumplimiento de las normativas de privacidad y retención de datos de Hospentra Sanctuary Retreat.
+              </p>
+            </div>
+
+            <div class="privacy-info-cards">
+              <div class="info-card">
+                <span class="material-symbols-outlined card-icon gold">hourglass_top</span>
+                <div>
+                  <strong>Periodo de Gracia de 30 Días</strong>
+                  <p>Al solicitar la eliminación, su cuenta entra en pausa por 30 días. Si se arrepiente, solo debe iniciar sesión y cancelar la solicitud para restaurarla.</p>
+                </div>
+              </div>
+
+              <div class="info-card">
+                <span class="material-symbols-outlined card-icon blue">receipt_long</span>
+                <div>
+                  <strong>Conservación Legal de Folios Fiscales</strong>
+                  <p>Por normativas tributarias y de auditoría hotelera, los comprobantes de pago pasados se anonimizan irreversibly sin eliminar registros contables.</p>
+                </div>
+              </div>
+
+              <div class="info-card">
+                <span class="material-symbols-outlined card-icon green">lock</span>
+                <div>
+                  <strong>Cero Huella Digital Post-Purga</strong>
+                  <p>Tras los 30 días, sus credenciales, teléfonos, correos y tokens son destruidos permanentemente de nuestra base de datos.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="danger-zone-box">
+              <div class="danger-header">
+                <span class="material-symbols-outlined icon-danger">delete_forever</span>
+                <div>
+                  <h3 class="danger-title">Eliminación Voluntaria de Cuenta</h3>
+                  <p class="danger-desc">
+                    Inicia el periodo de gracia de 30 días. Requiere ingresar su contraseña actual. No podrá solicitarse si tiene reservaciones activas.
+                  </p>
+                </div>
+              </div>
+
+              @if (profile()?.pendingDeletion) {
+                <div class="pending-status-row">
+                  <span class="badge-status-pending">Eliminación en curso programada para el {{ profile()?.scheduledDeletionDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <button 
+                    type="button" 
+                    class="btn-cancel-del" 
+                    (click)="cancelDeletion()" 
+                    [disabled]="isCancellingDeletion()"
+                  >
+                    Cancelar Eliminación y Conservar Cuenta
+                  </button>
+                </div>
+              } @else {
+                <button 
+                  type="button" 
+                  class="btn-request-delete" 
+                  (click)="openDeleteModal()"
+                >
+                  <span class="material-symbols-outlined">delete</span>
+                  <span>Solicitar Eliminación de Cuenta</span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  </div>
+
+  @if (isDeleteModalOpen()) {
+    <div class="modal-backdrop" (click)="closeDeleteModal()">
+      <div class="dialog-box" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="btn-close-modal" (click)="closeDeleteModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <div class="dialog-icon-wrap">
+          <span class="material-symbols-outlined icon-dialog">warning</span>
+        </div>
+
+        <span class="prestige-tag red">Protocolo de Privacidad</span>
+        <h3 class="dialog-title">¿Solicitar eliminación de cuenta?</h3>
+        <p class="dialog-desc">
+          Su cuenta entrará en una ventana de gracia de <strong>30 días</strong>. Durante este tiempo podrá cancelar la solicitud iniciando sesión. 
+          Al cumplirse el plazo, sus datos serán permanentemente anonimizados.
+        </p>
+
+        @if (deleteModalError()) {
+          <div class="modal-alert-error">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ deleteModalError() }}</span>
+          </div>
+        }
+
+        <form (ngSubmit)="confirmAccountDeletion()" class="modal-form">
+          <div class="form-group">
+            <label for="deletePassword" class="form-label">Contraseña Actual para Autorizar *</label>
+            <div class="input-wrap">
+              <span class="material-symbols-outlined input-icon">lock</span>
+              <input 
+                id="deletePassword" 
+                [type]="showDeletePassword() ? 'text' : 'password'" 
+                [ngModel]="deletePassword()" 
+                (ngModelChange)="deletePassword.set($event)" 
+                name="deletePassword" 
+                class="form-control" 
+                required 
+                placeholder="Ingrese su contraseña"
+              />
+              <button 
+                type="button" 
+                class="btn-eye" 
+                (click)="toggleDeletePasswordVisibility()" 
+                aria-label="Alternar visibilidad"
+              >
+                <span class="material-symbols-outlined">
+                  {{ showDeletePassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="deleteReason" class="form-label">Motivo de su salida (Opcional)</label>
+            <div class="input-wrap">
+              <span class="material-symbols-outlined input-icon">chat</span>
+              <input 
+                id="deleteReason" 
+                type="text" 
+                [ngModel]="deleteReason()" 
+                (ngModelChange)="deleteReason.set($event)" 
+                name="deleteReason" 
+                class="form-control" 
+                placeholder="Ej. Cambio de correo, no viajo con frecuencia..."
+              />
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button 
+              type="button" 
+              class="btn-modal-cancel" 
+              (click)="closeDeleteModal()" 
+              [disabled]="isDeletingAccount()"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              class="btn-modal-danger" 
+              [disabled]="isDeletingAccount()"
+            >
+              <span class="material-symbols-outlined">{{ isDeletingAccount() ? 'sync' : 'delete_forever' }}</span>
+              <span>{{ isDeletingAccount() ? 'Procesando...' : 'Confirmar Periodo de 30 Días' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (toastMessage()) {
+    <div class="toast-notification" [class.error]="toastType() === 'ERROR'">
+      <span class="material-symbols-outlined">
+        {{ toastType() === 'ERROR' ? 'error' : 'check_circle' }}
+      </span>
+      <span>{{ toastMessage() }}</span>
+    </div>
+  }
+</main>
