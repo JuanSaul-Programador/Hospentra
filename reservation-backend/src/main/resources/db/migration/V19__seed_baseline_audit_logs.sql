@@ -1,0 +1,12 @@
+INSERT INTO audit_logs (username, user_role, action, entity_name, entity_id, details, ip_address, status, created_at)
+VALUES 
+('admin', 'ROLE_ADMIN', 'CHECK_IN', 'Reservation', 'HOSP-1-2026', 'Check-in formalizado para Suite 101 por huésped María López. Llaves magnéticas entregadas.', '192.168.1.15', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+('lucia.recepcion', 'ROLE_RECEPTIONIST', 'CHECK_OUT', 'Reservation', 'HOSP-14-2026', 'Check-out completado para Suite 101. Factura fiscal INV-HOSP-14-2026 emitida y liquidada.', '192.168.1.20', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '4 hours'),
+('admin', 'ROLE_ADMIN', 'CREATE_MAINTENANCE_BLOCK', 'MaintenanceBlock', '1', 'Bloqueo técnico Out of Order aplicado a Suite 201 por inspección hidráulica de jacuzzi.', '192.168.1.10', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '5 hours'),
+('elena.gobernanta', 'ROLE_ADMIN', 'HOUSEKEEPING_UPDATE', 'Room', '101', 'Inspección de calidad aprobada. Amenities botánicos y aromaterapia acondicionados para entrega.', '192.168.1.33', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '6 hours'),
+('carlos.admin', 'ROLE_ADMIN', 'CREATE_RESERVATION', 'Reservation', 'HOSP-6-2026', 'Reserva confirmada en Suite 101 para huésped Pepe. Garantía de estancia aprobada.', '127.0.0.1', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+('lucia.recepcion', 'ROLE_RECEPTIONIST', 'DELIVER_ROOM_SERVICE', 'RoomOrder', 'CMD-1', 'Comanda de gastronomía de autor #1 entregada en Suite 101.', '192.168.1.20', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '7 hours'),
+('carlos.admin', 'ROLE_ADMIN', 'UPDATE_STAFF', 'User', '3', 'Actualización de turno laboral a HORARIO VESPERTINO para personal de conserjería.', '192.168.1.10', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '1 day 2 hours'),
+('admin', 'ROLE_ADMIN', 'RESOLVE_MAINTENANCE_BLOCK', 'MaintenanceBlock', '2', 'Mantenimiento preventivo completado en Suite 301. Habitación restablecida a disponible.', '192.168.1.10', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '1 day 4 hours'),
+('desconocido', 'ROLE_ANONYMOUS', 'FAILED_LOGIN_ATTEMPT', 'Security', 'AUTH', 'Tres intentos fallidos de autenticación por credenciales incorrectas desde terminal externa.', '189.204.12.8', 'FAILURE', CURRENT_TIMESTAMP - INTERVAL '8 hours'),
+('carlos.admin', 'ROLE_ADMIN', 'UPDATE_SECURITY_CONFIG', 'Security', 'CONFIG', 'Verificación de políticas de seguridad y rotación de certificados criptográficos.', '192.168.1.10', 'SUCCESS', CURRENT_TIMESTAMP - INTERVAL '2 days');

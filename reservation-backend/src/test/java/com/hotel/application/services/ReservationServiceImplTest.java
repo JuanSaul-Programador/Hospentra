@@ -9,6 +9,7 @@ import com.hotel.application.services.impl.ReservationServiceImpl;
 import com.hotel.domain.exception.ResourceNotFoundException;
 import com.hotel.domain.model.*;
 import com.hotel.domain.repository.GuestRepository;
+import com.hotel.domain.repository.MaintenanceBlockRepository;
 import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.RoomRepository;
 import com.hotel.domain.repository.UserRepository;
@@ -53,6 +54,12 @@ class ReservationServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private MaintenanceBlockRepository maintenanceBlockRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
+
     private ReservationServiceImpl reservationService;
 
     private RoomType standardRoomType;
@@ -71,9 +78,11 @@ class ReservationServiceImplTest {
                 guestRepository,
                 roomRepository,
                 userRepository,
+                maintenanceBlockRepository,
                 reservationMapper,
                 sseNotificationService,
-                emailService
+                emailService,
+                auditLogService
         );
 
         standardRoomType = RoomType.builder()
@@ -169,6 +178,27 @@ class ReservationServiceImplTest {
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not available for the selected dates");
+    }
+
+    @Test
+    void createReservationFailsWhenOverlappingMaintenanceBlockExists() {
+        LocalDate checkIn = LocalDate.now().plusDays(2);
+        LocalDate checkOut = LocalDate.now().plusDays(5);
+
+        ReservationRequest request = new ReservationRequest(
+                10L, 101L, checkIn, checkOut, PaymentMethod.PAY_AT_CHECKIN, null
+        );
+
+        when(guestRepository.findById(10L)).thenReturn(Optional.of(standardGuest));
+        when(roomRepository.findByIdWithLock(101L)).thenReturn(Optional.of(standardRoom));
+        when(reservationRepository.existsOverlappingReservation(eq(101L), eq(checkIn), eq(checkOut), anyList()))
+                .thenReturn(false);
+        when(maintenanceBlockRepository.existsOverlappingActiveBlock(eq(101L), eq(checkIn), eq(checkOut)))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> reservationService.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("under maintenance / out of order");
     }
 
     @Test

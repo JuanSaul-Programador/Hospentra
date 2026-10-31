@@ -27,6 +27,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @EntityGraph(attributePaths = {"guest", "room", "room.roomType"})
     List<Reservation> findByGuestId(Long guestId);
 
+    boolean existsByGuestIdAndStatusIn(Long guestId, List<ReservationStatus> statuses);
+
     @Query("SELECT COUNT(r) > 0 FROM Reservation r " +
            "WHERE r.room.id = :roomId " +
            "AND r.status IN :activeStatuses " +

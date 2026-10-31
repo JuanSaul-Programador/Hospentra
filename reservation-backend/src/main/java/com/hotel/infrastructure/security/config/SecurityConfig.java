@@ -91,7 +91,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
                         .requestMatchers(HttpMethod.PATCH, "/api/users/*/work-status").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
-                        .requestMatchers("/api/admin/analytics/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/maintenance-blocks/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.POST, "/api/room-types/**").hasRole("ADMIN")
@@ -122,6 +123,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviews/**").authenticated()
                         .requestMatchers("/api/payments/**").authenticated()
                         .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/account/**").authenticated()
 
                         .anyRequest().authenticated()
                 );

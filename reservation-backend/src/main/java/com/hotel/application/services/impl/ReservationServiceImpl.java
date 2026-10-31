@@ -2,12 +2,14 @@ package com.hotel.application.services.impl;
 
 import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.mapper.ReservationMapper;
+import com.hotel.application.services.AuditLogService;
 import com.hotel.application.services.EmailService;
 import com.hotel.application.services.ReservationService;
 import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
 import com.hotel.domain.model.*;
 import com.hotel.domain.repository.GuestRepository;
+import com.hotel.domain.repository.MaintenanceBlockRepository;
 import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.RoomRepository;
 import com.hotel.domain.repository.UserRepository;
@@ -35,9 +37,11 @@ public class ReservationServiceImpl implements ReservationService {
     private final GuestRepository guestRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final MaintenanceBlockRepository maintenanceBlockRepository;
     private final ReservationMapper reservationMapper;
     private final SseNotificationService sseNotificationService;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -124,6 +128,13 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("Room " + room.getRoomNumber() + " is not available for the selected dates");
         }
 
+        boolean isBlocked = maintenanceBlockRepository.existsOverlappingActiveBlock(
+                room.getId(), request.checkInDate(), request.checkOutDate());
+
+        if (isBlocked) {
+            throw new IllegalArgumentException("Room " + room.getRoomNumber() + " is currently under maintenance / out of order for the selected dates");
+        }
+
         long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
         BigDecimal totalPrice = room.getRoomType().getPricePerNight().multiply(BigDecimal.valueOf(nights));
 
@@ -152,6 +163,14 @@ public class ReservationServiceImpl implements ReservationService {
                 saved.getCheckOutDate().toString(),
                 totalPrice.doubleValue(),
                 saved.getAuthCode() != null ? saved.getAuthCode() : ("AUTH-" + saved.getId())
+        );
+
+        auditLogService.logAction(
+                "CREATE_RESERVATION",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Reserva creada para " + guest.getFirstName() + " " + guest.getLastName() + " en Suite " + room.getRoomNumber() + " (" + nights + " noches)",
+                "SUCCESS"
         );
 
         return response;
@@ -204,6 +223,14 @@ public class ReservationServiceImpl implements ReservationService {
         );
         sseNotificationService.broadcast(event);
 
+        auditLogService.logAction(
+                "CONFIRM_RESERVATION",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Reserva confirmada en Suite " + saved.getRoom().getRoomNumber(),
+                "SUCCESS"
+        );
+
         return response;
     }
 
@@ -248,6 +275,14 @@ public class ReservationServiceImpl implements ReservationService {
                 room
         );
         sseNotificationService.broadcast(roomEvent);
+
+        auditLogService.logAction(
+                "CHECK_IN",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Check-in completado para Suite " + room.getRoomNumber() + " por huésped " + saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName(),
+                "SUCCESS"
+        );
 
         return response;
     }
@@ -307,6 +342,14 @@ public class ReservationServiceImpl implements ReservationService {
         );
         sseNotificationService.broadcast(event);
 
+        auditLogService.logAction(
+                "CANCEL_RESERVATION",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Reserva cancelada para Suite " + saved.getRoom().getRoomNumber(),
+                "SUCCESS"
+        );
+
         return response;
     }
 
@@ -348,6 +391,14 @@ public class ReservationServiceImpl implements ReservationService {
                 room
         );
         sseNotificationService.broadcast(roomEvent);
+
+        auditLogService.logAction(
+                "CHECK_OUT",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Check-out completado para Suite " + room.getRoomNumber() + ". Suite enviada a limpieza.",
+                "SUCCESS"
+        );
 
         return response;
     }

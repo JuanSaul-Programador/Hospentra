@@ -8,6 +8,7 @@ import com.hotel.domain.model.User;
 import com.hotel.domain.model.WorkStatus;
 import com.hotel.domain.repository.UserRepository;
 import com.hotel.web.dto.CreateStaffRequest;
+import com.hotel.web.dto.UpdateStaffRequest;
 import com.hotel.web.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -86,6 +87,63 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         return mapToResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateStaff(Long userId, UpdateStaffRequest request, String currentUsername) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (request.role() == Role.ROLE_CUSTOMER) {
+            throw new IllegalArgumentException("Staff accounts cannot have the CUSTOMER role");
+        }
+
+        if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
+            throw new IllegalArgumentException("Email '" + request.email() + "' is already in use");
+        }
+
+        if (user.getUsername().equals(currentUsername) && request.role() != Role.ROLE_ADMIN) {
+            throw new IllegalStateException("No puede revocar su propio rol de Administrador");
+        }
+
+        user.setEmail(request.email());
+        user.setRole(request.role());
+        if (request.shift() != null) {
+            user.setShift(request.shift());
+        }
+
+        if (request.password() != null && !request.password().trim().isEmpty()) {
+            if (request.password().trim().length() < 6) {
+                throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+            }
+            user.setPassword(passwordEncoder.encode(request.password().trim()));
+        }
+
+        User updated = userRepository.save(user);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse toggleStaffStatus(Long userId, String currentUsername) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (user.getUsername().equals(currentUsername)) {
+            throw new IllegalStateException("No puede desactivar su propia cuenta de administrador en sesión");
+        }
+
+        if (user.isEnabled() && user.getRole() == Role.ROLE_ADMIN) {
+            long activeAdmins = userRepository.countByRoleAndEnabledTrue(Role.ROLE_ADMIN);
+            if (activeAdmins <= 1) {
+                throw new IllegalStateException("No se puede desactivar al único administrador activo del sistema");
+            }
+        }
+
+        user.setEnabled(!user.isEnabled());
+        User updated = userRepository.save(user);
+        return mapToResponse(updated);
     }
 
     private UserResponse mapToResponse(User user) {

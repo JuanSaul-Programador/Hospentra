@@ -61,6 +61,12 @@ public class User implements UserDetails {
     @Column(name = "break_started_at")
     private LocalDateTime breakStartedAt;
 
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
+    @Column(name = "scheduled_deletion_date")
+    private LocalDateTime scheduledDeletionDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -92,5 +98,9 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return this.enabled;
+    }
+
+    public boolean isPendingDeletion() {
+        return this.scheduledDeletionDate != null;
     }
 }

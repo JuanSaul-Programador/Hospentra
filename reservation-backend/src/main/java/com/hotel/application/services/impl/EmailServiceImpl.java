@@ -80,6 +80,185 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    @Async
+    public void sendPasswordResetOtp(String toEmail, String guestName, String otpCode) {
+        log.info("PASSWORD RESET OTP -> Target: [{}], Code: [{}]", toEmail, otpCode);
+
+        if (!mailEnabled) {
+            log.info("Mail dispatch disabled by configuration for {}", toEmail);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Hospentra Sanctuary Retreat");
+            helper.setTo(toEmail);
+            helper.setSubject("Código de Seguridad — Cambio de Contraseña Hospentra");
+
+            String html = buildPasswordResetOtpHtml(guestName, otpCode);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Password reset OTP email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Failed to dispatch password reset email to {}: {}. OTP is still valid via console log.", toEmail, e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendAccountDeletionNotice(String toEmail, String guestName, String scheduledDate) {
+        log.info("ACCOUNT DELETION NOTICE -> Target: [{}], Scheduled Date: [{}]", toEmail, scheduledDate);
+
+        if (!mailEnabled) {
+            log.info("Mail dispatch disabled by configuration for {}", toEmail);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Hospentra Sanctuary Retreat");
+            helper.setTo(toEmail);
+            helper.setSubject("Solicitud de Eliminación de Cuenta — Periodo de Gracia de 30 Días");
+
+            String html = buildAccountDeletionNoticeHtml(guestName, scheduledDate);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Account deletion notice email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Failed to dispatch account deletion notice to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendAccountDeletionCancelled(String toEmail, String guestName) {
+        log.info("ACCOUNT DELETION CANCELLED -> Target: [{}]", toEmail);
+
+        if (!mailEnabled) {
+            log.info("Mail dispatch disabled by configuration for {}", toEmail);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Hospentra Sanctuary Retreat");
+            helper.setTo(toEmail);
+            helper.setSubject("Restauración de Cuenta Confirmada — Hospentra Sanctuary");
+
+            String html = buildAccountDeletionCancelledHtml(guestName);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Account deletion cancelled email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Failed to dispatch account deletion cancelled email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    private String buildPasswordResetOtpHtml(String guestName, String otpCode) {
+        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Colaborador/a";
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset='UTF-8'></head>"
+                + "<body style='margin:0;padding:0;background-color:#f8fafc;font-family:\"Helvetica Neue\",Helvetica,Arial,sans-serif;color:#0f172a;'>"
+                + "<table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f8fafc;padding:40px 16px;'>"
+                + "<tr><td align='center'>"
+                + "<table width='100%' style='max-width:540px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,0.04);'>"
+                + "<tr><td style='background:#0f172a;padding:32px;text-align:center;'>"
+                + "<h1 style='margin:0;color:#c59b27;font-size:24px;letter-spacing:2px;font-weight:600;font-family:Georgia,serif;'>HOSPENTRA</h1>"
+                + "<p style='margin:4px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1px;text-transform:uppercase;'>Seguridad y Control de Acceso</p>"
+                + "</td></tr>"
+                + "<tr><td style='padding:36px 32px;text-align:center;'>"
+                + "<h2 style='margin:0 0 16px;font-size:20px;color:#0f172a;font-weight:600;'>Cambio de Contraseña</h2>"
+                + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 24px;'>Hola, <strong>" + name + "</strong>. Hemos recibido una solicitud para actualizar la contraseña de su cuenta en Hospentra.</p>"
+                + "<p style='font-size:14px;color:#64748b;margin:0 0 16px;'>Utilice el siguiente código de seguridad temporal para autorizar el cambio:</p>"
+                + "<div style='display:inline-block;background:#0f172a;color:#c59b27;font-size:32px;font-weight:700;letter-spacing:8px;padding:16px 36px;border-radius:8px;font-family:monospace;margin-bottom:24px;border:1px solid #c59b27;'>"
+                + otpCode
+                + "</div>"
+                + "<p style='font-size:13px;color:#94a3b8;margin:0 0 8px;'>Este código de un solo uso expira en <strong>15 minutos</strong>.</p>"
+                + "<p style='font-size:13px;color:#ef4444;margin:0;'>Si usted no solicitó este cambio, por favor ignore este mensaje o comuníquese con administración.</p>"
+                + "</td></tr>"
+                + "<tr><td style='background:#f8fafc;padding:20px 32px;text-align:center;border-top:1px solid #e2e8f0;'>"
+                + "<p style='margin:0;font-size:12px;color:#94a3b8;'>Hospentra Concierge & Seguridad 24/7</p>"
+                + "</td></tr>"
+                + "</table>"
+                + "</td></tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+    }
+
+    private String buildAccountDeletionNoticeHtml(String guestName, String scheduledDate) {
+        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Usuario/a";
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset='UTF-8'></head>"
+                + "<body style='margin:0;padding:0;background-color:#f8fafc;font-family:\"Helvetica Neue\",Helvetica,Arial,sans-serif;color:#0f172a;'>"
+                + "<table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f8fafc;padding:40px 16px;'>"
+                + "<tr><td align='center'>"
+                + "<table width='100%' style='max-width:540px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,0.04);'>"
+                + "<tr><td style='background:#0f172a;padding:32px;text-align:center;'>"
+                + "<h1 style='margin:0;color:#c59b27;font-size:24px;letter-spacing:2px;font-weight:600;font-family:Georgia,serif;'>HOSPENTRA</h1>"
+                + "<p style='margin:4px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1px;text-transform:uppercase;'>Gestión de Privacidad & Cuentas</p>"
+                + "</td></tr>"
+                + "<tr><td style='padding:36px 32px;'>"
+                + "<h2 style='margin:0 0 16px;font-size:20px;color:#dc2626;font-weight:600;'>Solicitud de Eliminación Registrada</h2>"
+                + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 16px;'>Estimado/a <strong>" + name + "</strong>,</p>"
+                + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 20px;'>Se ha iniciado el proceso de eliminación de su cuenta en Hospentra Sanctuary. Su cuenta ha entrado en un periodo de gracia y está programada para su purga definitiva el:</p>"
+                + "<div style='background:#fef2f2;border:1px solid #fecaca;padding:16px;border-radius:8px;text-align:center;margin-bottom:20px;'>"
+                + "<strong style='color:#dc2626;font-size:18px;'>" + scheduledDate + "</strong>"
+                + "</div>"
+                + "<p style='font-size:14px;line-height:1.6;color:#475569;margin:0 0 16px;'><strong>¿Cambió de opinión?</strong> Si desea conservar su cuenta y mantener su historial de estancias, puede cancelar esta solicitud en cualquier momento antes de la fecha límite simplemente iniciando sesión en la plataforma y haciendo clic en <em>'Cancelar Eliminación'</em>.</p>"
+                + "<p style='font-size:13px;color:#94a3b8;margin:0;'>Transcurridos los 30 días, su perfil y datos personales serán permanentemente anonimizados conforme a las normativas de protección de datos.</p>"
+                + "</td></tr>"
+                + "<tr><td style='background:#f8fafc;padding:20px 32px;text-align:center;border-top:1px solid #e2e8f0;'>"
+                + "<p style='margin:0;font-size:12px;color:#94a3b8;'>Hospentra Concierge & Legal</p>"
+                + "</td></tr>"
+                + "</table>"
+                + "</td></tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+    }
+
+    private String buildAccountDeletionCancelledHtml(String guestName) {
+        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Usuario/a";
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset='UTF-8'></head>"
+                + "<body style='margin:0;padding:0;background-color:#f8fafc;font-family:\"Helvetica Neue\",Helvetica,Arial,sans-serif;color:#0f172a;'>"
+                + "<table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f8fafc;padding:40px 16px;'>"
+                + "<tr><td align='center'>"
+                + "<table width='100%' style='max-width:540px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,0.04);'>"
+                + "<tr><td style='background:#0f172a;padding:32px;text-align:center;'>"
+                + "<h1 style='margin:0;color:#c59b27;font-size:24px;letter-spacing:2px;font-weight:600;font-family:Georgia,serif;'>HOSPENTRA</h1>"
+                + "<p style='margin:4px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1px;text-transform:uppercase;'>Gestión de Privacidad & Cuentas</p>"
+                + "</td></tr>"
+                + "<tr><td style='padding:36px 32px;'>"
+                + "<h2 style='margin:0 0 16px;font-size:20px;color:#059669;font-weight:600;'>Cuenta Restaurada con Éxito</h2>"
+                + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 16px;'>Estimado/a <strong>" + name + "</strong>,</p>"
+                + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 20px;'>Nos alegra informarle que la solicitud de eliminación de su cuenta ha sido cancelada. Su cuenta y privilegios se encuentran plenamente activos.</p>"
+                + "<p style='font-size:14px;line-height:1.6;color:#475569;margin:0;'>Puede continuar disfrutando de todas las amenidades, reservas y servicios exclusivos de Hospentra Sanctuary.</p>"
+                + "</td></tr>"
+                + "<tr><td style='background:#f8fafc;padding:20px 32px;text-align:center;border-top:1px solid #e2e8f0;'>"
+                + "<p style='margin:0;font-size:12px;color:#94a3b8;'>Hospentra Concierge • Bienestar & Excelencia</p>"
+                + "</td></tr>"
+                + "</table>"
+                + "</td></tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+    }
+
     private String buildOtpHtml(String guestName, String otpCode) {
         String name = (guestName != null && !guestName.isBlank()) ? guestName : "Huésped Distinguido";
         return "<!DOCTYPE html>"
