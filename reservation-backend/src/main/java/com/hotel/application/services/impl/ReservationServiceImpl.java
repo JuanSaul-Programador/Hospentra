@@ -42,6 +42,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final SseNotificationService sseNotificationService;
     private final EmailService emailService;
     private final AuditLogService auditLogService;
+    private final com.hotel.application.services.InAppNotificationService inAppNotificationService;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -173,6 +174,20 @@ public class ReservationServiceImpl implements ReservationService {
                 "SUCCESS"
         );
 
+        User guestUser = userRepository.findAll().stream()
+                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(guest.getId()))
+                .findFirst()
+                .orElse(null);
+        if (guestUser != null) {
+            inAppNotificationService.createNotification(
+                    guestUser,
+                    "Nueva Reserva Confirmada #HOSP-" + saved.getId() + "-2026",
+                    "Su reserva en la Suite " + room.getRoomNumber() + " (" + nights + " noches) ha sido confirmada con éxito.",
+                    "RESERVATION",
+                    "/my-reservations"
+            );
+        }
+
         return response;
     }
 
@@ -283,6 +298,20 @@ public class ReservationServiceImpl implements ReservationService {
                 "Check-in completado para Suite " + room.getRoomNumber() + " por huésped " + saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName(),
                 "SUCCESS"
         );
+
+        User guestUser = userRepository.findAll().stream()
+                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
+                .findFirst()
+                .orElse(null);
+        if (guestUser != null) {
+            inAppNotificationService.createNotification(
+                    guestUser,
+                    "¡Bienvenido a Hospentra Sanctuary!",
+                    "Su Check-In en la Suite " + room.getRoomNumber() + " ha sido completado. Disfrute de su estancia.",
+                    "CHECK_IN",
+                    "/my-reservations"
+            );
+        }
 
         return response;
     }
@@ -399,6 +428,78 @@ public class ReservationServiceImpl implements ReservationService {
                 "Check-out completado para Suite " + room.getRoomNumber() + ". Suite enviada a limpieza.",
                 "SUCCESS"
         );
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponse submitPreCheckIn(Long id, com.hotel.web.dto.PreCheckInRequest request) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getStatus() == ReservationStatus.CANCELLED || reservation.getStatus() == ReservationStatus.COMPLETED) {
+            throw new IllegalArgumentException("No es posible realizar pre-check-in en una reservación cancelada o completada");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isStaff = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            if (!isStaff) {
+                String currentUsername = authentication.getName();
+                User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
+                if (currentUser == null || currentUser.getGuest() == null ||
+                        !currentUser.getGuest().getId().equals(reservation.getGuest().getId())) {
+                    throw new AccessDeniedException("No tiene permiso para realizar el pre-check-in de esta reservación");
+                }
+            }
+        }
+
+        reservation.setPreCheckInCompleted(true);
+        reservation.setPreCheckInAt(LocalDateTime.now());
+        reservation.setDocumentType(request.documentType().trim());
+        reservation.setDocumentNumber(request.documentNumber().trim());
+        reservation.setNationality(request.nationality().trim());
+        reservation.setEstimatedArrivalTime(request.estimatedArrivalTime().trim());
+        reservation.setSpecialRequests(request.specialRequests() != null ? request.specialRequests().trim() : null);
+
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent event = NotificationEvent.of(
+                "PRE_CHECK_IN_COMPLETED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Pre-Check-In Recibido (Fast-Pass)",
+                "El huésped " + saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName() +
+                        " completó el Pre-Check-In para la Suite " + saved.getRoom().getRoomNumber() + " (ETA: " + saved.getEstimatedArrivalTime() + ")",
+                response
+        );
+        sseNotificationService.broadcast(event);
+
+        auditLogService.logAction(
+                "PRE_CHECK_IN",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Pre-check-in digital registrado. Documento: " + saved.getDocumentType() + " " + saved.getDocumentNumber() + ", ETA: " + saved.getEstimatedArrivalTime(),
+                "SUCCESS"
+        );
+
+        User guestUser = userRepository.findAll().stream()
+                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
+                .findFirst()
+                .orElse(null);
+
+        if (guestUser != null) {
+            inAppNotificationService.createNotification(
+                    guestUser,
+                    "Fast-Pass Activado (Pre-Check-In)",
+                    "Su Pre-Check-In para la Suite " + saved.getRoom().getRoomNumber() + " fue recibido con éxito. En recepción presente su documento para entrega inmediata de llaves.",
+                    "PRE_CHECK_IN",
+                    "/my-reservations"
+            );
+        }
 
         return response;
     }

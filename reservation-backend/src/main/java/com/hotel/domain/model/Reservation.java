@@ -60,6 +60,28 @@ public class Reservation {
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
+    @Column(name = "pre_check_in_completed", nullable = false)
+    @Builder.Default
+    private boolean preCheckInCompleted = false;
+
+    @Column(name = "pre_check_in_at")
+    private LocalDateTime preCheckInAt;
+
+    @Column(name = "document_type", length = 30)
+    private String documentType;
+
+    @Column(name = "document_number", length = 50)
+    private String documentNumber;
+
+    @Column(name = "nationality", length = 80)
+    private String nationality;
+
+    @Column(name = "estimated_arrival_time", length = 20)
+    private String estimatedArrivalTime;
+
+    @Column(name = "special_requests", length = 500)
+    private String specialRequests;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -51,6 +51,9 @@ class RoomOrderServiceImplTest {
     @Mock
     private SseNotificationService sseNotificationService;
 
+    @Mock
+    private com.hotel.application.services.InAppNotificationService inAppNotificationService;
+
     private RoomOrderServiceImpl roomOrderService;
 
     private Reservation standardReservation;
@@ -65,7 +68,8 @@ class RoomOrderServiceImplTest {
                 extraServiceRepository,
                 userRepository,
                 therapistRepository,
-                sseNotificationService
+                sseNotificationService,
+                inAppNotificationService
         );
 
         Guest guest = Guest.builder()

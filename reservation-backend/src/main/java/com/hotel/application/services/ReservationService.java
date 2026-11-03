@@ -27,4 +27,6 @@ public interface ReservationService {
     ReservationResponse cancel(Long id);
 
     ReservationResponse complete(Long id);
+
+    ReservationResponse submitPreCheckIn(Long id, com.hotel.web.dto.PreCheckInRequest request);
 }

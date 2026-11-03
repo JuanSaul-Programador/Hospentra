@@ -36,6 +36,7 @@ public class RoomOrderServiceImpl implements RoomOrderService {
     private final UserRepository userRepository;
     private final com.hotel.domain.repository.TherapistRepository therapistRepository;
     private final SseNotificationService sseNotificationService;
+    private final com.hotel.application.services.InAppNotificationService inAppNotificationService;
 
     @Override
     @Transactional
@@ -178,6 +179,32 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 response
         );
         sseNotificationService.broadcast(event);
+
+        if (updated.getReservationId() != null) {
+            reservationRepository.findById(updated.getReservationId()).ifPresent(res -> {
+                if (res.getGuest() != null) {
+                    userRepository.findAll().stream()
+                            .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(res.getGuest().getId()))
+                            .findFirst()
+                            .ifPresent(u -> {
+                                String humanStatus = switch (status) {
+                                    case PREPARING -> "se encuentra en preparación en cocina";
+                                    case READY_FOR_DELIVERY -> "está lista y en camino a su Suite " + updated.getRoomNumber();
+                                    case DELIVERED -> "ha sido entregada en su Suite " + updated.getRoomNumber() + ". ¡Buen provecho!";
+                                    case CANCELLED -> "ha sido cancelada";
+                                    default -> "ha cambiado de estado a " + status;
+                                };
+                                inAppNotificationService.createNotification(
+                                        u,
+                                        "Room Service: Comanda CMD-" + updated.getId(),
+                                        "Su solicitud de servicio " + humanStatus + ".",
+                                        "ROOM_SERVICE",
+                                        "/my-reservations"
+                                );
+                            });
+                }
+            });
+        }
 
         return response;
     }

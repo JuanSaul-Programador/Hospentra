@@ -60,6 +60,9 @@ class ReservationServiceImplTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private com.hotel.application.services.InAppNotificationService inAppNotificationService;
+
     private ReservationServiceImpl reservationService;
 
     private RoomType standardRoomType;
@@ -82,7 +85,8 @@ class ReservationServiceImplTest {
                 reservationMapper,
                 sseNotificationService,
                 emailService,
-                auditLogService
+                auditLogService,
+                inAppNotificationService
         );
 
         standardRoomType = RoomType.builder()
@@ -356,5 +360,62 @@ class ReservationServiceImplTest {
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.MAINTENANCE);
         verify(roomRepository, times(1)).save(standardRoom);
         verify(sseNotificationService, times(2)).broadcast(any(NotificationEvent.class));
+    }
+
+    @Test
+    void submitPreCheckIn_whenValid_shouldCompletePreCheckInAndEmitEvents() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .checkInDate(LocalDate.now().plusDays(2))
+                .checkOutDate(LocalDate.now().plusDays(5))
+                .status(ReservationStatus.CONFIRMED)
+                .totalPrice(new BigDecimal("900.00"))
+                .preCheckInCompleted(false)
+                .build();
+
+        com.hotel.web.dto.PreCheckInRequest request = new com.hotel.web.dto.PreCheckInRequest(
+                "PASSPORT",
+                "AB1234567",
+                "Española",
+                "15:30",
+                "Piso alto con vista al mar"
+        );
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReservationResponse response = reservationService.submitPreCheckIn(1L, request);
+
+        assertThat(response.preCheckInCompleted()).isTrue();
+        assertThat(response.documentType()).isEqualTo("PASSPORT");
+        assertThat(response.documentNumber()).isEqualTo("AB1234567");
+        assertThat(response.nationality()).isEqualTo("Española");
+        assertThat(response.estimatedArrivalTime()).isEqualTo("15:30");
+        assertThat(response.specialRequests()).isEqualTo("Piso alto con vista al mar");
+
+        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(auditLogService, times(1)).logAction(eq("PRE_CHECK_IN"), eq("Reservation"), eq("HOSP-1-2026"), any(), eq("SUCCESS"));
+    }
+
+    @Test
+    void submitPreCheckIn_whenCancelledReservation_shouldThrowIllegalArgumentException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CANCELLED)
+                .build();
+
+        com.hotel.web.dto.PreCheckInRequest request = new com.hotel.web.dto.PreCheckInRequest(
+                "PASSPORT", "AB1234567", "Española", "15:30", null
+        );
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> reservationService.submitPreCheckIn(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No es posible realizar pre-check-in en una reservación cancelada o completada");
     }
 }

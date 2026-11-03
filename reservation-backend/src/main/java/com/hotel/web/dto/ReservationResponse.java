@@ -21,5 +21,12 @@ public record ReservationResponse(
         PaymentStatus paymentStatus,
         String cardLast4,
         String paymentIntentId,
-        String authCode
+        String authCode,
+        boolean preCheckInCompleted,
+        LocalDateTime preCheckInAt,
+        String documentType,
+        String documentNumber,
+        String nationality,
+        String estimatedArrivalTime,
+        String specialRequests
 ) {}

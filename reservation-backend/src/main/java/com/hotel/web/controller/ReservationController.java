@@ -75,4 +75,11 @@ public class ReservationController {
     public ResponseEntity<ReservationResponse> complete(@PathVariable Long id) {
         return ResponseEntity.ok(reservationService.complete(id));
     }
+
+    @PatchMapping("/{id}/pre-check-in")
+    public ResponseEntity<ReservationResponse> submitPreCheckIn(
+            @PathVariable Long id,
+            @Valid @RequestBody com.hotel.web.dto.PreCheckInRequest request) {
+        return ResponseEntity.ok(reservationService.submitPreCheckIn(id, request));
+    }
 }

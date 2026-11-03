@@ -34,7 +34,14 @@ public class ReservationMapper {
                 reservation.getPaymentStatus(),
                 reservation.getCardLast4(),
                 reservation.getPaymentIntentId(),
-                reservation.getAuthCode()
+                reservation.getAuthCode(),
+                reservation.isPreCheckInCompleted(),
+                reservation.getPreCheckInAt(),
+                reservation.getDocumentType(),
+                reservation.getDocumentNumber(),
+                reservation.getNationality(),
+                reservation.getEstimatedArrivalTime(),
+                reservation.getSpecialRequests()
         );
     }
 

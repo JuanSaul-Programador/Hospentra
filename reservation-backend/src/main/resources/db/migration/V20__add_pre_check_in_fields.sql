@@ -1,0 +1,7 @@
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS pre_check_in_completed BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS pre_check_in_at TIMESTAMP WITHOUT TIME ZONE;
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS document_type VARCHAR(30);
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS document_number VARCHAR(50);
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS nationality VARCHAR(80);
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS estimated_arrival_time VARCHAR(20);
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS special_requests VARCHAR(500);
