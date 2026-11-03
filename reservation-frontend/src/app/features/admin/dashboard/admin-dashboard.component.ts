@@ -30,6 +30,8 @@ import { MaintenanceModalComponent } from './components/maintenance-modal/mainte
 import { ReviewService } from '../../../core/services/review.service';
 import { MaintenanceService } from '../../../core/services/maintenance.service';
 import { CreateMaintenanceBlockRequest, MaintenanceBlock } from '../../../core/models/maintenance.model';
+import { ConciergeChatService } from '../../../core/services/concierge-chat.service';
+import { ConciergeConversationSummary } from '../../../core/models/concierge.model';
 
 export type AdminFilterTab = 'ALL' | 'TODAY_ARRIVALS' | 'IN_HOUSE' | 'TODAY_DEPARTURES' | ReservationStatus;
 
@@ -65,6 +67,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly maintenanceService = inject(MaintenanceService);
   readonly authService = inject(AuthService);
   readonly sseService = inject(SseService);
+  readonly conciergeService = inject(ConciergeChatService);
   private readonly router = inject(Router);
 
   private sseSub: Subscription | null = null;
@@ -72,8 +75,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   readonly isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
   readonly isReceptionist = computed(() => this.authService.userRole() === 'ROLE_RECEPTIONIST');
 
-  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT'>('OPERATIONS');
+  readonly activeSection = signal<'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT' | 'CONCIERGE'>('OPERATIONS');
   readonly unansweredReviewsCount = signal<number>(0);
+  readonly conciergeReplyInput = signal<string>('');
 
   readonly reservations = signal<Reservation[]>([]);
   readonly rooms = signal<Room[]>([]);
@@ -305,6 +309,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (this.isAdmin()) {
       this.loadStaff();
     }
+    this.conciergeService.loadUnreadCount();
 
     this.sseService.connect();
     this.sseSub = new Subscription();
@@ -739,9 +744,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT'): void {
+  switchSection(section: 'OPERATIONS' | 'ROOM_SERVICE' | 'SUITES_INVENTORY' | 'STAFF' | 'REVIEWS' | 'ANALYTICS' | 'AUDIT' | 'CONCIERGE'): void {
     if ((section === 'STAFF' || section === 'SUITES_INVENTORY' || section === 'ANALYTICS' || section === 'AUDIT') && !this.isAdmin()) return;
     this.activeSection.set(section);
+    if (section === 'CONCIERGE') {
+      this.loadConciergeData();
+    }
     if (section === 'STAFF' && this.staffList().length === 0) {
       this.loadStaff();
     }
@@ -755,6 +763,58 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (section === 'REVIEWS') {
       this.loadReviewMetrics();
     }
+  }
+
+  loadConciergeData(): void {
+    this.conciergeService.loadActiveConversations();
+    this.conciergeService.loadUnreadCount();
+  }
+
+  selectGuestChat(guestUserId: number): void {
+    this.conciergeService.loadConversationWithGuest(guestUserId);
+  }
+
+  getSelectedGuestSummary(): ConciergeConversationSummary | null {
+    const selectedId = this.conciergeService.selectedGuestId();
+    if (!selectedId) return null;
+    return this.conciergeService.activeConversations().find(c => c.guestUserId === selectedId) || null;
+  }
+
+  applyCannedResponse(text: string): void {
+    this.conciergeReplyInput.set(text);
+  }
+
+  sendReceptionReply(): void {
+    const guestId = this.conciergeService.selectedGuestId();
+    const text = this.conciergeReplyInput().trim();
+    if (!guestId || !text || this.conciergeService.isSending()) return;
+
+    this.conciergeService.sendMessage({
+      message: text,
+      recipientId: guestId
+    }).subscribe({
+      next: () => {
+        this.conciergeReplyInput.set('');
+        this.showToast('Respuesta enviada a la Suite del huésped.');
+      },
+      error: () => {
+        this.showToast('No fue posible enviar la respuesta al huésped.');
+      }
+    });
+  }
+
+  claimCurrentConversation(): void {
+    const guestId = this.conciergeService.selectedGuestId();
+    if (!guestId || this.conciergeService.isClaiming()) return;
+
+    this.conciergeService.claimConversation(guestId).subscribe({
+      next: (summary) => {
+        this.showToast(`Suite asignada a: ${summary.claimedBy || 'Recepción'}`);
+      },
+      error: () => {
+        this.showToast('No fue posible asignar la atención de la suite.');
+      }
+    });
   }
 
   onNotifyFromInventory(event: { type: 'success' | 'error'; message: string }): void {

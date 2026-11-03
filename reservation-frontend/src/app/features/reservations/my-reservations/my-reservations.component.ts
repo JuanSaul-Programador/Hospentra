@@ -5,6 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { ReviewService } from '../../../core/services/review.service';
+import { ConciergeChatService } from '../../../core/services/concierge-chat.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { SseService } from '../../../core/services/sse.service';
@@ -41,6 +42,7 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly reviewService = inject(ReviewService);
+  readonly conciergeChatService = inject(ConciergeChatService);
 
   readonly reviewedReservationIds = signal<Set<number>>(new Set());
   readonly isReviewModalOpen = signal<boolean>(false);
@@ -89,6 +91,16 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
   readonly isConciergeModalOpen = signal<boolean>(false);
   readonly copiedCodeId = signal<number | null>(null);
+
+  readonly selectedPreCheckInReservation = signal<Reservation | null>(null);
+  readonly isPreCheckInModalOpen = signal<boolean>(false);
+  readonly isSubmittingPreCheckIn = signal<boolean>(false);
+  readonly preCheckInDocumentType = signal<string>('PASSPORT');
+  readonly preCheckInDocumentNumber = signal<string>('');
+  readonly preCheckInNationality = signal<string>('Española');
+  readonly preCheckInArrivalTime = signal<string>('14:00 - 16:00');
+  readonly preCheckInSpecialRequests = signal<string>('');
+  readonly preCheckInError = signal<string | null>(null);
 
   readonly userRoleLabel = computed<string>(() => {
     const role = this.authService.currentUser()?.role;
@@ -509,8 +521,17 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     this.activeTab.set('canceled');
   }
 
-  openConcierge(): void {
+  openConcierge(res?: Reservation): void {
+    if (res?.status === 'CHECKED_IN' || this.conciergeChatService.hasActiveStay()) {
+      this.conciergeChatService.openWidget();
+      return;
+    }
     this.isConciergeModalOpen.set(true);
+  }
+
+  launchLiveChatFromModal(): void {
+    this.closeConcierge();
+    this.conciergeChatService.openWidget();
   }
 
   closeConcierge(): void {
@@ -541,5 +562,70 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
   printVoucher(): void {
     window.print();
+  }
+
+  openPreCheckInModal(reservation: Reservation): void {
+    this.selectedPreCheckInReservation.set(reservation);
+    this.preCheckInDocumentType.set(reservation.documentType || 'PASSPORT');
+    this.preCheckInDocumentNumber.set(reservation.documentNumber || '');
+    this.preCheckInNationality.set(reservation.nationality || 'Española');
+    this.preCheckInArrivalTime.set(reservation.estimatedArrivalTime || '14:00 - 16:00');
+    this.preCheckInSpecialRequests.set(reservation.specialRequests || '');
+    this.preCheckInError.set(null);
+    this.isPreCheckInModalOpen.set(true);
+  }
+
+  closePreCheckInModal(): void {
+    this.isPreCheckInModalOpen.set(false);
+    this.selectedPreCheckInReservation.set(null);
+    this.preCheckInError.set(null);
+  }
+
+  submitPreCheckIn(): void {
+    const res = this.selectedPreCheckInReservation();
+    if (!res) return;
+
+    const docType = this.preCheckInDocumentType().trim();
+    const docNum = this.preCheckInDocumentNumber().trim();
+    const nationality = this.preCheckInNationality().trim();
+    const eta = this.preCheckInArrivalTime().trim();
+    const specialRequests = this.preCheckInSpecialRequests().trim();
+
+    if (!docNum) {
+      this.preCheckInError.set('Por favor ingrese su número de documento de identidad oficial.');
+      return;
+    }
+
+    if (!nationality) {
+      this.preCheckInError.set('Por favor indique su nacionalidad o país de emisión.');
+      return;
+    }
+
+    if (!eta) {
+      this.preCheckInError.set('Por favor seleccione su rango estimado de llegada.');
+      return;
+    }
+
+    this.isSubmittingPreCheckIn.set(true);
+    this.preCheckInError.set(null);
+
+    this.reservationService.submitPreCheckIn(res.id, {
+      documentType: docType,
+      documentNumber: docNum,
+      nationality: nationality,
+      estimatedArrivalTime: eta,
+      specialRequests: specialRequests || undefined
+    }).subscribe({
+      next: (updated) => {
+        this.isSubmittingPreCheckIn.set(false);
+        this.reservations.update(list => list.map(r => r.id === updated.id ? updated : r));
+        this.closePreCheckInModal();
+      },
+      error: (err) => {
+        this.isSubmittingPreCheckIn.set(false);
+        const msg = err.error?.message || err.error?.detail || 'No fue posible registrar el Pre-Check-In.';
+        this.preCheckInError.set(msg);
+      }
+    });
   }
 }

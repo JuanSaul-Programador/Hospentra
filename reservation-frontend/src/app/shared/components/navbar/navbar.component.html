@@ -37,6 +37,65 @@
         <a routerLink="/login" class="btn btn-ghost">{{ i18n.t('nav.signIn') }}</a>
         <a routerLink="/register" class="btn btn-secondary">{{ i18n.t('nav.register') }}</a>
       } @else {
+        <div class="notifications-container">
+          <button 
+            type="button" 
+            class="btn-bell" 
+            (click)="toggleNotifications($event)" 
+            [class.active]="notificationService.isDropdownOpen()"
+            title="Centro de Notificaciones">
+            <span class="material-symbols-outlined bell-icon">notifications</span>
+            @if (notificationService.unreadCount() > 0) {
+              <span class="bell-badge">{{ notificationService.unreadCount() > 9 ? '9+' : notificationService.unreadCount() }}</span>
+            }
+          </button>
+
+          @if (notificationService.isDropdownOpen()) {
+            <div class="notifications-dropdown" (click)="$event.stopPropagation()">
+              <div class="notif-dropdown-header">
+                <div class="header-title-box">
+                  <span class="material-symbols-outlined">notifications_active</span>
+                  <h3>Notificaciones</h3>
+                </div>
+                @if (notificationService.unreadCount() > 0) {
+                  <button type="button" class="btn-mark-all" (click)="markAllNotificationsAsRead($event)">
+                    Marcar todo leído
+                  </button>
+                }
+              </div>
+
+              <div class="notif-dropdown-body">
+                @if (notificationService.notifications().length === 0) {
+                  <div class="notif-empty">
+                    <span class="material-symbols-outlined empty-bell">notifications_none</span>
+                    <p>No tiene notificaciones recientes</p>
+                  </div>
+                } @else {
+                  <ul class="notif-list">
+                    @for (item of notificationService.notifications(); track item.id) {
+                      <li class="notif-item" [class.unread]="!item.read" (click)="markNotificationAsRead(item, $event)">
+                        <div class="notif-icon-col" [attr.data-type]="item.type">
+                          <span class="material-symbols-outlined">{{ getNotificationIcon(item.type) }}</span>
+                        </div>
+                        <div class="notif-content-col">
+                          <div class="notif-title-row">
+                            <span class="notif-title">{{ item.title }}</span>
+                            @if (!item.read) {
+                              <span class="unread-dot"></span>
+                            }
+                          </div>
+                          <p class="notif-message">{{ item.message }}</p>
+                          <span class="notif-time">{{ item.createdAt | date:'HH:mm • dd MMM' }}</span>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
         <div class="user-chip-container">
           <button class="user-chip" (click)="toggleUserMenu()" type="button">
             <div class="user-avatar">
@@ -162,3 +221,18 @@
     </div>
   }
 </header>
+
+@if (notificationService.activeToast(); as toast) {
+  <div class="global-notif-toast" (click)="onToastClick(toast)">
+    <div class="toast-icon" [attr.data-type]="toast.type">
+      <span class="material-symbols-outlined">{{ getNotificationIcon(toast.type) }}</span>
+    </div>
+    <div class="toast-body">
+      <strong>{{ toast.title }}</strong>
+      <p>{{ toast.message }}</p>
+    </div>
+    <button type="button" class="toast-close" (click)="dismissToast($event)">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+}

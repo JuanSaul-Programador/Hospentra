@@ -150,6 +150,13 @@
                       <span class="material-symbols-outlined">workspace_premium</span>
                       {{ i18n.t('myReservations.directBookingBadge') }}
                     </span>
+
+                    @if (res.preCheckInCompleted) {
+                      <span class="fast-pass-pill" title="Pre-Check-In completado. Documento verificado: {{ res.documentType }} {{ res.documentNumber }}">
+                        <span class="material-symbols-outlined icon-mini">verified</span>
+                        <span>Fast-Pass • ETA {{ res.estimatedArrivalTime }}</span>
+                      </span>
+                    }
                   </div>
 
                   <div class="code-box">
@@ -260,6 +267,13 @@
                     </div>
 
                     <div class="actions-stack">
+                      @if (!res.preCheckInCompleted && (res.status === 'PENDING' || res.status === 'CONFIRMED')) {
+                        <button type="button" class="btn btn-fast-pass w-full" (click)="openPreCheckInModal(res)">
+                          <span class="material-symbols-outlined">badge</span>
+                          <span>Pre-Check-In (Fast Pass)</span>
+                        </button>
+                      }
+
                       @if (res.status === 'CHECKED_IN') {
                         <button type="button" class="btn btn-room-service w-full" (click)="openRoomServiceModal(res)">
                           <span class="material-symbols-outlined">skillet</span>
@@ -277,9 +291,9 @@
                         <span>Folio / Factura</span>
                       </button>
 
-                      <button type="button" class="btn btn-outline w-full" (click)="openConcierge()">
-                        <span class="material-symbols-outlined">concierge</span>
-                        <span>{{ i18n.t('myReservations.conciergeBtn') }}</span>
+                      <button type="button" class="btn btn-outline w-full" (click)="openConcierge(res)">
+                        <span class="material-symbols-outlined">{{ res.status === 'CHECKED_IN' ? 'support_agent' : 'concierge' }}</span>
+                        <span>{{ res.status === 'CHECKED_IN' ? 'Chat con Concierge' : i18n.t('myReservations.conciergeBtn') }}</span>
                       </button>
 
                       <div class="cancel-link-row">
@@ -496,7 +510,13 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-primary w-full" (click)="closeConcierge()">
+        @if (conciergeChatService.hasActiveStay()) {
+          <button type="button" class="btn btn-primary w-full" (click)="launchLiveChatFromModal()" style="margin-bottom: 0.5rem;">
+            <span class="material-symbols-outlined">support_agent</span>
+            <span>Abrir Chat con Concierge en Vivo</span>
+          </button>
+        }
+        <button type="button" class="btn btn-outline w-full" (click)="closeConcierge()">
           {{ i18n.t('myReservations.conciergeDismissBtn') }}
         </button>
       </div>
@@ -609,6 +629,120 @@
               </button>
             </div>
           }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (isPreCheckInModalOpen() && selectedPreCheckInReservation(); as res) {
+    <div class="precheckin-modal-backdrop" (click)="closePreCheckInModal()">
+      <div class="precheckin-modal" (click)="$event.stopPropagation()">
+        <div class="precheckin-header">
+          <div class="badge-fastpass">
+            <span class="material-symbols-outlined">workspace_premium</span>
+            <span>Fast-Pass Digital • Hospentra Sanctuary</span>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="closePreCheckInModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="precheckin-body">
+          <h2 class="modal-title">Pre-Check-In Express</h2>
+          <p class="modal-subtitle">
+            Agilice su recepción completando sus datos oficiales antes de viajar. A su llegada a la Suite {{ res.room.roomNumber }}, presente únicamente su documento y reciba sus llaves en 10 segundos.
+          </p>
+
+          @if (preCheckInError()) {
+            <div class="modal-alert error">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ preCheckInError() }}</span>
+            </div>
+          }
+
+          <form (ngSubmit)="submitPreCheckIn()" class="precheckin-form">
+            <div class="form-row-two">
+              <div class="form-group">
+                <label>
+                  <span>Tipo de Documento</span>
+                  <span class="req">*</span>
+                </label>
+                <select [ngModel]="preCheckInDocumentType()" (ngModelChange)="preCheckInDocumentType.set($event)" name="docType">
+                  <option value="PASSPORT">Pasaporte Internacional</option>
+                  <option value="NATIONAL_ID">Documento Nacional de Identidad (DNI)</option>
+                  <option value="DRIVERS_LICENSE">Licencia de Conducir</option>
+                  <option value="RESIDENCE_CARD">Cédula de Extranjería / Residencia</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <span>Número de Documento</span>
+                  <span class="req">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Ej. ABC123456" 
+                  [ngModel]="preCheckInDocumentNumber()" 
+                  (ngModelChange)="preCheckInDocumentNumber.set($event)" 
+                  name="docNum"
+                  required>
+              </div>
+            </div>
+
+            <div class="form-row-two">
+              <div class="form-group">
+                <label>
+                  <span>País / Nacionalidad</span>
+                  <span class="req">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Ej. España, México, Perú..." 
+                  [ngModel]="preCheckInNationality()" 
+                  (ngModelChange)="preCheckInNationality.set($event)" 
+                  name="nationality"
+                  required>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <span>Hora Estimada (ETA)</span>
+                  <span class="req">*</span>
+                </label>
+                <select [ngModel]="preCheckInArrivalTime()" (ngModelChange)="preCheckInArrivalTime.set($event)" name="eta">
+                  <option value="12:00 - 14:00">12:00 - 14:00 (Llegada Temprana)</option>
+                  <option value="14:00 - 16:00">14:00 - 16:00 (Check-In Estándar)</option>
+                  <option value="16:00 - 18:00">16:00 - 18:00 (Tarde)</option>
+                  <option value="18:00 - 20:00">18:00 - 20:00 (Atardecer)</option>
+                  <option value="20:00 - 22:00">20:00 - 22:00 (Noche)</option>
+                  <option value="22:00+">Posterior a las 22:00 (Llegada Nocturna)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <span>Solicitudes Especiales para su Suite</span>
+                <span class="opt">(Opcional)</span>
+              </label>
+              <textarea 
+                rows="3" 
+                placeholder="Ej. Cama King, piso alto, almohadas adicionales, celebración especial..."
+                [ngModel]="preCheckInSpecialRequests()" 
+                (ngModelChange)="preCheckInSpecialRequests.set($event)" 
+                name="specialReq">
+              </textarea>
+            </div>
+
+            <div class="precheckin-footer">
+              <button type="button" class="btn-cancel" (click)="closePreCheckInModal()">Cancelar</button>
+              <button type="submit" class="btn-gold" [disabled]="isSubmittingPreCheckIn()">
+                <span class="material-symbols-outlined">verified</span>
+                <span>{{ isSubmittingPreCheckIn() ? 'Activando Fast-Pass...' : 'Confirmar Pre-Check-In' }}</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

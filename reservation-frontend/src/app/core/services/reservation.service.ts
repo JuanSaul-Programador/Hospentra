@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Reservation, ReservationRequest, ReservationStatus } from '../models/reservation.model';
+import { Reservation, ReservationRequest, ReservationStatus, PreCheckInRequest } from '../models/reservation.model';
 
 @Injectable({
   providedIn: 'root'
@@ -117,6 +117,12 @@ export class ReservationService {
 
   completeReservation(id: number): Observable<Reservation> {
     return this.http.patch<Reservation>(`${this.apiUrl}/${id}/complete`, {}).pipe(
+      map(res => this.enrichReservation(res))
+    );
+  }
+
+  submitPreCheckIn(id: number, request: PreCheckInRequest): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.apiUrl}/${id}/pre-check-in`, request).pipe(
       map(res => this.enrichReservation(res))
     );
   }

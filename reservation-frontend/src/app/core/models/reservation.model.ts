@@ -31,6 +31,13 @@ export interface Reservation {
   paymentIntentId?: string;
   refundAmount?: number;
   penaltyAmount?: number;
+  preCheckInCompleted?: boolean;
+  preCheckInAt?: string;
+  documentType?: string;
+  documentNumber?: string;
+  nationality?: string;
+  estimatedArrivalTime?: string;
+  specialRequests?: string;
 }
 
 export interface ReservationRequest {
@@ -44,4 +51,12 @@ export interface ReservationRequest {
   cardBrand?: string;
   authCode?: string;
   paymentIntentId?: string;
+}
+
+export interface PreCheckInRequest {
+  documentType: string;
+  documentNumber: string;
+  nationality: string;
+  estimatedArrivalTime: string;
+  specialRequests?: string;
 }

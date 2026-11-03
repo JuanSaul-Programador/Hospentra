@@ -1,0 +1,116 @@
+@if (isCustomer() && chatService.hasActiveStay()) {
+  <div class="concierge-widget-root">
+    @if (!chatService.isWidgetOpen()) {
+      <button
+        type="button"
+        class="concierge-fab"
+        (click)="toggleChat()"
+        title="Concierge Santuario en Vivo"
+        aria-label="Abrir chat con Concierge"
+      >
+        <span class="material-symbols-outlined fab-icon">support_agent</span>
+        <span class="fab-label">Concierge</span>
+        @if (chatService.unreadCount() > 0) {
+          <span class="fab-badge">{{ chatService.unreadCount() }}</span>
+        }
+      </button>
+    }
+
+    @if (chatService.isWidgetOpen()) {
+      <div class="chat-window">
+        <div class="chat-header">
+          <div class="header-info">
+            <div class="avatar-wrap">
+              <span class="material-symbols-outlined avatar-icon">support_agent</span>
+              <span class="online-dot"></span>
+            </div>
+            <div class="header-titles">
+              <strong>Concierge Sanctuary</strong>
+              <span>Suite {{ chatService.conciergeStatus()?.suiteNumber || 'En Estancia' }} • Front Desk</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close-chat" (click)="closeChat()" title="Minimizar">
+            <span class="material-symbols-outlined">expand_more</span>
+          </button>
+        </div>
+
+        <div class="chat-body" #chatScroll>
+          <div class="welcome-box">
+            <span class="material-symbols-outlined welcome-icon">hotel_class</span>
+            <p>Bienvenido al canal exclusivo de Concierge para su Suite {{ chatService.conciergeStatus()?.suiteNumber }}. ¿En qué podemos asistirle en su estancia hoy?</p>
+          </div>
+
+          <div class="quick-chips">
+            @for (prompt of quickPrompts; track prompt) {
+              <button type="button" class="chip" (click)="sendQuickPrompt(prompt)">
+                {{ prompt }}
+              </button>
+            }
+          </div>
+
+          <div class="messages-flow">
+            @for (msg of chatService.messages(); track msg.id) {
+              <div
+                class="message-row"
+                [class.from-guest]="msg.senderRole === 'ROLE_CUSTOMER'"
+                [class.from-staff]="msg.senderRole !== 'ROLE_CUSTOMER'"
+              >
+                @if (msg.senderRole !== 'ROLE_CUSTOMER') {
+                  <div class="staff-bubble-avatar">
+                    <span class="material-symbols-outlined">concierge</span>
+                  </div>
+                }
+
+                <div class="bubble">
+                  @if (msg.senderRole !== 'ROLE_CUSTOMER') {
+                    <span class="sender-label">{{ msg.senderName || 'Recepción' }}</span>
+                  }
+                  <p class="bubble-text">{{ msg.message }}</p>
+                  <div class="bubble-meta">
+                    <span class="time">{{ msg.createdAt | date:'HH:mm' }}</span>
+                    @if (msg.senderRole === 'ROLE_CUSTOMER') {
+                      <span class="material-symbols-outlined check-icon">
+                        {{ msg.readStatus ? 'done_all' : 'done' }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (chatService.isSending()) {
+              <div class="message-row from-guest pending">
+                <div class="bubble sending">
+                  <span class="dot-typing"></span>
+                  <span class="dot-typing"></span>
+                  <span class="dot-typing"></span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <form class="chat-footer" (ngSubmit)="sendMessage()">
+          <input
+            type="text"
+            class="chat-input"
+            placeholder="Escriba su consulta a recepción..."
+            [ngModel]="messageInput()"
+            (ngModelChange)="messageInput.set($event)"
+            name="chatMessage"
+            autocomplete="off"
+            maxlength="2000"
+          />
+          <button
+            type="submit"
+            class="btn-send"
+            [disabled]="!messageInput().trim() || chatService.isSending()"
+            title="Enviar mensaje"
+          >
+            <span class="material-symbols-outlined">send</span>
+          </button>
+        </form>
+      </div>
+    }
+  </div>
+}

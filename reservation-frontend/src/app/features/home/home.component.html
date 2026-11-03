@@ -101,6 +101,87 @@
     </div>
   </section>
 
+  <section id="filosofia" class="philosophy-section">
+    <div class="philosophy-container">
+      <div class="philosophy-grid">
+        <div class="philosophy-media-col">
+          <div class="philosophy-img-wrapper">
+            <img 
+              src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80" 
+              alt="Arquitectura Hospentra Sanctuary" 
+              class="philosophy-main-img" 
+              loading="lazy"
+            />
+            <div class="prestige-float-card">
+              <span class="material-symbols-outlined star-icon">hotel_class</span>
+              <div>
+                <strong>Premio Excelencia Boutique 2026</strong>
+                <span>World Luxury Sanctuary Awards</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="philosophy-content-col">
+          <div class="section-badge">FILOSOFÍA & ESENCIA • HOSPENTRA</div>
+          <h2 class="philosophy-title">El Arte del Silencio y la Hospitalidad Desconectada</h2>
+          <p class="philosophy-desc">
+            Diseñado como un refugio atemporal donde la piedra caliza, la madera de roble restaurada y el murmullo del océano convergen. En Hospentra Sanctuary, cada suite es un templo concebido para devolverle el sosiego y elevar sus sentidos.
+          </p>
+
+          <div class="pillars-list">
+            <div class="pillar-item">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">nature_people</span>
+              </div>
+              <div class="pillar-body">
+                <h4>Diseño Biofílico & Privacidad Total</h4>
+                <p>Jardines interiores zen, aislamiento acústico total y terrazas privadas con tina de hidromasaje o piscina de agua salada.</p>
+              </div>
+            </div>
+
+            <div class="pillar-item">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">concierge</span>
+              </div>
+              <div class="pillar-body">
+                <h4>Mayordomía Personal 24/7</h4>
+                <p>Asistencia atenta y discreta para anticipar cada deseo, desde carta de almohadas hasta coordinación de experiencias privadas.</p>
+              </div>
+            </div>
+
+            <div class="pillar-item">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">eco</span>
+              </div>
+              <div class="pillar-body">
+                <h4>Sustentabilidad Consciente</h4>
+                <p>Energía limpia 100% solar, política de cero plásticos y alta gastronomía con insumos cosechados en nuestro huerto orgánico.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="metrics-strip">
+            <div class="metric-item">
+              <span class="metric-num">98%</span>
+              <span class="metric-label">Huéspedes Satisfechos</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-num">24/7</span>
+              <span class="metric-label">Mayordomía en Suite</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-num">+1,200</span>
+              <span class="metric-label">Estancias Memorables</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="catalogo" class="catalog-section">
     <div class="catalog-container">
       <div class="catalog-header">
@@ -264,45 +345,293 @@
     </div>
   </section>
 
-  <section id="servicios" class="experience-section">
-    <div class="experience-container">
-      <div class="section-badge">{{ i18n.t('amenities.tag') }}</div>
-      <h2 class="experience-title">{{ i18n.t('amenities.title') }}</h2>
-      <p class="experience-subtitle">
-        {{ i18n.t('amenities.subtitle') }}
+  <section id="gastronomia" class="gastronomy-section">
+    <div class="gastronomy-container">
+      <div class="section-badge">ALTA COCINA & ROOM SERVICE EN SUITE</div>
+      <h2 class="section-heading">Gastronomía de Autor en la Intimidad de su Suite</h2>
+      <p class="section-subheading">
+        Platillos concebidos por chefs laureados, coctelería botánica y maridajes exclusivos preparados al momento y entregados en su puerta o terraza.
       </p>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <span class="material-symbols-outlined">room_service</span>
+      <div class="culinary-grid">
+        <article class="culinary-card">
+          <div class="culinary-media">
+            <img 
+              src="https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80" 
+              alt="Desayuno Gourmet Flotante" 
+              class="culinary-img" 
+              loading="lazy"
+            />
+            <span class="culinary-tag">Signature Morning</span>
           </div>
-          <h3 class="feature-name">{{ i18n.t('amenities.conciergeTitle') }}</h3>
-          <p class="feature-desc">{{ i18n.t('amenities.conciergeDesc') }}</p>
+          <div class="culinary-body">
+            <div class="culinary-meta">
+              <span class="material-symbols-outlined">breakfast_dining</span>
+              <span class="culinary-hours">07:00 - 12:00</span>
+            </div>
+            <h3 class="culinary-title">Desayuno Gourmet Flotante</h3>
+            <p class="culinary-desc">
+              Panadería artesanal horneada al alba, selección de frutas tropicales, huevos de granja y café de especialidad servido al pie de su alberca o balcón.
+            </p>
+          </div>
+        </article>
+
+        <article class="culinary-card">
+          <div class="culinary-media">
+            <img 
+              src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80" 
+              alt="Cena Tasting de 5 Tiempos" 
+              class="culinary-img" 
+              loading="lazy"
+            />
+            <span class="culinary-tag">Chef's Table in Suite</span>
+          </div>
+          <div class="culinary-body">
+            <div class="culinary-meta">
+              <span class="material-symbols-outlined">dinner_dining</span>
+              <span class="culinary-hours">18:00 - 23:00</span>
+            </div>
+            <h3 class="culinary-title">Cena Degustación de 5 Tiempos</h3>
+            <p class="culinary-desc">
+              Maridaje selecto de cinco tiempos con productos frescos de la costa, preparado por nuestro sommelier y equipo culinario para veladas privadas.
+            </p>
+          </div>
+        </article>
+
+        <article class="culinary-card">
+          <div class="culinary-media">
+            <img 
+              src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80" 
+              alt="Coctelería de Autor al Atardecer" 
+              class="culinary-img" 
+              loading="lazy"
+            />
+            <span class="culinary-tag">Botanical Mixology</span>
+          </div>
+          <div class="culinary-body">
+            <div class="culinary-meta">
+              <span class="material-symbols-outlined">local_bar</span>
+              <span class="culinary-hours">Servicio 24 Horas</span>
+            </div>
+            <h3 class="culinary-title">Coctelería Botánica & Cava</h3>
+            <p class="culinary-desc">
+              Infusiones botánicas aromáticas, licores prémium y destilados añejos acompañados de tapas gourmet para contemplar el atardecer en suite.
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <div class="service-callout-pill">
+        <span class="material-symbols-outlined icon-gold">bolt</span>
+        <span>Carta digital activa tras Check-In: Solicite Room Service desde su móvil con despacho rápido y seguimiento en vivo de cocina.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="fastpass" class="fastpass-section">
+    <div class="fastpass-container">
+      <div class="section-badge">TECNOLOGÍA SANCTUARY • CERO FILAS</div>
+      <h2 class="section-heading">Llegada sin Esperas: Fast-Pass Express</h2>
+      <p class="section-subheading">
+        Su tiempo de descanso es sagrado. Olvídese de las largas esperas en recepción con nuestro protocolo digital de acceso inmediato.
+      </p>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-badge-num">01</div>
+          <div class="step-icon-wrap">
+            <span class="material-symbols-outlined">calendar_month</span>
+          </div>
+          <h3 class="step-title">Reserve su Suite Online</h3>
+          <p class="step-desc">
+            Elija sus fechas ideales con confirmación instantánea, pasarela segura y garantía de mejor tarifa boutique.
+          </p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <span class="material-symbols-outlined">restaurant</span>
+        <div class="step-card">
+          <div class="step-badge-num">02</div>
+          <div class="step-icon-wrap">
+            <span class="material-symbols-outlined">badge</span>
           </div>
-          <h3 class="feature-name">{{ i18n.t('amenities.diningTitle') }}</h3>
-          <p class="feature-desc">{{ i18n.t('amenities.diningDesc') }}</p>
+          <h3 class="step-title">Active su Pre-Check-In</h3>
+          <p class="step-desc">
+            Desde "Mis Reservaciones", ingrese su documento oficial y rango de llegada (ETA) con antelación a su viaje.
+          </p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
+        <div class="step-card">
+          <div class="step-badge-num">03</div>
+          <div class="step-icon-wrap">
+            <span class="material-symbols-outlined">key</span>
+          </div>
+          <h3 class="step-title">Llaves en 10 Segundos</h3>
+          <p class="step-desc">
+            A su llegada física, muestre su identificación en Front Desk y reciba sus llaves de suite al instante sin papeleos.
+          </p>
+        </div>
+      </div>
+
+      <div class="fastpass-guarantee-strip">
+        <span class="material-symbols-outlined">verified</span>
+        <span>Sincronización en tiempo real con nuestro sistema PMS de recepción física y encriptación de datos bancarios.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="bienestar" class="wellness-section">
+    <div class="wellness-container">
+      <div class="section-badge">BIENESTAR INTEGRAL & SPA</div>
+      <h2 class="section-heading">Espacios Concebidos para la Serenidad</h2>
+      <p class="section-subheading">
+        Rituales de relajación, circuito hidrotermal y vistas al horizonte creados para redefinir el descanso.
+      </p>
+
+      <div class="wellness-grid">
+        <div class="wellness-card">
+          <div class="wellness-icon">
+            <span class="material-symbols-outlined">hot_tub</span>
+          </div>
+          <h3 class="wellness-title">Circuito Hidrotermal de Agua Salada</h3>
+          <p class="wellness-desc">
+            Sauna finlandés de cedro, baño de vapor aromático y albercas de inmersión fría para activar la circulación y purificar el cuerpo.
+          </p>
+        </div>
+
+        <div class="wellness-card">
+          <div class="wellness-icon">
             <span class="material-symbols-outlined">spa</span>
           </div>
-          <h3 class="feature-name">{{ i18n.t('amenities.spaTitle') }}</h3>
-          <p class="feature-desc">{{ i18n.t('amenities.spaDesc') }}</p>
+          <h3 class="wellness-title">Terapias & Masajes Holísticos</h3>
+          <p class="wellness-desc">
+            Tratamientos con esencias botánicas puras, piedras volcánicas calientes y terapeutas especializados en masajes ayurvédicos.
+          </p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">
-            <span class="material-symbols-outlined">shield</span>
+        <div class="wellness-card">
+          <div class="wellness-icon">
+            <span class="material-symbols-outlined">self_improvement</span>
           </div>
-          <h3 class="feature-name">{{ i18n.t('amenities.securityTitle') }}</h3>
-          <p class="feature-desc">{{ i18n.t('amenities.securityDesc') }}</p>
+          <h3 class="wellness-title">Yoga & Meditación Zen</h3>
+          <p class="wellness-desc">
+            Sesiones guiadas de vinyasa y meditación mindful al amanecer en nuestra terraza frente al mar para armonizar la mente.
+          </p>
+        </div>
+
+        <div class="wellness-card">
+          <div class="wellness-icon">
+            <span class="material-symbols-outlined">pool</span>
+          </div>
+          <h3 class="wellness-title">Infinity Pool Climatizada</h3>
+          <p class="wellness-desc">
+            Alberca panorámica desbordante de temperatura regulada con servicio de toallas premium y vistas infinitas al océano.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="faq-section">
+    <div class="faq-container">
+      <div class="section-badge">RESOLUCIÓN DE DUDAS • TRANSPARENCIA TOTAL</div>
+      <h2 class="section-heading">Preguntas Frecuentes</h2>
+      <p class="section-subheading">
+        Todo lo que necesita saber para planificar su estancia boutique con total tranquilidad y respaldo.
+      </p>
+
+      <div class="faq-accordion">
+        <div class="faq-item" [class.open]="openFaqIndex() === 0">
+          <button type="button" class="faq-question" (click)="toggleFaq(0)">
+            <span>¿Cuál es la política de cancelación y garantía de reembolso?</span>
+            <span class="material-symbols-outlined faq-chevron">expand_more</span>
+          </button>
+          @if (openFaqIndex() === 0) {
+            <div class="faq-answer">
+              <p>
+                Ofrecemos cancelación totalmente gratuita hasta 48 horas antes de su fecha de llegada con reintegro automático del 100% a su método de pago original. Si cancela con menor antelación, se aplica únicamente el cargo de la primera noche como garantía de suite y se reembolsa el saldo restante de inmediato.
+              </p>
+            </div>
+          }
+        </div>
+
+        <div class="faq-item" [class.open]="openFaqIndex() === 1">
+          <button type="button" class="faq-question" (click)="toggleFaq(1)">
+            <span>¿Cómo funciona el pago (Online con tarjeta o en recepción)?</span>
+            <span class="material-symbols-outlined faq-chevron">expand_more</span>
+          </button>
+          @if (openFaqIndex() === 1) {
+            <div class="faq-answer">
+              <p>
+                Puede liquidar su estancia de forma 100% segura en línea mediante tarjeta de crédito o débito (Visa, Mastercard, Amex), o bien optar por 'Pago en Recepción' para liquidar físicamente en el mostrador al momento de registrar su llegada (efectivo o tarjeta en POS).
+              </p>
+            </div>
+          }
+        </div>
+
+        <div class="faq-item" [class.open]="openFaqIndex() === 2">
+          <button type="button" class="faq-question" (click)="toggleFaq(2)">
+            <span>¿A qué hora es el Check-In y el Check-Out estándar?</span>
+            <span class="material-symbols-outlined faq-chevron">expand_more</span>
+          </button>
+          @if (openFaqIndex() === 2) {
+            <div class="faq-answer">
+              <p>
+                El Check-In oficial comienza a partir de las 14:00 hrs y el Check-Out es hasta las 11:00 hrs. A través de nuestro Pre-Check-In Digital puede indicar su hora estimada de llegada (ETA) para que nuestro equipo de recepción priorice la preparación de su suite.
+              </p>
+            </div>
+          }
+        </div>
+
+        <div class="faq-item" [class.open]="openFaqIndex() === 3">
+          <button type="button" class="faq-question" (click)="toggleFaq(3)">
+            <span>¿El desayuno gourmet y acceso al spa están incluidos en la tarifa?</span>
+            <span class="material-symbols-outlined faq-chevron">expand_more</span>
+          </button>
+          @if (openFaqIndex() === 3) {
+            <div class="faq-answer">
+              <p>
+                Sí, todas nuestras reservaciones de suites incluyen desayuno gourmet diario (servido en restaurante o en la terraza de su suite) y acceso ilimitado a las instalaciones del circuito hidrotermal, sauna nórdico y piscina infinity climatizada.
+              </p>
+            </div>
+          }
+        </div>
+
+        <div class="faq-item" [class.open]="openFaqIndex() === 4">
+          <button type="button" class="faq-question" (click)="toggleFaq(4)">
+            <span>¿Cómo se solicitan servicios de Room Service y extras?</span>
+            <span class="material-symbols-outlined faq-chevron">expand_more</span>
+          </button>
+          @if (openFaqIndex() === 4) {
+            <div class="faq-answer">
+              <p>
+                Al registrar su Check-In, su cuenta de huésped desbloquea la carta digital de Room Service. Puede ordenar platillos de autor, vinos de guarda y amenidades directamente desde su dispositivo con monitoreo en tiempo real del estado de su comanda en cocina (KDS).
+              </p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="vip-cta-section">
+    <div class="vip-cta-container">
+      <div class="vip-cta-card">
+        <div class="vip-badge">
+          <span class="material-symbols-outlined">workspace_premium</span>
+          <span>BENEFICIOS DE RESERVA DIRECTA</span>
+        </div>
+        <h2 class="vip-title">Su Santuario Privado lo Espera</h2>
+        <p class="vip-desc">
+          Reserve directamente en nuestro sitio oficial y disfrute de garantía de mejor tarifa disponible, prioridad en asignación de vistas panorámicas y $50 USD en créditos de Room Service para su estancia.
+        </p>
+        <div class="vip-actions">
+          <button type="button" class="btn btn-gold" (click)="scrollToCatalog()">
+            <span class="material-symbols-outlined">hotel</span>
+            <span>Explorar Suites Disponibles</span>
+          </button>
+          <a routerLink="/contact" class="btn btn-outline-white">
+            <span class="material-symbols-outlined">chat</span>
+            <span>Consultar con Concierge</span>
+          </a>
         </div>
       </div>
     </div>

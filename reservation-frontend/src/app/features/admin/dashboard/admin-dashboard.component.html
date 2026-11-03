@@ -83,6 +83,18 @@
             <span class="subnav-badge">{{ roomOrders().length }}</span>
           }
         </button>
+        <button
+          type="button"
+          class="subnav-btn"
+          [class.active]="activeSection() === 'CONCIERGE'"
+          (click)="switchSection('CONCIERGE')"
+        >
+          <span class="material-symbols-outlined">support_agent</span>
+          <span>Concierge Chat</span>
+          @if (conciergeService.unreadCount() > 0) {
+            <span class="subnav-badge badge-warning">{{ conciergeService.unreadCount() }}</span>
+          }
+        </button>
         <a
           routerLink="/kitchen/orders"
           target="_blank"
@@ -459,6 +471,12 @@
                               <span class="material-symbols-outlined icon-tiny">call</span>
                               {{ res.guest.phone }}
                             </span>
+                          }
+                          @if (res.preCheckInCompleted) {
+                            <div class="fast-pass-tag" title="Doc: {{ res.documentType }} {{ res.documentNumber }} ({{ res.nationality }})">
+                              <span class="material-symbols-outlined icon-tiny">verified</span>
+                              <span>Fast-Pass • ETA {{ res.estimatedArrivalTime }}</span>
+                            </div>
                           }
                         </div>
                       </td>
@@ -977,6 +995,187 @@
 
       @if (isAdmin() && activeSection() === 'AUDIT') {
         <app-audit-logs></app-audit-logs>
+      }
+
+      @if (activeSection() === 'CONCIERGE') {
+        <section class="concierge-admin-panel">
+          <div class="panel-header-row">
+            <div class="panel-title-group">
+              <span class="panel-pretitle">Atención en Tiempo Real</span>
+              <h3 class="panel-title">Mesa de Concierge & Mensajería de Suites</h3>
+            </div>
+            <div class="panel-header-actions">
+              <button type="button" class="btn-refresh" (click)="loadConciergeData()">
+                <span class="material-symbols-outlined" [class.spinning]="conciergeService.isLoading()">sync</span>
+                <span>Actualizar Chats</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="concierge-split-layout">
+            <div class="conversations-sidebar">
+              <div class="sidebar-header">
+                <strong>Huéspedes en Conversación</strong>
+                <span class="conversations-count">{{ conciergeService.activeConversations().length }}</span>
+              </div>
+
+              @if (conciergeService.activeConversations().length === 0) {
+                <div class="sidebar-empty">
+                  <span class="material-symbols-outlined">chat_bubble_outline</span>
+                  <p>No hay conversaciones activas de huéspedes en este momento.</p>
+                </div>
+              } @else {
+                <div class="conversations-list">
+                  @for (conv of conciergeService.activeConversations(); track conv.guestUserId) {
+                    <div
+                      class="conversation-card"
+                      [class.active]="conciergeService.selectedGuestId() === conv.guestUserId"
+                      (click)="selectGuestChat(conv.guestUserId)"
+                    >
+                      <div class="conv-avatar">
+                        {{ conv.guestName.charAt(0).toUpperCase() }}
+                      </div>
+                      <div class="conv-info">
+                        <div class="conv-top">
+                          <strong class="guest-name">{{ conv.guestName }}</strong>
+                          <span class="time">{{ conv.lastMessageAt | date:'HH:mm' }}</span>
+                        </div>
+                        <div class="conv-sub">
+                          @if (conv.suiteNumber) {
+                            <span class="suite-tag">Suite {{ conv.suiteNumber }}</span>
+                          }
+                          <span class="preview-text">{{ conv.lastMessage }}</span>
+                        </div>
+                        <div class="conv-claim-row">
+                          @if (conv.claimedBy) {
+                            <span class="claim-tag claimed">
+                              <span class="material-symbols-outlined claim-icon">person_check</span>
+                              <span>Atendido por {{ conv.claimedBy }}</span>
+                            </span>
+                          } @else {
+                            <span class="claim-tag unclaimed">
+                              <span class="material-symbols-outlined claim-icon">hourglass_top</span>
+                              <span>Pendiente</span>
+                            </span>
+                          }
+                        </div>
+                      </div>
+                      @if (conv.unreadCount > 0) {
+                        <span class="conv-unread-pill">{{ conv.unreadCount }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="chat-main-pane">
+              @if (!conciergeService.selectedGuestId()) {
+                <div class="no-selection-placeholder">
+                  <span class="material-symbols-outlined icon-placeholder">support_agent</span>
+                  <h4>Seleccione una conversación</h4>
+                  <p>Elija a un huésped de la lista lateral para atender sus solicitudes o coordinar su estancia.</p>
+                </div>
+              } @else {
+                <div class="chat-thread-container">
+                  <div class="thread-header">
+                    <div class="thread-guest-info">
+                      <div class="guest-avatar-large">
+                        {{ getSelectedGuestSummary()?.guestName?.charAt(0)?.toUpperCase() || 'H' }}
+                      </div>
+                      <div>
+                        <strong>{{ getSelectedGuestSummary()?.guestName || 'Huésped' }}</strong>
+                        <div class="meta-row">
+                          <span>{{ getSelectedGuestSummary()?.guestEmail }}</span>
+                          @if (getSelectedGuestSummary()?.suiteNumber) {
+                            <span class="gold-badge">Suite {{ getSelectedGuestSummary()?.suiteNumber }}</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div class="thread-claim-actions">
+                      @if (getSelectedGuestSummary()?.claimedBy) {
+                        <div class="assigned-pill">
+                          <span class="material-symbols-outlined">verified_user</span>
+                          <span>Atendido por: <strong>{{ getSelectedGuestSummary()?.claimedBy }}</strong></span>
+                        </div>
+                      } @else {
+                        <div class="unassigned-pill">
+                          <span class="material-symbols-outlined">pending</span>
+                          <span>Sin atención asignada</span>
+                        </div>
+                      }
+                      <button
+                        type="button"
+                        class="btn-claim-suite"
+                        (click)="claimCurrentConversation()"
+                        [disabled]="conciergeService.isClaiming()"
+                        title="Asignarme la atención de esta suite"
+                      >
+                        <span class="material-symbols-outlined">how_to_reg</span>
+                        <span>{{ getSelectedGuestSummary()?.claimedBy ? 'Reasignarme' : 'Atender Suite' }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="thread-messages">
+                    @for (msg of conciergeService.messages(); track msg.id) {
+                      <div
+                        class="admin-msg-row"
+                        [class.msg-from-guest]="msg.senderRole === 'ROLE_CUSTOMER'"
+                        [class.msg-from-staff]="msg.senderRole !== 'ROLE_CUSTOMER'"
+                      >
+                        <div class="admin-msg-bubble">
+                          <span class="admin-msg-sender">
+                            {{ msg.senderRole === 'ROLE_CUSTOMER' ? msg.senderName : (msg.senderName + ' • Mostrador') }}
+                          </span>
+                          <p class="admin-msg-text">{{ msg.message }}</p>
+                          <span class="admin-msg-time">{{ msg.createdAt | date:'HH:mm' }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="canned-responses">
+                    <span class="canned-label">Respuestas Rápidas:</span>
+                    <button type="button" class="btn-canned" (click)="applyCannedResponse('En camino a su Suite con su solicitud.')">
+                      En camino a Suite
+                    </button>
+                    <button type="button" class="btn-canned" (click)="applyCannedResponse('Solicitud confirmada por recepción. ¿Desea algo adicional?')">
+                      Confirmar solicitud
+                    </button>
+                    <button type="button" class="btn-canned" (click)="applyCannedResponse('Su Late Check-Out fue autorizado con cortesía.')">
+                      Late Check-Out OK
+                    </button>
+                    <button type="button" class="btn-canned" (click)="applyCannedResponse('Su reserva en el Santuario de Spa ha sido agendada con éxito.')">
+                      Cita de Spa lista
+                    </button>
+                  </div>
+
+                  <form class="thread-reply-form" (ngSubmit)="sendReceptionReply()">
+                    <input
+                      type="text"
+                      class="reply-input"
+                      placeholder="Escriba su respuesta al huésped..."
+                      [ngModel]="conciergeReplyInput()"
+                      (ngModelChange)="conciergeReplyInput.set($event)"
+                      name="receptionReply"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="submit"
+                      class="btn-reply-send"
+                      [disabled]="!conciergeReplyInput().trim() || conciergeService.isSending()"
+                    >
+                      <span class="material-symbols-outlined">send</span>
+                      <span>Responder</span>
+                    </button>
+                  </form>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
       }
     </div>
   </main>

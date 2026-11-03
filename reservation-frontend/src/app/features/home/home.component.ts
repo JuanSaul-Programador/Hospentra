@@ -45,6 +45,19 @@ export class HomeComponent implements OnInit {
   readonly selectedRoomForBooking = signal<Room | null>(null);
   readonly selectedRoomImage = signal<string>('');
 
+  readonly openFaqIndex = signal<number | null>(null);
+
+  toggleFaq(index: number): void {
+    this.openFaqIndex.update(cur => cur === index ? null : index);
+  }
+
+  scrollToCatalog(): void {
+    const el = document.getElementById('catalogo');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
   private readonly defaultRooms: Room[] = [
     {
       id: 1,
