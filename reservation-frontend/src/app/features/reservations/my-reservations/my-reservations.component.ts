@@ -217,6 +217,9 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
         const list = data || [];
         this.reservations.set(list);
         this.isLoading.set(false);
+        if (list.some(r => r.status === 'CHECKED_IN')) {
+          this.conciergeChatService.loadStatus().subscribe();
+        }
         const completed = list.filter(r => r.status === 'COMPLETED');
         this.checkReviewedStatus(completed);
       },
@@ -551,7 +554,13 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
 
   openConcierge(res?: Reservation): void {
     if (res?.status === 'CHECKED_IN' || this.conciergeChatService.hasActiveStay()) {
-      this.conciergeChatService.openWidget();
+      if (!this.conciergeChatService.conciergeStatus()?.activeStay) {
+        this.conciergeChatService.loadStatus().subscribe({
+          next: () => this.conciergeChatService.openWidget()
+        });
+      } else {
+        this.conciergeChatService.openWidget();
+      }
       return;
     }
     this.isConciergeModalOpen.set(true);

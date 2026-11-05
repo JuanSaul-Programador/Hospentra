@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ConciergeChatService } from '../../../core/services/concierge-chat.service';
@@ -26,6 +26,17 @@ export class GuestConciergeWidgetComponent implements OnInit, AfterViewChecked {
     'Horarios y reservas para el Spa Biofílico',
     'Solicitar servicio de hielo o copas en suite'
   ];
+
+  constructor() {
+    effect(() => {
+      const user = this.authService.currentUser();
+      if (user?.role === 'ROLE_CUSTOMER') {
+        this.chatService.loadStatus().subscribe();
+      } else {
+        this.chatService.closeWidget();
+      }
+    });
+  }
 
   ngOnInit(): void {
     if (this.isCustomer()) {
