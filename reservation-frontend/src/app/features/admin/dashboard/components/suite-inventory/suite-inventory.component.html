@@ -92,7 +92,7 @@
           <article class="type-card">
             @if (rt.coverImageUrl) {
               <div class="type-card-cover-wrapper">
-                <img [src]="resolveImageUrl(rt.coverImageUrl)" [alt]="rt.name" class="type-card-cover-img" />
+                <img [src]="resolveImageUrl(rt.coverImageUrl)" [alt]="rt.name" class="type-card-cover-img" loading="lazy" decoding="async" />
                 <button type="button" class="btn-change-photo-pill" (click)="openGalleryModal(rt)" title="Gestionar multimedia">
                   <span class="material-symbols-outlined">photo_camera</span>
                   <span>Fotos</span>

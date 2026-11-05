@@ -104,7 +104,7 @@
           @if (coverImage; as cover) {
             <div class="cover-card-hero">
               <div class="cover-img-container">
-                <img [src]="resolveUrl(cover.imageUrl)" [alt]="roomType.name + ' Portada'" class="cover-img-hero" />
+                <img [src]="resolveUrl(cover.imageUrl)" [alt]="roomType.name + ' Portada'" class="cover-img-hero" loading="lazy" decoding="async" />
                 <div class="cover-pill-gold">
                   <span class="material-symbols-outlined">stars</span>
                   <span>Portada Activa en Catálogo</span>
@@ -151,7 +151,7 @@
               @for (img of referentialImages; track img.id) {
                 <div class="gallery-card">
                   <div class="gallery-thumb-wrapper">
-                    <img [src]="resolveUrl(img.imageUrl)" [alt]="roomType.name + ' Ambiente'" class="gallery-thumb-img" />
+                    <img [src]="resolveUrl(img.imageUrl)" [alt]="roomType.name + ' Ambiente'" class="gallery-thumb-img" loading="lazy" decoding="async" />
                     <span class="photo-index-pill">#{{ $index + 1 }}</span>
                   </div>
 

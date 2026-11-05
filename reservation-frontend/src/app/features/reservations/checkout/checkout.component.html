@@ -465,7 +465,7 @@
             <div class="summary-accent-bar"></div>
 
             <div class="summary-media">
-              <img [src]="getRoomImageUrl()" [alt]="room()?.roomType?.name" class="summary-image" />
+              <img [src]="getRoomImageUrl()" [alt]="room()?.roomType?.name" class="summary-image" loading="lazy" decoding="async" />
               <div class="media-overlay"></div>
               <div class="media-badges">
                 <span class="suite-badge">{{ i18n.t('checkout.roomBadgeNumber', { n: room()?.roomNumber || '101' }) }}</span>

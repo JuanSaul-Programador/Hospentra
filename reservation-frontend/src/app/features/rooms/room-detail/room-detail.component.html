@@ -20,7 +20,7 @@
       <section class="gallery-section">
         <div class="gallery-grid">
           <div class="main-photo-wrapper" (click)="openLightbox(activeImageIndex())">
-            <img [src]="galleryImages()[activeImageIndex()]" [alt]="room()?.roomType?.name" class="main-photo" />
+            <img [src]="galleryImages()[activeImageIndex()]" [alt]="room()?.roomType?.name" class="main-photo" decoding="async" />
 
             <button
               type="button"
@@ -65,7 +65,7 @@
                 [class.active]="activeImageIndex() === $index"
                 (click)="setActiveImage($index)"
               >
-                <img [src]="img" [alt]="room()?.roomType?.name" class="thumb-img" />
+                <img [src]="img" [alt]="room()?.roomType?.name" class="thumb-img" loading="lazy" decoding="async" />
               </button>
             }
           </div>
@@ -514,6 +514,7 @@
               [src]="galleryImages()[activeImageIndex()]"
               [alt]="room()?.roomType?.name"
               class="lightbox-photo"
+              decoding="async"
             />
           </div>
 
@@ -536,7 +537,7 @@
               [class.active]="activeImageIndex() === $index"
               (click)="setActiveImage($index)"
             >
-              <img [src]="thumb" [alt]="room()?.roomType?.name" class="lightbox-thumb-img" />
+              <img [src]="thumb" [alt]="room()?.roomType?.name" class="lightbox-thumb-img" loading="lazy" decoding="async" />
             </button>
           }
         </footer>

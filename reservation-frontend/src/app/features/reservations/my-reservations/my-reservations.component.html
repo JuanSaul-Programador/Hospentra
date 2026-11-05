@@ -181,7 +181,7 @@
                 <div class="card-body-grid">
                   <div class="card-media-col">
                     <div class="media-frame">
-                      <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="media-img" />
+                      <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="media-img" loading="lazy" decoding="async" />
                       <div class="media-badges">
                         <span class="room-num-badge">{{ i18n.t('myReservations.roomBadgeNumber', { n: res.room.roomNumber }) }}</span>
                         <span class="rating-badge">
@@ -327,7 +327,7 @@
             @for (res of historyReservations(); track res.id) {
               <article class="history-card">
                 <div class="history-media">
-                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img" />
+                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img" loading="lazy" decoding="async" />
                 </div>
                 <div class="history-content">
                   <div class="history-header">
@@ -383,7 +383,7 @@
             @for (res of canceledReservations(); track res.id) {
               <article class="history-card canceled">
                 <div class="history-media">
-                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img grayscale" />
+                  <img [src]="getRoomImage(res.room)" [alt]="res.room.roomType.name" class="history-img grayscale" loading="lazy" decoding="async" />
                 </div>
                 <div class="history-content">
                   <div class="history-header">
