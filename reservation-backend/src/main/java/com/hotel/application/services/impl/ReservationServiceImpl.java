@@ -11,8 +11,11 @@ import com.hotel.domain.model.*;
 import com.hotel.domain.repository.GuestRepository;
 import com.hotel.domain.repository.MaintenanceBlockRepository;
 import com.hotel.domain.repository.ReservationRepository;
+import com.hotel.domain.repository.RoomOrderRepository;
 import com.hotel.domain.repository.RoomRepository;
 import com.hotel.domain.repository.UserRepository;
+import com.hotel.web.dto.CheckOutSettlementRequest;
+import com.hotel.web.dto.ExpressCheckOutRequest;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +46,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final EmailService emailService;
     private final AuditLogService auditLogService;
     private final com.hotel.application.services.InAppNotificationService inAppNotificationService;
+    private final RoomOrderRepository roomOrderRepository;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -385,6 +389,12 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public ReservationResponse complete(Long id) {
+        return complete(id, null);
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponse complete(Long id, CheckOutSettlementRequest settlementRequest) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
@@ -392,7 +402,28 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("Only CHECKED_IN or CONFIRMED reservations can be completed");
         }
 
+        List<RoomOrder> orders = roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(id);
+        if (!orders.isEmpty()) {
+            for (RoomOrder order : orders) {
+                order.setPaid(true);
+            }
+            roomOrderRepository.saveAll(orders);
+        }
+
         reservation.setStatus(ReservationStatus.COMPLETED);
+        if (settlementRequest != null) {
+            reservation.setSettlementMethod(settlementRequest.settlementMethod() != null ? settlementRequest.settlementMethod() : "POS_TERMINAL");
+            reservation.setSettlementAmount(settlementRequest.settlementAmount() != null ? settlementRequest.settlementAmount() : BigDecimal.ZERO);
+            reservation.setSettlementNotes(settlementRequest.notes());
+            if (settlementRequest.authCode() != null && !settlementRequest.authCode().isBlank()) {
+                reservation.setAuthCode(settlementRequest.authCode());
+            }
+        } else {
+            reservation.setSettlementMethod(reservation.getPaymentMethod() != null ? reservation.getPaymentMethod().name() : "FRONT_DESK");
+            reservation.setSettlementAmount(BigDecimal.ZERO);
+        }
+        reservation.setPaymentStatus(PaymentStatus.PAID);
+        reservation.setSettledAt(LocalDateTime.now());
 
         Room room = reservation.getRoom();
         room.setStatus(RoomStatus.MAINTENANCE);
@@ -425,9 +456,121 @@ public class ReservationServiceImpl implements ReservationService {
                 "CHECK_OUT",
                 "Reservation",
                 "HOSP-" + saved.getId() + "-2026",
-                "Check-out completado para Suite " + room.getRoomNumber() + ". Suite enviada a limpieza.",
+                "Check-out completado para Suite " + room.getRoomNumber() + ". Folio liquidado (" + saved.getSettlementMethod() + "). Suite enviada a limpieza.",
                 "SUCCESS"
         );
+
+        User guestUser = userRepository.findAll().stream()
+                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
+                .findFirst()
+                .orElse(null);
+        if (guestUser != null) {
+            inAppNotificationService.createNotification(
+                    guestUser,
+                    "Check-Out Realizado #HOSP-" + saved.getId() + "-2026",
+                    "Su salida de la Suite " + room.getRoomNumber() + " ha sido completada y su folio ha sido liquidado con éxito. ¡Esperamos verle pronto!",
+                    "CHECK_OUT",
+                    "/my-reservations"
+            );
+        }
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponse expressCheckOut(Long id, ExpressCheckOutRequest request) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isStaff = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            if (!isStaff) {
+                String username = authentication.getName();
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                    throw new AccessDeniedException("No tiene permisos para realizar check-out express en esta reservación");
+                }
+            }
+        }
+
+        if (reservation.getStatus() != ReservationStatus.CHECKED_IN) {
+            throw new IllegalArgumentException("Solo es posible realizar Check-Out Express en reservaciones activas (CHECKED_IN)");
+        }
+
+        List<RoomOrder> orders = roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(id);
+        if (!orders.isEmpty()) {
+            for (RoomOrder order : orders) {
+                order.setPaid(true);
+            }
+            roomOrderRepository.saveAll(orders);
+        }
+
+        reservation.setStatus(ReservationStatus.COMPLETED);
+        reservation.setSettlementMethod("ONLINE_EXPRESS");
+        reservation.setSettlementAmount(request.amount() != null ? request.amount() : BigDecimal.ZERO);
+        if (request.cardLast4() != null && !request.cardLast4().isBlank()) {
+            reservation.setCardLast4(request.cardLast4());
+        }
+        if (request.paymentIntentId() != null && !request.paymentIntentId().isBlank()) {
+            reservation.setPaymentIntentId(request.paymentIntentId());
+        }
+        reservation.setSettlementNotes(request.notes() != null && !request.notes().isBlank()
+                ? request.notes()
+                : "Check-Out Express Digital completado por el huésped");
+        reservation.setPaymentStatus(PaymentStatus.PAID);
+        reservation.setSettledAt(LocalDateTime.now());
+
+        Room room = reservation.getRoom();
+        room.setStatus(RoomStatus.MAINTENANCE);
+        roomRepository.save(room);
+
+        Reservation saved = reservationRepository.save(reservation);
+        ReservationResponse response = reservationMapper.toResponse(saved);
+
+        NotificationEvent resEvent = NotificationEvent.of(
+                "RESERVATION_STATUS_CHANGED",
+                "FRONT_DESK",
+                saved.getId(),
+                "Check-Out Express #HOSP-" + saved.getId(),
+                "Suite " + room.getRoomNumber() + " desocupada vía Express Check-Out",
+                response
+        );
+        sseNotificationService.broadcast(resEvent);
+
+        NotificationEvent roomEvent = NotificationEvent.of(
+                "ROOM_STATUS_CHANGED",
+                "ROOM_RACK",
+                room.getId(),
+                "Suite " + room.getRoomNumber() + " en Limpieza",
+                "Enviada a housekeeping tras Express Check-Out",
+                room
+        );
+        sseNotificationService.broadcast(roomEvent);
+
+        auditLogService.logAction(
+                "EXPRESS_CHECK_OUT",
+                "Reservation",
+                "HOSP-" + saved.getId() + "-2026",
+                "Check-Out Express Digital completado por huésped " + saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName() + ". Suite " + room.getRoomNumber() + " enviada a limpieza.",
+                "SUCCESS"
+        );
+
+        User guestUser = userRepository.findAll().stream()
+                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
+                .findFirst()
+                .orElse(null);
+        if (guestUser != null) {
+            inAppNotificationService.createNotification(
+                    guestUser,
+                    "Check-Out Express Confirmado",
+                    "Su salida de la Suite " + room.getRoomNumber() + " ha sido completada y su saldo ha quedado liquidado. ¡Gracias por elegir Hospentra Sanctuary!",
+                    "EXPRESS_CHECK_OUT",
+                    "/my-reservations"
+            );
+        }
 
         return response;
     }

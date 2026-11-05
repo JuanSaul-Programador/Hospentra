@@ -41,7 +41,11 @@ public class ReservationMapper {
                 reservation.getDocumentNumber(),
                 reservation.getNationality(),
                 reservation.getEstimatedArrivalTime(),
-                reservation.getSpecialRequests()
+                reservation.getSpecialRequests(),
+                reservation.getSettlementMethod(),
+                reservation.getSettlementAmount(),
+                reservation.getSettlementNotes(),
+                reservation.getSettledAt()
         );
     }
 

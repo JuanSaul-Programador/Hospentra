@@ -82,6 +82,18 @@ public class Reservation {
     @Column(name = "special_requests", length = 500)
     private String specialRequests;
 
+    @Column(name = "settlement_method", length = 50)
+    private String settlementMethod;
+
+    @Column(name = "settlement_amount", precision = 10, scale = 2)
+    private BigDecimal settlementAmount;
+
+    @Column(name = "settlement_notes", length = 500)
+    private String settlementNotes;
+
+    @Column(name = "settled_at")
+    private LocalDateTime settledAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

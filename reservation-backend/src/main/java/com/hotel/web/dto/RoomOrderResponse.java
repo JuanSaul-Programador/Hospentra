@@ -20,5 +20,6 @@ public record RoomOrderResponse(
         String therapistName,
         String serviceLocation,
         String scheduledTime,
-        List<RoomOrderItemResponse> items
+        List<RoomOrderItemResponse> items,
+        boolean paid
 ) {}

@@ -72,8 +72,17 @@ public class ReservationController {
     }
 
     @PatchMapping("/{id}/complete")
-    public ResponseEntity<ReservationResponse> complete(@PathVariable Long id) {
-        return ResponseEntity.ok(reservationService.complete(id));
+    public ResponseEntity<ReservationResponse> complete(
+            @PathVariable Long id,
+            @RequestBody(required = false) com.hotel.web.dto.CheckOutSettlementRequest settlementRequest) {
+        return ResponseEntity.ok(reservationService.complete(id, settlementRequest));
+    }
+
+    @PostMapping("/{id}/express-checkout")
+    public ResponseEntity<ReservationResponse> expressCheckOut(
+            @PathVariable Long id,
+            @Valid @RequestBody com.hotel.web.dto.ExpressCheckOutRequest request) {
+        return ResponseEntity.ok(reservationService.expressCheckOut(id, request));
     }
 
     @PatchMapping("/{id}/pre-check-in")

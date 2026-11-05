@@ -290,7 +290,8 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 order.getTherapistName(),
                 order.getServiceLocation(),
                 order.getScheduledTime(),
-                itemResponses
+                itemResponses,
+                order.isPaid()
         );
     }
 }

@@ -11,8 +11,12 @@ import com.hotel.domain.model.*;
 import com.hotel.domain.repository.GuestRepository;
 import com.hotel.domain.repository.MaintenanceBlockRepository;
 import com.hotel.domain.repository.ReservationRepository;
+import com.hotel.domain.repository.RoomOrderRepository;
 import com.hotel.domain.repository.RoomRepository;
 import com.hotel.domain.repository.UserRepository;
+import com.hotel.web.dto.CheckOutSettlementRequest;
+import com.hotel.web.dto.ExpressCheckOutRequest;
+import com.hotel.web.dto.PreCheckInRequest;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,10 +24,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,6 +73,9 @@ class ReservationServiceImplTest {
     @Mock
     private com.hotel.application.services.InAppNotificationService inAppNotificationService;
 
+    @Mock
+    private RoomOrderRepository roomOrderRepository;
+
     private ReservationServiceImpl reservationService;
 
     private RoomType standardRoomType;
@@ -86,7 +99,8 @@ class ReservationServiceImplTest {
                 sseNotificationService,
                 emailService,
                 auditLogService,
-                inAppNotificationService
+                inAppNotificationService,
+                roomOrderRepository
         );
 
         standardRoomType = RoomType.builder()
@@ -352,6 +366,7 @@ class ReservationServiceImplTest {
                 .build();
 
         when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(Collections.emptyList());
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
 
         ReservationResponse response = reservationService.complete(1L);
@@ -360,6 +375,179 @@ class ReservationServiceImplTest {
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.MAINTENANCE);
         verify(roomRepository, times(1)).save(standardRoom);
         verify(sseNotificationService, times(2)).broadcast(any(NotificationEvent.class));
+    }
+
+    @Test
+    void completeReservationWithSettlementDetails_marksOrdersPaidAndSetsSettlementFields() {
+        standardRoom.setStatus(RoomStatus.OCCUPIED);
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .checkInDate(LocalDate.now().minusDays(2))
+                .checkOutDate(LocalDate.now())
+                .status(ReservationStatus.CHECKED_IN)
+                .totalPrice(new BigDecimal("600.00"))
+                .build();
+
+        RoomOrder order1 = RoomOrder.builder()
+                .id(201L)
+                .reservationId(1L)
+                .roomNumber("101")
+                .guestName("Carlos Mendoza")
+                .totalAmount(new BigDecimal("84.00"))
+                .status(OrderStatus.DELIVERED)
+                .paid(false)
+                .build();
+
+        CheckOutSettlementRequest settlementRequest = new CheckOutSettlementRequest(
+                "POS_TERMINAL",
+                new BigDecimal("84.00"),
+                "AUTH-POS-1234",
+                "Cobro verificado con POS"
+        );
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(List.of(order1));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReservationResponse response = reservationService.complete(1L, settlementRequest);
+
+        assertThat(response.status()).isEqualTo(ReservationStatus.COMPLETED);
+        assertThat(response.settlementMethod()).isEqualTo("POS_TERMINAL");
+        assertThat(response.settlementAmount()).isEqualByComparingTo(new BigDecimal("84.00"));
+        assertThat(response.authCode()).isEqualTo("AUTH-POS-1234");
+        assertThat(order1.isPaid()).isTrue();
+        verify(roomOrderRepository, times(1)).saveAll(anyList());
+    }
+
+    @Test
+    void expressCheckOut_whenValidGuest_marksOrdersPaidAndSetsExpressSettlement() {
+        standardRoom.setStatus(RoomStatus.OCCUPIED);
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .checkInDate(LocalDate.now().minusDays(3))
+                .checkOutDate(LocalDate.now())
+                .status(ReservationStatus.CHECKED_IN)
+                .totalPrice(new BigDecimal("900.00"))
+                .build();
+
+        RoomOrder order = RoomOrder.builder()
+                .id(301L)
+                .reservationId(1L)
+                .roomNumber("101")
+                .guestName("Carlos Mendoza")
+                .totalAmount(new BigDecimal("150.00"))
+                .status(OrderStatus.DELIVERED)
+                .paid(false)
+                .build();
+
+        User user = User.builder()
+                .id(100L)
+                .username("carlos.m")
+                .role(Role.ROLE_CUSTOMER)
+                .guest(standardGuest)
+                .build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("carlos.m");
+        SecurityContext secCtx = mock(SecurityContext.class);
+        when(secCtx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(secCtx);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(List.of(order));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                new BigDecimal("150.00"),
+                "4242",
+                "pi_express_123",
+                "Check-Out Express con tarjeta registrada"
+        );
+
+        ReservationResponse response = reservationService.expressCheckOut(1L, request);
+
+        assertThat(response.status()).isEqualTo(ReservationStatus.COMPLETED);
+        assertThat(response.settlementMethod()).isEqualTo("ONLINE_EXPRESS");
+        assertThat(response.settlementAmount()).isEqualByComparingTo(new BigDecimal("150.00"));
+        assertThat(response.cardLast4()).isEqualTo("4242");
+        assertThat(response.paymentIntentId()).isEqualTo("pi_express_123");
+        assertThat(order.isPaid()).isTrue();
+        assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.MAINTENANCE);
+        verify(roomOrderRepository, times(1)).saveAll(anyList());
+        verify(auditLogService, times(1)).logAction(eq("EXPRESS_CHECK_OUT"), eq("Reservation"), eq("HOSP-1-2026"), any(), eq("SUCCESS"));
+
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void expressCheckOut_whenDifferentGuest_throwsAccessDeniedException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CHECKED_IN)
+                .build();
+
+        Guest otherGuest = Guest.builder().id(999L).firstName("Intruso").build();
+        User otherUser = User.builder().id(200L).username("intruso").guest(otherGuest).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("intruso");
+        SecurityContext secCtx = mock(SecurityContext.class);
+        when(secCtx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(secCtx);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("intruso")).thenReturn(Optional.of(otherUser));
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                BigDecimal.ZERO, "4242", null, null
+        );
+
+        assertThatThrownBy(() -> reservationService.expressCheckOut(1L, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("No tiene permisos para realizar check-out express");
+
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void expressCheckOut_whenNotCheckedIn_throwsIllegalArgumentException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        User user = User.builder().id(100L).username("carlos.m").guest(standardGuest).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("carlos.m");
+        SecurityContext secCtx = mock(SecurityContext.class);
+        when(secCtx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(secCtx);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                BigDecimal.ZERO, "4242", null, null
+        );
+
+        assertThatThrownBy(() -> reservationService.expressCheckOut(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Solo es posible realizar Check-Out Express en reservaciones activas");
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test

@@ -1,6 +1,9 @@
 package com.hotel.application.services;
 
 import com.hotel.domain.model.ReservationStatus;
+import com.hotel.web.dto.CheckOutSettlementRequest;
+import com.hotel.web.dto.ExpressCheckOutRequest;
+import com.hotel.web.dto.PreCheckInRequest;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
 
@@ -28,5 +31,9 @@ public interface ReservationService {
 
     ReservationResponse complete(Long id);
 
-    ReservationResponse submitPreCheckIn(Long id, com.hotel.web.dto.PreCheckInRequest request);
+    ReservationResponse complete(Long id, CheckOutSettlementRequest settlementRequest);
+
+    ReservationResponse expressCheckOut(Long id, ExpressCheckOutRequest request);
+
+    ReservationResponse submitPreCheckIn(Long id, PreCheckInRequest request);
 }

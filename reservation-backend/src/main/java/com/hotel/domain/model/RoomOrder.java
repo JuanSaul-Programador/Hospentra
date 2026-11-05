@@ -60,6 +60,10 @@ public class RoomOrder {
     @Column(name = "scheduled_time", length = 50)
     private String scheduledTime;
 
+    @Column(name = "paid", nullable = false)
+    @Builder.Default
+    private boolean paid = false;
+
     @OneToMany(mappedBy = "roomOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default

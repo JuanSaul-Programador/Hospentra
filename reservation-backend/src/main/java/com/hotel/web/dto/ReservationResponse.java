@@ -28,5 +28,9 @@ public record ReservationResponse(
         String documentNumber,
         String nationality,
         String estimatedArrivalTime,
-        String specialRequests
+        String specialRequests,
+        String settlementMethod,
+        BigDecimal settlementAmount,
+        String settlementNotes,
+        LocalDateTime settledAt
 ) {}
