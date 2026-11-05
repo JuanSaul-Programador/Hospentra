@@ -38,6 +38,7 @@ export interface RoomOrder {
   serviceLocation?: 'IN_SUITE' | 'SPA_CENTER';
   scheduledTime?: string | null;
   items: RoomOrderItem[];
+  paid?: boolean;
 }
 
 export interface CreateRoomOrderItem {

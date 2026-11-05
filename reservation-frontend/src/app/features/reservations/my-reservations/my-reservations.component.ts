@@ -102,6 +102,34 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly preCheckInSpecialRequests = signal<string>('');
   readonly preCheckInError = signal<string | null>(null);
 
+  readonly selectedExpressCheckoutReservation = signal<Reservation | null>(null);
+  readonly isExpressCheckoutModalOpen = signal<boolean>(false);
+  readonly isSubmittingExpressCheckout = signal<boolean>(false);
+  readonly expressCheckoutOrders = signal<RoomOrder[]>([]);
+  readonly expressCheckoutSuccess = signal<boolean>(false);
+  readonly expressCheckoutError = signal<string | null>(null);
+  readonly expressPaymentMethod = signal<'SAVED_CARD' | 'NEW_CARD'>('SAVED_CARD');
+  readonly expressCardNumber = signal<string>('');
+  readonly expressCardExp = signal<string>('');
+  readonly expressCardCvc = signal<string>('');
+  readonly expressKeyDropped = signal<boolean>(false);
+  readonly expressNotes = signal<string>('');
+  readonly expressReceipt = signal<{ authCode: string; amountPaid: number; settledAt: string; roomNumber: string; guestName: string } | null>(null);
+
+  readonly expressOrdersTotal = computed(() => {
+    return this.expressCheckoutOrders().reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  });
+
+  readonly expressPendingBalance = computed(() => {
+    const res = this.selectedExpressCheckoutReservation();
+    if (!res) return 0;
+    const extras = this.expressOrdersTotal();
+    if (res.paymentMethod === 'CREDIT_CARD') {
+      return extras;
+    }
+    return (Number(res.totalPrice) || 0) + extras;
+  });
+
   readonly userRoleLabel = computed<string>(() => {
     const role = this.authService.currentUser()?.role;
     if (role === 'ROLE_CUSTOMER') {
@@ -625,6 +653,94 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
         this.isSubmittingPreCheckIn.set(false);
         const msg = err.error?.message || err.error?.detail || 'No fue posible registrar el Pre-Check-In.';
         this.preCheckInError.set(msg);
+      }
+    });
+  }
+
+  openExpressCheckoutModal(reservation: Reservation): void {
+    this.selectedExpressCheckoutReservation.set(reservation);
+    this.expressCheckoutOrders.set([]);
+    this.expressCheckoutSuccess.set(false);
+    this.expressCheckoutError.set(null);
+    this.expressKeyDropped.set(false);
+    this.expressNotes.set('');
+    this.expressPaymentMethod.set(reservation.cardLast4 ? 'SAVED_CARD' : 'NEW_CARD');
+    this.expressReceipt.set(null);
+    this.isExpressCheckoutModalOpen.set(true);
+
+    this.roomOrderService.getOrdersByReservation(reservation.id).subscribe({
+      next: (orders) => {
+        this.expressCheckoutOrders.set(orders || []);
+      },
+      error: () => {}
+    });
+  }
+
+  closeExpressCheckoutModal(): void {
+    const wasSuccess = this.expressCheckoutSuccess();
+    this.isExpressCheckoutModalOpen.set(false);
+    this.selectedExpressCheckoutReservation.set(null);
+    this.expressCheckoutOrders.set([]);
+    this.expressCheckoutSuccess.set(false);
+    this.expressCheckoutError.set(null);
+    this.expressReceipt.set(null);
+    if (wasSuccess) {
+      this.loadReservations();
+    }
+  }
+
+  confirmExpressCheckout(): void {
+    const res = this.selectedExpressCheckoutReservation();
+    if (!res) return;
+
+    if (!this.expressKeyDropped()) {
+      this.expressCheckoutError.set('Debe confirmar que ha depositado las llaves físicas en la suite.');
+      return;
+    }
+
+    const pending = this.expressPendingBalance();
+    let cardLast4 = res.cardLast4 || '4242';
+
+    if (pending > 0 && this.expressPaymentMethod() === 'NEW_CARD') {
+      const cleanNum = this.expressCardNumber().replace(/\D/g, '');
+      if (cleanNum.length < 15) {
+        this.expressCheckoutError.set('Por favor ingrese un número de tarjeta válido (mínimo 15 dígitos).');
+        return;
+      }
+      if (!this.expressCardExp().trim() || !this.expressCardCvc().trim()) {
+        this.expressCheckoutError.set('Por favor ingrese la fecha de vencimiento y el código CVC.');
+        return;
+      }
+      cardLast4 = cleanNum.slice(-4);
+    }
+
+    this.isSubmittingExpressCheckout.set(true);
+    this.expressCheckoutError.set(null);
+
+    const payload = {
+      amount: pending,
+      cardLast4: cardLast4,
+      paymentIntentId: `pi_exp_${Date.now().toString().slice(-8)}`,
+      notes: this.expressNotes().trim() || 'Check-Out Express Digital completado por el huésped'
+    };
+
+    this.reservationService.expressCheckOut(res.id, payload).subscribe({
+      next: (updated) => {
+        this.isSubmittingExpressCheckout.set(false);
+        this.expressCheckoutSuccess.set(true);
+        this.expressReceipt.set({
+          authCode: updated.authCode || `AUTH-EXP-${res.id}`,
+          amountPaid: pending,
+          settledAt: updated.settledAt || new Date().toISOString(),
+          roomNumber: res.room?.roomNumber || '',
+          guestName: `${res.guest?.firstName || ''} ${res.guest?.lastName || ''}`.trim()
+        });
+        this.reservations.update(list => list.map(r => r.id === updated.id ? { ...updated, status: 'COMPLETED' } : r));
+      },
+      error: (err) => {
+        this.isSubmittingExpressCheckout.set(false);
+        const msg = err.error?.message || err.error?.detail || 'No fue posible procesar el Check-Out Express. Intente nuevamente o consulte en recepción.';
+        this.expressCheckoutError.set(msg);
       }
     });
   }

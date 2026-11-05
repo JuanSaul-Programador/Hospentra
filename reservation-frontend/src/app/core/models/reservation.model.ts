@@ -38,6 +38,10 @@ export interface Reservation {
   nationality?: string;
   estimatedArrivalTime?: string;
   specialRequests?: string;
+  settlementMethod?: string;
+  settlementAmount?: number;
+  settlementNotes?: string;
+  settledAt?: string;
 }
 
 export interface ReservationRequest {

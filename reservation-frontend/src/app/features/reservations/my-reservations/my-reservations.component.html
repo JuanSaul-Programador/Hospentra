@@ -279,6 +279,10 @@
                           <span class="material-symbols-outlined">skillet</span>
                           <span>{{ i18n.t('myReservations.roomServiceBtn') }}</span>
                         </button>
+                        <button type="button" class="btn btn-express-checkout w-full" (click)="openExpressCheckoutModal(res)">
+                          <span class="material-symbols-outlined">logout</span>
+                          <span>Check-Out Express Digital</span>
+                        </button>
                       }
 
                       <button type="button" class="btn btn-primary w-full" (click)="openVoucher(res)">
@@ -744,6 +748,273 @@
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (isExpressCheckoutModalOpen() && selectedExpressCheckoutReservation()) {
+    <div class="modal-backdrop" (click)="closeExpressCheckoutModal()">
+      <div class="corp-dialog express-checkout-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close-btn" (click)="closeExpressCheckoutModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        @if (!expressCheckoutSuccess()) {
+          <div class="express-modal-header">
+            <div class="dialog-icon-badge checkout-badge">
+              <span class="material-symbols-outlined">logout</span>
+            </div>
+            <span class="prestige-tag">Hospentra Sanctuary &bull; Concierge Digital</span>
+            <h3 class="dialog-title">Check-Out Express Digital</h3>
+            <p class="dialog-desc">
+              Finalice su estancia sin pasar por recepción. Revise sus consumos, liquide su folio y entregue su suite en un clic.
+            </p>
+          </div>
+
+          <div class="express-modal-body">
+            <div class="express-suite-card">
+              <div class="suite-info">
+                <strong class="suite-title">Habitación {{ selectedExpressCheckoutReservation()?.room?.roomNumber }} &bull; {{ selectedExpressCheckoutReservation()?.room?.roomType?.name }}</strong>
+                <span class="suite-dates">{{ selectedExpressCheckoutReservation()?.checkInDate }} al {{ selectedExpressCheckoutReservation()?.checkOutDate }}</span>
+              </div>
+              <div class="suite-stay-price">
+                <span class="stay-lbl">Estancia Suite</span>
+                <strong class="stay-val">${{ selectedExpressCheckoutReservation()?.totalPrice | number:'1.2-2' }} USD</strong>
+                <div class="stay-status">
+                  @if (selectedExpressCheckoutReservation()?.paymentMethod === 'CREDIT_CARD') {
+                    <span class="tag-paid">Pagado previamente online</span>
+                  } @else {
+                    <span class="tag-pending">A liquidar al Check-Out</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="express-folio-section">
+              <div class="folio-header">
+                <span class="material-symbols-outlined icon-folio">room_service</span>
+                <strong>Consumos de Habitación & Gastronomía:</strong>
+              </div>
+
+              @if (expressCheckoutOrders().length === 0) {
+                <div class="no-orders-box">
+                  <span class="material-symbols-outlined icon-ok">check_circle</span>
+                  <span>Sin consumos de room service registrados durante su estancia.</span>
+                </div>
+              } @else {
+                <div class="orders-list-scroll">
+                  @for (order of expressCheckoutOrders(); track order.id) {
+                    <div class="order-item-row">
+                      <div class="order-desc">
+                        <span class="order-code">CMD-{{ order.id }}</span>
+                        <span class="order-detail">
+                          @for (item of order.items; track item.id) {
+                            {{ item.quantity }}x {{ item.serviceName }} &bull;
+                          }
+                        </span>
+                      </div>
+                      <strong class="order-price">${{ order.totalAmount | number:'1.2-2' }} USD</strong>
+                    </div>
+                  }
+                </div>
+                <div class="orders-subtotal-row">
+                  <span>Subtotal consumos extras:</span>
+                  <strong>${{ expressOrdersTotal() | number:'1.2-2' }} USD</strong>
+                </div>
+              }
+            </div>
+
+            <div class="express-balance-summary">
+              <div class="balance-line">
+                <span class="bal-lbl">Saldo a Liquidar al Check-Out:</span>
+                <strong class="bal-amount" [class.balance-zero]="expressPendingBalance() === 0">
+                  ${{ expressPendingBalance() | number:'1.2-2' }} USD
+                </strong>
+              </div>
+              @if (expressPendingBalance() === 0) {
+                <span class="bal-clean-msg">
+                  <span class="material-symbols-outlined">task_alt</span>
+                  Su estancia se encuentra totalmente liquidada. No tiene pagos pendientes.
+                </span>
+              }
+            </div>
+
+            @if (expressPendingBalance() > 0) {
+              <div class="express-payment-box">
+                <div class="payment-box-title">
+                  <span class="material-symbols-outlined">payments</span>
+                  <strong>Método de Liquidación Online:</strong>
+                </div>
+
+                <div class="payment-tabs-row">
+                  @if (selectedExpressCheckoutReservation()?.cardLast4) {
+                    <button
+                      type="button"
+                      class="pay-tab"
+                      [class.active]="expressPaymentMethod() === 'SAVED_CARD'"
+                      (click)="expressPaymentMethod.set('SAVED_CARD')"
+                    >
+                      <span class="material-symbols-outlined">credit_card</span>
+                      <span>Tarjeta Registrada (**** {{ selectedExpressCheckoutReservation()?.cardLast4 }})</span>
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="pay-tab"
+                    [class.active]="expressPaymentMethod() === 'NEW_CARD'"
+                    (click)="expressPaymentMethod.set('NEW_CARD')"
+                  >
+                    <span class="material-symbols-outlined">add_card</span>
+                    <span>Nueva Tarjeta de Crédito</span>
+                  </button>
+                </div>
+
+                @if (expressPaymentMethod() === 'NEW_CARD') {
+                  <div class="new-card-form">
+                    <div class="field-wrap">
+                      <label for="expressCardNumInput" class="field-label">Número de Tarjeta</label>
+                      <input
+                        id="expressCardNumInput"
+                        type="text"
+                        class="field-input"
+                        placeholder="•••• •••• •••• ••••"
+                        maxlength="19"
+                        [value]="expressCardNumber()"
+                        (input)="expressCardNumber.set($any($event.target).value)"
+                      />
+                    </div>
+                    <div class="fields-dual">
+                      <div class="field-wrap">
+                        <label for="expressExpInput" class="field-label">Vencimiento</label>
+                        <input
+                          id="expressExpInput"
+                          type="text"
+                          class="field-input"
+                          placeholder="MM/AA"
+                          maxlength="5"
+                          [value]="expressCardExp()"
+                          (input)="expressCardExp.set($any($event.target).value)"
+                        />
+                      </div>
+                      <div class="field-wrap">
+                        <label for="expressCvcInput" class="field-label">CVC</label>
+                        <input
+                          id="expressCvcInput"
+                          type="password"
+                          class="field-input"
+                          placeholder="•••"
+                          maxlength="4"
+                          [value]="expressCardCvc()"
+                          (input)="expressCardCvc.set($any($event.target).value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="express-key-confirmation">
+              <label class="checkbox-container">
+                <input
+                  type="checkbox"
+                  [checked]="expressKeyDropped()"
+                  (change)="expressKeyDropped.set($any($event.target).checked)"
+                />
+                <span class="checkbox-text">
+                  Confirmo que he dejado las llaves físicas en el escritorio de la suite y me dispongo a retirarme.
+                </span>
+              </label>
+            </div>
+
+            <div class="field-wrap">
+              <label for="expressNotesInput" class="field-label">Observaciones o Peticiones Finales (Opcional):</label>
+              <input
+                id="expressNotesInput"
+                type="text"
+                class="field-input"
+                placeholder="Ej. Dejamos el equipaje listo para el botones, estancia impecable"
+                [value]="expressNotes()"
+                (input)="expressNotes.set($any($event.target).value)"
+              />
+            </div>
+
+            @if (expressCheckoutError()) {
+              <div class="express-error-alert">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ expressCheckoutError() }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="dialog-actions-row">
+            <button type="button" class="btn btn-outline" (click)="closeExpressCheckoutModal()" [disabled]="isSubmittingExpressCheckout()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-express-confirm"
+              (click)="confirmExpressCheckout()"
+              [disabled]="isSubmittingExpressCheckout() || !expressKeyDropped()"
+            >
+              <span class="material-symbols-outlined">logout</span>
+              <span>
+                @if (isSubmittingExpressCheckout()) {
+                  Procesando Check-Out...
+                } @else if (expressPendingBalance() > 0) {
+                  Pagar ${{ expressPendingBalance() | number:'1.2-2' }} USD y Check-Out
+                } @else {
+                  Confirmar Check-Out Express
+                }
+              </span>
+            </button>
+          </div>
+        } @else {
+          <div class="express-success-view">
+            <div class="success-icon-badge">
+              <span class="material-symbols-outlined">verified</span>
+            </div>
+            <span class="prestige-tag">Estancia Concluida</span>
+            <h3 class="success-title">¡Check-Out Express Completado con Éxito!</h3>
+            <p class="success-desc">
+              Gracias por hospedarse en <strong>Hospentra Sanctuary Retreat</strong>. Su suite ha sido desocupada y su folio liquidado al 100%.
+            </p>
+
+            <div class="receipt-card">
+              <div class="receipt-row">
+                <span>Huésped Titular:</span>
+                <strong>{{ expressReceipt()?.guestName }}</strong>
+              </div>
+              <div class="receipt-row">
+                <span>Habitación Liberada:</span>
+                <strong>Habitación {{ expressReceipt()?.roomNumber }}</strong>
+              </div>
+              <div class="receipt-row">
+                <span>Monto Liquidado:</span>
+                <strong class="receipt-amount">${{ expressReceipt()?.amountPaid | number:'1.2-2' }} USD</strong>
+              </div>
+              <div class="receipt-row">
+                <span>Código de Liquidación:</span>
+                <code class="receipt-code">{{ expressReceipt()?.authCode }}</code>
+              </div>
+              <div class="receipt-row">
+                <span>Fecha y Hora de Salida:</span>
+                <span>{{ expressReceipt()?.settledAt | date:'medium' }}</span>
+              </div>
+            </div>
+
+            <div class="success-actions-row">
+              <button type="button" class="btn btn-outline" (click)="openFolio(selectedExpressCheckoutReservation()!)">
+                <span class="material-symbols-outlined">description</span>
+                <span>Descargar Folio Digital</span>
+              </button>
+              <button type="button" class="btn btn-primary" (click)="closeExpressCheckoutModal()">
+                <span class="material-symbols-outlined">done_all</span>
+                <span>Aceptar y Finalizar</span>
+              </button>
+            </div>
+          </div>
+        }
       </div>
     </div>
   }

@@ -115,8 +115,14 @@ export class ReservationService {
     );
   }
 
-  completeReservation(id: number): Observable<Reservation> {
-    return this.http.patch<Reservation>(`${this.apiUrl}/${id}/complete`, {}).pipe(
+  completeReservation(id: number, settlementPayload?: any): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.apiUrl}/${id}/complete`, settlementPayload || {}).pipe(
+      map(res => this.enrichReservation(res))
+    );
+  }
+
+  expressCheckOut(id: number, payload: { amount: number; cardLast4: string; paymentIntentId?: string; notes?: string }): Observable<Reservation> {
+    return this.http.post<Reservation>(`${this.apiUrl}/${id}/express-checkout`, payload).pipe(
       map(res => this.enrichReservation(res))
     );
   }

@@ -155,6 +155,17 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     return (Number(res.totalPrice) || 0) + extras;
   });
 
+  readonly checkOutSettlementMethod = signal<'POS_TERMINAL' | 'CASH' | 'CARD_ON_FILE'>('POS_TERMINAL');
+  readonly checkOutCashReceived = signal<number | null>(null);
+  readonly checkOutAuthCode = signal<string>('');
+  readonly checkOutNotes = signal<string>('');
+  readonly checkOutCashChange = computed(() => {
+    const received = Number(this.checkOutCashReceived()) || 0;
+    const pending = this.checkOutPendingBalance();
+    if (received <= pending) return 0;
+    return Number((received - pending).toFixed(2));
+  });
+
   readonly selectedVoucher = signal<Reservation | null>(null);
   readonly voucherOrders = signal<RoomOrder[]>([]);
   readonly voucherExtrasTotal = computed(() => {
@@ -1089,6 +1100,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   openCheckOutModal(res: Reservation): void {
     this.reservationToCheckOut.set(res);
     this.checkOutOrders.set([]);
+    this.checkOutSettlementMethod.set(res.cardLast4 ? 'CARD_ON_FILE' : 'POS_TERMINAL');
+    this.checkOutCashReceived.set(null);
+    this.checkOutAuthCode.set('');
+    this.checkOutNotes.set('');
     this.isCheckOutModalOpen.set(true);
 
     this.roomOrderService.getOrdersByReservation(res.id).subscribe({
@@ -1103,26 +1118,57 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.isCheckOutModalOpen.set(false);
     this.reservationToCheckOut.set(null);
     this.checkOutOrders.set([]);
+    this.checkOutCashReceived.set(null);
+    this.checkOutAuthCode.set('');
+    this.checkOutNotes.set('');
   }
 
   confirmCheckOut(): void {
     const res = this.reservationToCheckOut();
     if (!res) return;
 
+    const pending = this.checkOutPendingBalance();
+    const method = pending > 0 ? this.checkOutSettlementMethod() : (res.paymentMethod || 'PAY_AT_CHECKIN');
+    let generatedAuth = this.checkOutAuthCode().trim();
+    if (method === 'POS_TERMINAL' && !generatedAuth) {
+      generatedAuth = `AUTH-POS-${Date.now().toString().slice(-6)}`;
+    } else if (method === 'CARD_ON_FILE' && !generatedAuth) {
+      generatedAuth = res.authCode || `AUTH-REC-${Date.now().toString().slice(-6)}`;
+    }
+
+    let notes = this.checkOutNotes().trim();
+    if (method === 'CASH') {
+      const received = Number(this.checkOutCashReceived()) || pending;
+      const change = this.checkOutCashChange();
+      notes = notes
+        ? `${notes} (Efectivo: $${received.toFixed(2)}, Cambio: $${change.toFixed(2)})`
+        : `Efectivo recibido: $${received.toFixed(2)} USD. Cambio entregado: $${change.toFixed(2)} USD`;
+    }
+
+    const payload = {
+      settlementMethod: method,
+      settlementAmount: pending,
+      authCode: generatedAuth || undefined,
+      notes: notes || undefined
+    };
+
     this.isActionProcessing.set(true);
-    this.reservationService.completeReservation(res.id).subscribe({
+    this.reservationService.completeReservation(res.id, payload).subscribe({
       next: (updated) => {
         this.isActionProcessing.set(false);
         this.reservations.update(list => list.map(item => item.id === res.id ? { ...updated, status: 'COMPLETED' } : item));
         this.rooms.update(rooms => rooms.map(r => r.id === res.room?.id ? { ...r, status: 'MAINTENANCE' } : r));
         this.closeCheckOutModal();
-        this.showToast(`Check-Out registrado. Habitación ${res.room?.roomNumber} enviada a Housekeeping.`);
+        this.showToast(`Check-Out registrado con éxito. Folio liquidado ($${pending.toFixed(2)} USD). Habitación ${res.room?.roomNumber} enviada a Limpieza.`);
       },
       error: () => {
         this.isActionProcessing.set(false);
         const updatedLocal: Reservation = {
           ...res,
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          settlementMethod: method,
+          settlementAmount: pending,
+          settledAt: new Date().toISOString()
         };
         this.reservations.update(list => list.map(item => item.id === res.id ? updatedLocal : item));
         this.rooms.update(rooms => rooms.map(r => r.id === res.room?.id ? { ...r, status: 'MAINTENANCE' } : r));

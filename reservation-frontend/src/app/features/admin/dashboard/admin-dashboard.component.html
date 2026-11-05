@@ -1703,6 +1703,112 @@
             </div>
           </div>
 
+          @if (checkOutPendingBalance() > 0) {
+            <div class="settlement-options-card">
+              <div class="settlement-header">
+                <span class="material-symbols-outlined icon-settle">point_of_sale</span>
+                <strong>Método de Liquidación en Mostrador:</strong>
+              </div>
+
+              <div class="settlement-methods-grid">
+                <label class="settle-method-option" [class.selected]="checkOutSettlementMethod() === 'POS_TERMINAL'">
+                  <input
+                    type="radio"
+                    name="settlementMethod"
+                    value="POS_TERMINAL"
+                    [checked]="checkOutSettlementMethod() === 'POS_TERMINAL'"
+                    (change)="checkOutSettlementMethod.set('POS_TERMINAL')"
+                  />
+                  <div class="method-body">
+                    <span class="material-symbols-outlined">credit_card</span>
+                    <span class="method-title">Datáfono / POS</span>
+                    <small>Tarjeta física en recepción</small>
+                  </div>
+                </label>
+
+                <label class="settle-method-option" [class.selected]="checkOutSettlementMethod() === 'CASH'">
+                  <input
+                    type="radio"
+                    name="settlementMethod"
+                    value="CASH"
+                    [checked]="checkOutSettlementMethod() === 'CASH'"
+                    (change)="checkOutSettlementMethod.set('CASH')"
+                  />
+                  <div class="method-body">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span class="method-title">Efectivo</span>
+                    <small>Cobro en caja recepción</small>
+                  </div>
+                </label>
+
+                @if (reservationToCheckOut()?.cardLast4) {
+                  <label class="settle-method-option" [class.selected]="checkOutSettlementMethod() === 'CARD_ON_FILE'">
+                    <input
+                      type="radio"
+                      name="settlementMethod"
+                      value="CARD_ON_FILE"
+                      [checked]="checkOutSettlementMethod() === 'CARD_ON_FILE'"
+                      (change)="checkOutSettlementMethod.set('CARD_ON_FILE')"
+                    />
+                    <div class="method-body">
+                      <span class="material-symbols-outlined">account_balance_wallet</span>
+                      <span class="method-title">Tarjeta en Archivo</span>
+                      <small>Cobrar a **** {{ reservationToCheckOut()?.cardLast4 }}</small>
+                    </div>
+                  </label>
+                }
+              </div>
+
+              @if (checkOutSettlementMethod() === 'POS_TERMINAL') {
+                <div class="settlement-fields-group">
+                  <label for="posAuthInput" class="settle-input-label">N° Operación / Voucher POS (Opcional):</label>
+                  <input
+                    id="posAuthInput"
+                    type="text"
+                    class="settle-input"
+                    placeholder="Ej. AUTH-982341"
+                    [value]="checkOutAuthCode()"
+                    (input)="checkOutAuthCode.set($any($event.target).value)"
+                  />
+                </div>
+              }
+
+              @if (checkOutSettlementMethod() === 'CASH') {
+                <div class="settlement-cash-calculator">
+                  <div class="cash-input-row">
+                    <label for="cashReceivedInput" class="settle-input-label">Monto Entregado por Huésped ($ USD):</label>
+                    <input
+                      id="cashReceivedInput"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="settle-input cash-val-input"
+                      [placeholder]="checkOutPendingBalance().toFixed(2)"
+                      [value]="checkOutCashReceived() ?? ''"
+                      (input)="checkOutCashReceived.set($any($event.target).value ? +$any($event.target).value : null)"
+                    />
+                  </div>
+                  <div class="cash-change-display">
+                    <span class="change-lbl">Cambio / Vuelto a Entregar:</span>
+                    <strong class="change-val">${{ checkOutCashChange() | number:'1.2-2' }} USD</strong>
+                  </div>
+                </div>
+              }
+
+              <div class="settlement-notes-group">
+                <label for="settleNotesInput" class="settle-input-label">Observaciones Contables (Opcional):</label>
+                <input
+                  id="settleNotesInput"
+                  type="text"
+                  class="settle-input"
+                  placeholder="Ej. Cobrado sin incidencias, entrega total de llaves"
+                  [value]="checkOutNotes()"
+                  (input)="checkOutNotes.set($any($event.target).value)"
+                />
+              </div>
+            </div>
+          }
+
           <div class="housekeeping-alert-card">
             <span class="material-symbols-outlined alert-icon">cleaning_services</span>
             <div>
@@ -1718,7 +1824,15 @@
           </button>
           <button type="button" class="btn btn-primary btn-checkout-confirm" (click)="confirmCheckOut()" [disabled]="isActionProcessing()">
             <span class="material-symbols-outlined">task_alt</span>
-            <span>{{ isActionProcessing() ? 'Procesando...' : 'Recibir Llaves y Completar Check-Out' }}</span>
+            <span>
+              @if (isActionProcessing()) {
+                Procesando...
+              } @else if (checkOutPendingBalance() > 0) {
+                Liquidar ${{ checkOutPendingBalance() | number:'1.2-2' }} USD y Check-Out
+              } @else {
+                Recibir Llaves y Completar Check-Out
+              }
+            </span>
           </button>
         </div>
       </div>
