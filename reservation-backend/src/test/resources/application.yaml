@@ -1,0 +1,62 @@
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+
+spring:
+  application:
+    name: hotel-reservation
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hotel_reservation_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgressql}
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+
+app:
+  mail:
+    from: ${APP_MAIL_FROM:noreply@hospentra.com}
+    enabled: ${APP_MAIL_ENABLED:true}
+  cors:
+    allowed-origin: ${APP_CORS_ALLOWED_ORIGIN:http://localhost,http://localhost:4200,http://127.0.0.1}
+
+security:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration: ${JWT_EXPIRATION:86400000}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    email: ${ADMIN_EMAIL:superadmin@hotel.com}
+    password: ${ADMIN_PASSWORD:}
+  kitchen:
+    username: ${KITCHEN_USERNAME:cocina}
+    email: ${KITCHEN_EMAIL:cocina@hospentra.com}
+    password: ${KITCHEN_PASSWORD:}
+
+stripe:
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_placeholder}
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}

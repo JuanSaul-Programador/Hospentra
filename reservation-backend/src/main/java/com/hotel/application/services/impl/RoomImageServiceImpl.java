@@ -41,6 +41,17 @@ public class RoomImageServiceImpl implements RoomImageService {
     @Override
     @Transactional
     public RoomImageResponse uploadImage(Long roomTypeId, MultipartFile file, boolean isCover) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo de imagen no puede estar vacío");
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("El tamaño máximo permitido para imágenes es de 5MB");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.equalsIgnoreCase("image/jpeg") && !contentType.equalsIgnoreCase("image/png") && !contentType.equalsIgnoreCase("image/webp"))) {
+            throw new IllegalArgumentException("Solo se permiten formatos de imagen JPEG, PNG y WEBP");
+        }
+
         RoomType roomType = roomTypeRepository.findById(roomTypeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de habitación no encontrado con ID: " + roomTypeId));
 

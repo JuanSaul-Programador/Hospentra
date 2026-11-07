@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -37,15 +38,16 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final ConcurrentHashMap<String, Integer> failedOtpAttempts = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username '" + request.username() + "' is already taken");
+            throw new IllegalArgumentException("Los datos ingresados no están disponibles. Por favor intente con otros.");
         }
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email '" + request.email() + "' is already in use");
+            throw new IllegalArgumentException("Los datos ingresados no están disponibles. Por favor intente con otros.");
         }
 
         Guest guest = Guest.builder()
@@ -94,11 +96,28 @@ public class AuthServiceImpl implements AuthService {
 
         if (activeCodes.isEmpty()) {
             User existingUser = userRepository.findByEmail(email).orElse(null);
-            if (existingUser != null && existingUser.isEmailVerified() && existingUser.isEnabled()) {
+            if (existingUser == null) {
+                throw new IllegalArgumentException("Código de verificación incorrecto o inexistente.");
+            }
+            if (existingUser.isEmailVerified() && existingUser.isEnabled()) {
                 String token = jwtService.generateToken(existingUser);
                 String refreshToken = jwtService.generateRefreshToken(existingUser);
                 return new AuthResponse(token, refreshToken, "Bearer", existingUser.getUsername(), existingUser.getEmail(), existingUser.getRole(), false);
             }
+
+            int attempts = failedOtpAttempts.getOrDefault(email, 0) + 1;
+            if (attempts >= 5) {
+                List<VerificationCode> activeCodesForUser = verificationCodeRepository.findActiveCodesByEmailAndType(email, "REGISTRATION_OTP");
+                for (VerificationCode c : activeCodesForUser) {
+                    c.setUsed(true);
+                    verificationCodeRepository.save(c);
+                }
+                failedOtpAttempts.remove(email);
+                throw new IllegalArgumentException("Demasiados intentos fallidos. Su código ha sido invalidado por seguridad. Solicite uno nuevo.");
+            } else {
+                failedOtpAttempts.put(email, attempts);
+            }
+
             throw new IllegalArgumentException("Código de verificación incorrecto o inexistente.");
         }
 
@@ -109,6 +128,7 @@ public class AuthServiceImpl implements AuthService {
 
         validCode.setUsed(true);
         verificationCodeRepository.save(validCode);
+        failedOtpAttempts.remove(email);
 
         User user = validCode.getUser();
         user.setEnabled(true);
@@ -137,6 +157,7 @@ public class AuthServiceImpl implements AuthService {
             c.setUsed(true);
             verificationCodeRepository.save(c);
         }
+        failedOtpAttempts.remove(cleanEmail);
 
         String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
         VerificationCode vCode = VerificationCode.builder()
