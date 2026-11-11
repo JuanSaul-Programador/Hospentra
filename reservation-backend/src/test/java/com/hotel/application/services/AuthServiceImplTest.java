@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -190,5 +191,19 @@ class AuthServiceImplTest {
         assertThatThrownBy(() -> authService.refreshToken(expiredRefreshToken))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("expired or invalid");
+    }
+
+    @Test
+    void refreshToken_ShouldThrowDisabledExceptionWhenUserIsDisabled() {
+        String validRefreshToken = "valid_refresh_token";
+        sampleUser.setEnabled(false);
+
+        when(jwtService.isRefreshToken(validRefreshToken)).thenReturn(true);
+        when(jwtService.extractUsername(validRefreshToken)).thenReturn("john_doe");
+        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(sampleUser));
+
+        assertThatThrownBy(() -> authService.refreshToken(validRefreshToken))
+                .isInstanceOf(DisabledException.class)
+                .hasMessageContaining("disabled");
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -435,9 +436,11 @@ class ReviewServiceImplTest {
                 .user(testUser)
                 .build();
 
+        when(userRepository.findByUsername("pepe")).thenReturn(Optional.of(testUser));
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(testReservation));
         when(reviewRepository.findByReservationId(50L)).thenReturn(Optional.of(rev));
 
-        ReviewResponse response = reviewService.getReviewByReservation(50L);
+        ReviewResponse response = reviewService.getReviewByReservation(50L, "pepe");
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
@@ -445,11 +448,53 @@ class ReviewServiceImplTest {
 
     @Test
     void getReviewByReservation_WhenNotFound_ReturnsNull() {
+        when(userRepository.findByUsername("pepe")).thenReturn(Optional.of(testUser));
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(testReservation));
         when(reviewRepository.findByReservationId(50L)).thenReturn(Optional.empty());
 
-        ReviewResponse response = reviewService.getReviewByReservation(50L);
+        ReviewResponse response = reviewService.getReviewByReservation(50L, "pepe");
 
         assertThat(response).isNull();
+    }
+
+    @Test
+    void getReviewByReservation_WhenDifferentGuest_ThrowsAccessDeniedException() {
+        Guest otherGuest = Guest.builder().id(99L).build();
+        User intruder = User.builder().id(2L).username("intruso").role(Role.ROLE_CUSTOMER).guest(otherGuest).build();
+
+        when(userRepository.findByUsername("intruso")).thenReturn(Optional.of(intruder));
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(testReservation));
+
+        assertThatThrownBy(() -> reviewService.getReviewByReservation(50L, "intruso"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void getReviewByReservation_WhenAdmin_AllowsAccess() {
+        User admin = User.builder().id(99L).username("admin").role(Role.ROLE_ADMIN).build();
+        Review rev = Review.builder()
+                .id(1L)
+                .rating(5)
+                .comment("Gran estancia")
+                .room(testRoom)
+                .reservation(testReservation)
+                .user(testUser)
+                .build();
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(testReservation));
+        when(reviewRepository.findByReservationId(50L)).thenReturn(Optional.of(rev));
+
+        ReviewResponse response = reviewService.getReviewByReservation(50L, "admin");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void getReviewByReservation_WhenUnauthenticated_ThrowsAccessDeniedException() {
+        assertThatThrownBy(() -> reviewService.getReviewByReservation(50L, null))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

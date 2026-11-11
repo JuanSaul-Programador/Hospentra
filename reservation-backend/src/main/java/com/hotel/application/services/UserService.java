@@ -13,7 +13,7 @@ public interface UserService {
 
     List<UserResponse> findAll();
 
-    UserResponse updateWorkStatus(Long userId, WorkStatus status);
+    UserResponse updateWorkStatus(Long userId, WorkStatus status, String currentUsername);
 
     UserResponse findById(Long userId);
 

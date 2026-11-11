@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -261,11 +262,12 @@ class UserServiceImplTest {
 
     @Test
     void updateWorkStatus_WhenOnBreak_SetsBreakStartedAt() {
-        User user = User.builder().id(5L).username("camarista").workStatus(WorkStatus.ON_DUTY).build();
+        User user = User.builder().id(5L).username("camarista").role(Role.ROLE_RECEPTIONIST).workStatus(WorkStatus.ON_DUTY).build();
+        when(userRepository.findByUsername("camarista")).thenReturn(Optional.of(user));
         when(userRepository.findById(5L)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserResponse response = userService.updateWorkStatus(5L, WorkStatus.ON_BREAK);
+        UserResponse response = userService.updateWorkStatus(5L, WorkStatus.ON_BREAK, "camarista");
 
         assertThat(response.workStatus()).isEqualTo(WorkStatus.ON_BREAK);
         assertThat(user.getBreakStartedAt()).isNotNull();
@@ -273,14 +275,44 @@ class UserServiceImplTest {
 
     @Test
     void updateWorkStatus_WhenOnDuty_ClearsBreakStartedAt() {
-        User user = User.builder().id(5L).username("camarista").workStatus(WorkStatus.ON_BREAK).build();
+        User user = User.builder().id(5L).username("camarista").role(Role.ROLE_RECEPTIONIST).workStatus(WorkStatus.ON_BREAK).build();
+        when(userRepository.findByUsername("camarista")).thenReturn(Optional.of(user));
         when(userRepository.findById(5L)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserResponse response = userService.updateWorkStatus(5L, WorkStatus.ON_DUTY);
+        UserResponse response = userService.updateWorkStatus(5L, WorkStatus.ON_DUTY, "camarista");
 
         assertThat(response.workStatus()).isEqualTo(WorkStatus.ON_DUTY);
         assertThat(user.getBreakStartedAt()).isNull();
+    }
+
+    @Test
+    void updateWorkStatus_WhenNonAdminTargetsAnotherUser_ThrowsAccessDeniedException() {
+        User currentUser = User.builder().id(5L).username("camarista").role(Role.ROLE_RECEPTIONIST).build();
+        when(userRepository.findByUsername("camarista")).thenReturn(Optional.of(currentUser));
+
+        assertThatThrownBy(() -> userService.updateWorkStatus(9L, WorkStatus.ON_BREAK, "camarista"))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateWorkStatus_WhenAdminTargetsAnotherUser_Succeeds() {
+        User adminUser = User.builder().id(1L).username("admin").role(Role.ROLE_ADMIN).build();
+        User targetUser = User.builder().id(9L).username("cocinero").role(Role.ROLE_KITCHEN).workStatus(WorkStatus.OFF_DUTY).build();
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(adminUser));
+        when(userRepository.findById(9L)).thenReturn(Optional.of(targetUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.updateWorkStatus(9L, WorkStatus.ON_DUTY, "admin");
+
+        assertThat(response.workStatus()).isEqualTo(WorkStatus.ON_DUTY);
+    }
+
+    @Test
+    void updateWorkStatus_WhenUsernameMissing_ThrowsAccessDeniedException() {
+        assertThatThrownBy(() -> userService.updateWorkStatus(5L, WorkStatus.ON_BREAK, null))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

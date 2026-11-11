@@ -204,6 +204,10 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found for provided token"));
 
+        if (!user.isEnabled()) {
+            throw new DisabledException("Account is disabled");
+        }
+
         if (!jwtService.isRefreshTokenValid(refreshToken, user)) {
             throw new IllegalArgumentException("Refresh token is expired or invalid");
         }

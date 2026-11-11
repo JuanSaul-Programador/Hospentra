@@ -1,30 +1,35 @@
 package com.hotel.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hotel.application.services.ReviewService;
+import com.hotel.domain.model.Role;
+import com.hotel.domain.model.User;
+import com.hotel.domain.repository.UserRepository;
+import com.hotel.infrastructure.security.config.SecurityConfig;
+import com.hotel.infrastructure.security.jwt.JwtAuthenticationFilter;
+import com.hotel.infrastructure.security.jwt.JwtService;
 import com.hotel.web.dto.ManagementResponseRequest;
 import com.hotel.web.dto.ReviewAdminMetricsResponse;
 import com.hotel.web.dto.ReviewRequest;
 import com.hotel.web.dto.ReviewResponse;
 import com.hotel.web.dto.ReviewSummaryResponse;
+import com.hotel.web.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.ObjectMapper;
 
-import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,25 +39,53 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = ReviewController.class)
+@Import({SecurityConfig.class, JwtService.class, JwtAuthenticationFilter.class, GlobalExceptionHandler.class})
 class ReviewControllerTest {
 
+    @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
     private ObjectMapper objectMapper;
 
-    @Mock
+    @Autowired
+    private JwtService jwtService;
+
+    @MockitoBean
     private ReviewService reviewService;
 
-    @InjectMocks
-    private ReviewController reviewController;
+    @MockitoBean
+    private UserRepository userRepository;
+
+    private String customerToken;
+    private String adminToken;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(reviewController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+        User customer = User.builder()
+                .id(1L)
+                .username("pepe")
+                .email("pepe@gmail.com")
+                .password("encoded")
+                .role(Role.ROLE_CUSTOMER)
+                .enabled(true)
                 .build();
-        objectMapper = new ObjectMapper();
+
+        User admin = User.builder()
+                .id(2L)
+                .username("admin")
+                .email("admin@hospentra.com")
+                .password("encoded")
+                .role(Role.ROLE_ADMIN)
+                .enabled(true)
+                .build();
+
+        when(userRepository.findByUsername("pepe")).thenReturn(Optional.of(customer));
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+
+        customerToken = jwtService.generateToken(customer);
+        adminToken = jwtService.generateToken(admin);
     }
 
     @Test
@@ -77,7 +110,7 @@ class ReviewControllerTest {
         when(reviewService.createReview(any(ReviewRequest.class), eq("pepe"))).thenReturn(response);
 
         mockMvc.perform(post("/api/reviews")
-                        .principal(() -> "pepe")
+                        .header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -95,7 +128,7 @@ class ReviewControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/reviews")
-                        .principal(() -> "pepe")
+                        .header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -110,7 +143,7 @@ class ReviewControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/reviews")
-                        .principal(() -> "pepe")
+                        .header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -125,7 +158,7 @@ class ReviewControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/reviews")
-                        .principal(() -> "pepe")
+                        .header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -179,9 +212,10 @@ class ReviewControllerTest {
                 .verifiedStay(true)
                 .build();
 
-        when(reviewService.getReviewByReservation(50L)).thenReturn(rev);
+        when(reviewService.getReviewByReservation(50L, "pepe")).thenReturn(rev);
 
-        mockMvc.perform(get("/api/reviews/reservation/50"))
+        mockMvc.perform(get("/api/reviews/reservation/50")
+                        .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(99L))
                 .andExpect(jsonPath("$.reservationId").value(50L));
@@ -189,9 +223,10 @@ class ReviewControllerTest {
 
     @Test
     void getReviewByReservation_WhenNotFound_Returns204NoContent() throws Exception {
-        when(reviewService.getReviewByReservation(999L)).thenReturn(null);
+        when(reviewService.getReviewByReservation(999L, "pepe")).thenReturn(null);
 
-        mockMvc.perform(get("/api/reviews/reservation/999"))
+        mockMvc.perform(get("/api/reviews/reservation/999")
+                        .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isNoContent());
     }
 
@@ -209,6 +244,7 @@ class ReviewControllerTest {
         when(reviewService.addManagementResponse(1L, "Muchas gracias por visitarnos.")).thenReturn(rev);
 
         mockMvc.perform(post("/api/reviews/1/management-response")
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -222,6 +258,7 @@ class ReviewControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/reviews/1/management-response")
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
@@ -233,7 +270,8 @@ class ReviewControllerTest {
         when(reviewService.getReviewsForAdmin(any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(rev), PageRequest.of(0, 15), 1));
 
-        mockMvc.perform(get("/api/reviews/admin"))
+        mockMvc.perform(get("/api/reviews/admin")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1L));
     }
@@ -250,7 +288,8 @@ class ReviewControllerTest {
 
         when(reviewService.getAdminMetrics()).thenReturn(metrics);
 
-        mockMvc.perform(get("/api/reviews/admin/metrics"))
+        mockMvc.perform(get("/api/reviews/admin/metrics")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalReviews").value(15))
                 .andExpect(jsonPath("$.averageRating").value(4.8))

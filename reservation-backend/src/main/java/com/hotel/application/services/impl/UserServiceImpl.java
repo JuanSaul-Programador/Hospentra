@@ -11,6 +11,7 @@ import com.hotel.web.dto.CreateStaffRequest;
 import com.hotel.web.dto.UpdateStaffRequest;
 import com.hotel.web.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +68,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateWorkStatus(Long userId, WorkStatus status) {
+    public UserResponse updateWorkStatus(Long userId, WorkStatus status, String currentUsername) {
+        if (currentUsername == null || currentUsername.isBlank()) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new AccessDeniedException("Authenticated user not found"));
+
+        if (currentUser.getRole() != Role.ROLE_ADMIN && !userId.equals(currentUser.getId())) {
+            throw new AccessDeniedException("No tiene permisos para modificar el estado laboral de otro usuario");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 

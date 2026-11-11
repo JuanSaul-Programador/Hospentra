@@ -17,6 +17,7 @@ import com.hotel.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,7 +156,24 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public ReviewResponse getReviewByReservation(Long reservationId) {
+    public ReviewResponse getReviewByReservation(Long reservationId, String currentUsername) {
+        if (currentUsername == null || currentUsername.isBlank()) {
+            throw new AccessDeniedException("No tiene autorización para consultar esta reseña");
+        }
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new AccessDeniedException("No tiene autorización para consultar esta reseña"));
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservación no encontrada con id: " + reservationId));
+
+        boolean isStaff = user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_RECEPTIONIST;
+        if (!isStaff) {
+            if (user.getGuest() == null || reservation.getGuest() == null
+                    || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                throw new AccessDeniedException("No tiene autorización para consultar la reseña de esta reservación");
+            }
+        }
+
         return reviewRepository.findByReservationId(reservationId)
                 .map(this::toResponse)
                 .orElse(null);

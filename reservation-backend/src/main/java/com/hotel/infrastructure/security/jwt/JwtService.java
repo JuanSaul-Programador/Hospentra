@@ -1,9 +1,11 @@
 package com.hotel.infrastructure.security.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,22 @@ public class JwtService {
 
     @Value("${security.jwt.refresh-expiration:604800000}")
     private long jwtRefreshExpiration;
+
+    @PostConstruct
+    public void validateSecretKey() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException("JWT secret key must be configured");
+        }
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secretKey.trim());
+        } catch (Exception ex) {
+            throw new IllegalStateException("JWT secret key must be valid Base64", ex);
+        }
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("JWT secret key must decode to at least 32 bytes");
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -77,8 +95,15 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        if (userDetails == null || !userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+            return false;
+        }
+        try {
+            final String username = extractUsername(token);
+            return username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
@@ -102,7 +127,7 @@ public class JwtService {
     }
 
     private SecretKey getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey.trim());
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

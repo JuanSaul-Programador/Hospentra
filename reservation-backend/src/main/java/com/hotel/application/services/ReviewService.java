@@ -17,7 +17,7 @@ public interface ReviewService {
 
     ReviewResponse addManagementResponse(Long reviewId, String responseText);
 
-    ReviewResponse getReviewByReservation(Long reservationId);
+    ReviewResponse getReviewByReservation(Long reservationId, String currentUsername);
 
     boolean hasReviewed(Long reservationId);
 

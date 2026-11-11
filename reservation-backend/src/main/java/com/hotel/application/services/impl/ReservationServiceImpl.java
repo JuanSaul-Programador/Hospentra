@@ -20,6 +20,7 @@ import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -196,22 +197,44 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     private Guest resolveGuest(Long requestedGuestId) {
-        if (requestedGuestId != null) {
-            return guestRepository.findById(requestedGuestId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + requestedGuestId));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AccessDeniedException("Authentication is required to resolve guest");
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
+        boolean isStaff = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+
+        if (isStaff) {
+            if (requestedGuestId != null) {
+                return guestRepository.findById(requestedGuestId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + requestedGuestId));
+            }
             String username = authentication.getName();
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
             if (user.getGuest() != null) {
                 return user.getGuest();
             }
+            throw new IllegalArgumentException("A valid guestId must be provided or your user account must have a linked guest profile");
         }
 
-        throw new IllegalArgumentException("A valid guestId must be provided or your user account must have a linked guest profile");
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AccessDeniedException("Authenticated user not found"));
+        Guest ownGuest = user.getGuest();
+
+        if (requestedGuestId != null && (ownGuest == null || !requestedGuestId.equals(ownGuest.getId()))) {
+            throw new AccessDeniedException("No tiene permisos para crear reservaciones para otro huésped");
+        }
+
+        if (ownGuest == null) {
+            throw new IllegalArgumentException("Your user account must have a linked guest profile");
+        }
+
+        return ownGuest;
     }
 
     @Override

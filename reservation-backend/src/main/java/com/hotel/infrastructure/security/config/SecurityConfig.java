@@ -4,6 +4,7 @@ import com.hotel.domain.repository.UserRepository;
 import com.hotel.infrastructure.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -80,6 +81,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
                 .cors(Customizer.withDefaults())
@@ -96,6 +104,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/room-images/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/extra-services/**").permitAll()
                         .requestMatchers("/api/reviews/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/reservation/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
                         .requestMatchers(HttpMethod.PATCH, "/api/users/*/work-status").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
@@ -123,8 +132,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/*/complete").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/reservations/**").authenticated()
 
+                        .requestMatchers(HttpMethod.GET, "/api/room-orders").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, "/api/room-orders/busy-therapists").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.GET, "/api/room-orders/active").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
                         .requestMatchers(HttpMethod.PATCH, "/api/room-orders/*/status").hasAnyRole("ADMIN", "RECEPTIONIST", "KITCHEN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/room-orders/*/assign-therapist").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/therapists/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/room-orders/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/reviews/*/management-response").hasRole("ADMIN")

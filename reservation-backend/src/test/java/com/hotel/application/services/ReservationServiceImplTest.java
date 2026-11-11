@@ -19,13 +19,16 @@ import com.hotel.web.dto.ExpressCheckOutRequest;
 import com.hotel.web.dto.PreCheckInRequest;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -126,8 +129,23 @@ class ReservationServiceImplTest {
                 .build();
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticateAs(String username, String role) {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                username,
+                null,
+                List.of(new SimpleGrantedAuthority(role))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
     @Test
     void createReservationSuccessCalculatesTotalPrice() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         LocalDate checkIn = LocalDate.now().plusDays(5);
         LocalDate checkOut = LocalDate.now().plusDays(8);
 
@@ -163,6 +181,7 @@ class ReservationServiceImplTest {
 
     @Test
     void createReservationFailsWhenRoomUnderMaintenance() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         standardRoom.setStatus(RoomStatus.MAINTENANCE);
         LocalDate checkIn = LocalDate.now().plusDays(2);
         LocalDate checkOut = LocalDate.now().plusDays(4);
@@ -181,6 +200,7 @@ class ReservationServiceImplTest {
 
     @Test
     void createReservationFailsWhenOverlappingReservationExists() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         LocalDate checkIn = LocalDate.now().plusDays(2);
         LocalDate checkOut = LocalDate.now().plusDays(5);
 
@@ -200,6 +220,7 @@ class ReservationServiceImplTest {
 
     @Test
     void createReservationFailsWhenOverlappingMaintenanceBlockExists() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         LocalDate checkIn = LocalDate.now().plusDays(2);
         LocalDate checkOut = LocalDate.now().plusDays(5);
 
@@ -217,6 +238,56 @@ class ReservationServiceImplTest {
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("under maintenance / out of order");
+    }
+
+    @Test
+    void createReservation_WhenCustomerRequestsAnotherGuestId_ThrowsAccessDeniedException() {
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+        User customerUser = User.builder().id(100L).username("carlos.m").role(Role.ROLE_CUSTOMER).guest(standardGuest).build();
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(customerUser));
+
+        ReservationRequest request = new ReservationRequest(
+                999L, 101L, LocalDate.now().plusDays(2), LocalDate.now().plusDays(4), PaymentMethod.PAY_AT_CHECKIN, null
+        );
+
+        assertThatThrownBy(() -> reservationService.create(request))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(guestRepository, never()).findById(999L);
+    }
+
+    @Test
+    void createReservation_WhenCustomerRequestsNullGuestId_UsesOwnGuestAndSucceeds() {
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+        User customerUser = User.builder().id(100L).username("carlos.m").role(Role.ROLE_CUSTOMER).guest(standardGuest).build();
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(customerUser));
+        when(roomRepository.findByIdWithLock(101L)).thenReturn(Optional.of(standardRoom));
+        when(reservationRepository.existsOverlappingReservation(eq(101L), any(), any(), anyList())).thenReturn(false);
+        when(maintenanceBlockRepository.existsOverlappingActiveBlock(eq(101L), any(), any())).thenReturn(false);
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> {
+            Reservation r = i.getArgument(0);
+            r.setId(501L);
+            return r;
+        });
+
+        ReservationRequest request = new ReservationRequest(
+                null, 101L, LocalDate.now().plusDays(2), LocalDate.now().plusDays(4), PaymentMethod.PAY_AT_CHECKIN, null
+        );
+
+        ReservationResponse response = reservationService.create(request);
+
+        assertThat(response.id()).isEqualTo(501L);
+        assertThat(response.guest().id()).isEqualTo(10L);
+    }
+
+    @Test
+    void createReservation_WhenUnauthenticated_ThrowsAccessDeniedException() {
+        SecurityContextHolder.clearContext();
+        ReservationRequest request = new ReservationRequest(
+                10L, 101L, LocalDate.now().plusDays(2), LocalDate.now().plusDays(4), PaymentMethod.PAY_AT_CHECKIN, null
+        );
+
+        assertThatThrownBy(() -> reservationService.create(request))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

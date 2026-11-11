@@ -53,8 +53,10 @@ public class ReviewController {
     }
 
     @GetMapping("/reservation/{reservationId}")
-    public ResponseEntity<ReviewResponse> getReviewByReservation(@PathVariable Long reservationId) {
-        ReviewResponse response = reviewService.getReviewByReservation(reservationId);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ReviewResponse> getReviewByReservation(@PathVariable Long reservationId, Principal principal) {
+        String username = principal != null ? principal.getName() : null;
+        ReviewResponse response = reviewService.getReviewByReservation(reservationId, username);
         if (response == null) {
             return ResponseEntity.noContent().build();
         }

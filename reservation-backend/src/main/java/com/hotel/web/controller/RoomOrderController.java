@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class RoomOrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<List<RoomOrderResponse>> findAll() {
         return ResponseEntity.ok(roomOrderService.findAllOrders());
     }
@@ -48,6 +50,7 @@ public class RoomOrderController {
     }
 
     @PatchMapping("/{id}/assign-therapist")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<RoomOrderResponse> assignTherapist(
             @PathVariable Long id,
             @Valid @RequestBody com.hotel.web.dto.AssignTherapistRequest request
@@ -56,6 +59,7 @@ public class RoomOrderController {
     }
 
     @GetMapping("/busy-therapists")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<List<Long>> getBusyTherapists(@RequestParam(required = false) String scheduledTime) {
         return ResponseEntity.ok(roomOrderService.findBusyTherapistIds(scheduledTime));
     }
