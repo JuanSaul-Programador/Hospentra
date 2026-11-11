@@ -211,7 +211,9 @@ class RoomServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.status()).isEqualTo(RoomStatus.AVAILABLE);
         assertThat(luxuryRoom.getStatus()).isEqualTo(RoomStatus.AVAILABLE);
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test

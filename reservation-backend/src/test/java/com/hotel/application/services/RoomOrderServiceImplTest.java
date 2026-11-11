@@ -139,7 +139,10 @@ class RoomOrderServiceImplTest {
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().get(0).subtotal()).isEqualByComparingTo(new BigDecimal("96.00"));
 
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_KITCHEN"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test
@@ -160,7 +163,10 @@ class RoomOrderServiceImplTest {
         RoomOrderResponse response = roomOrderService.updateOrderStatus(201L, OrderStatus.PREPARING);
 
         assertThat(response.status()).isEqualTo(OrderStatus.PREPARING);
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_KITCHEN"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test
@@ -182,7 +188,10 @@ class RoomOrderServiceImplTest {
 
         assertThat(response.status()).isEqualTo(OrderStatus.DELIVERED);
         assertThat(response.deliveredAt()).isNotNull();
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_KITCHEN"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test
@@ -208,7 +217,9 @@ class RoomOrderServiceImplTest {
         assertThat(response.therapistId()).isEqualTo(5L);
         assertThat(response.therapistName()).isEqualTo("Camila Valenzuela");
         assertThat(response.status()).isEqualTo(OrderStatus.PREPARING);
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test

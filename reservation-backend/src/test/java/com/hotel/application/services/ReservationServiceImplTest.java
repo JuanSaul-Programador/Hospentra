@@ -19,10 +19,12 @@ import com.hotel.web.dto.ExpressCheckOutRequest;
 import com.hotel.web.dto.PreCheckInRequest;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
+import com.hotel.web.dto.RoomResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -79,6 +81,9 @@ class ReservationServiceImplTest {
     @Mock
     private RoomOrderRepository roomOrderRepository;
 
+    @Mock
+    private PaymentGatewayService paymentGatewayService;
+
     private ReservationServiceImpl reservationService;
 
     private RoomType standardRoomType;
@@ -103,7 +108,8 @@ class ReservationServiceImplTest {
                 emailService,
                 auditLogService,
                 inAppNotificationService,
-                roomOrderRepository
+                roomOrderRepository,
+                paymentGatewayService
         );
 
         standardRoomType = RoomType.builder()
@@ -155,13 +161,17 @@ class ReservationServiceImplTest {
                 checkIn,
                 checkOut,
                 PaymentMethod.CREDIT_CARD,
-                "4242"
+                "4242",
+                "pi_test_900",
+                null
         );
 
         when(guestRepository.findById(10L)).thenReturn(Optional.of(standardGuest));
         when(roomRepository.findByIdWithLock(101L)).thenReturn(Optional.of(standardRoom));
         when(reservationRepository.existsOverlappingReservation(eq(101L), eq(checkIn), eq(checkOut), anyList()))
                 .thenReturn(false);
+        when(paymentGatewayService.verifyAndConsumePayment("pi_test_900", new BigDecimal("900.00"), "recep", true))
+                .thenReturn(true);
 
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(invocation -> {
             Reservation r = invocation.getArgument(0);
@@ -174,9 +184,42 @@ class ReservationServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(500L);
         assertThat(response.totalPrice()).isEqualByComparingTo(new BigDecimal("900.00"));
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(response.status()).isEqualTo(ReservationStatus.PENDING);
         assertThat(response.room().roomNumber()).isEqualTo("101");
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
+    }
+
+    @Test
+    void createReservation_WhenCreditCardPaymentUnverified_ThrowsIllegalArgumentException() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
+        LocalDate checkIn = LocalDate.now().plusDays(5);
+        LocalDate checkOut = LocalDate.now().plusDays(8);
+
+        ReservationRequest request = new ReservationRequest(
+                10L,
+                101L,
+                checkIn,
+                checkOut,
+                PaymentMethod.CREDIT_CARD,
+                "4242",
+                "pi_fake",
+                null
+        );
+
+        when(guestRepository.findById(10L)).thenReturn(Optional.of(standardGuest));
+        when(roomRepository.findByIdWithLock(101L)).thenReturn(Optional.of(standardRoom));
+        when(reservationRepository.existsOverlappingReservation(eq(101L), eq(checkIn), eq(checkOut), anyList()))
+                .thenReturn(false);
+        when(paymentGatewayService.verifyAndConsumePayment("pi_fake", new BigDecimal("900.00"), "recep", true))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> reservationService.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("verificar el pago");
+        verify(reservationRepository, never()).save(any());
     }
 
     @Test
@@ -308,7 +351,9 @@ class ReservationServiceImplTest {
         ReservationResponse response = reservationService.confirm(1L);
 
         assertThat(response.status()).isEqualTo(ReservationStatus.CONFIRMED);
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test
@@ -349,7 +394,11 @@ class ReservationServiceImplTest {
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.OCCUPIED);
         verify(roomRepository, times(1)).save(standardRoom);
-        verify(sseNotificationService, times(2)).broadcast(any(NotificationEvent.class));
+        ArgumentCaptor<NotificationEvent> eventCaptor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(sseNotificationService, times(2)).sendToRole(eq("ROLE_ADMIN"), eventCaptor.capture());
+        verify(sseNotificationService, times(2)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
+        assertThat(eventCaptor.getAllValues().get(1).payload()).isInstanceOf(RoomResponse.class);
     }
 
     @Test
@@ -373,7 +422,9 @@ class ReservationServiceImplTest {
 
         assertThat(response.status()).isEqualTo(ReservationStatus.CANCELLED);
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test
@@ -445,7 +496,11 @@ class ReservationServiceImplTest {
         assertThat(response.status()).isEqualTo(ReservationStatus.COMPLETED);
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.MAINTENANCE);
         verify(roomRepository, times(1)).save(standardRoom);
-        verify(sseNotificationService, times(2)).broadcast(any(NotificationEvent.class));
+        ArgumentCaptor<NotificationEvent> eventCaptor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(sseNotificationService, times(2)).sendToRole(eq("ROLE_ADMIN"), eventCaptor.capture());
+        verify(sseNotificationService, times(2)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
+        assertThat(eventCaptor.getAllValues().get(1).payload()).isInstanceOf(RoomResponse.class);
     }
 
     @Test
@@ -502,6 +557,8 @@ class ReservationServiceImplTest {
                 .checkInDate(LocalDate.now().minusDays(3))
                 .checkOutDate(LocalDate.now())
                 .status(ReservationStatus.CHECKED_IN)
+                .paymentMethod(PaymentMethod.CREDIT_CARD)
+                .paymentStatus(PaymentStatus.PAID)
                 .totalPrice(new BigDecimal("900.00"))
                 .build();
 
@@ -532,6 +589,8 @@ class ReservationServiceImplTest {
         when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
         when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
         when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(List.of(order));
+        when(paymentGatewayService.verifyAndConsumePayment("pi_express_123", new BigDecimal("150.00"), "carlos.m", false))
+                .thenReturn(true);
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
 
         ExpressCheckOutRequest request = new ExpressCheckOutRequest(
@@ -552,8 +611,120 @@ class ReservationServiceImplTest {
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.MAINTENANCE);
         verify(roomOrderRepository, times(1)).saveAll(anyList());
         verify(auditLogService, times(1)).logAction(eq("EXPRESS_CHECK_OUT"), eq("Reservation"), eq("HOSP-1-2026"), any(), eq("SUCCESS"));
+        verify(sseNotificationService, times(2)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
 
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void expressCheckOut_whenClientSendsZeroAmountAndBalanceDue_rejectsWithException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CHECKED_IN)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(new BigDecimal("900.00"))
+                .build();
+
+        RoomOrder unpaidOrder = RoomOrder.builder()
+                .id(301L)
+                .reservationId(1L)
+                .totalAmount(new BigDecimal("150.00"))
+                .status(OrderStatus.DELIVERED)
+                .paid(false)
+                .build();
+
+        User user = User.builder().id(100L).username("carlos.m").role(Role.ROLE_CUSTOMER).guest(standardGuest).build();
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(List.of(unpaidOrder));
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                new BigDecimal("0.00"), "4242", "pi_fake", null
+        );
+
+        assertThatThrownBy(() -> reservationService.expressCheckOut(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("saldo pendiente real");
+        verify(reservationRepository, never()).save(any());
+        verify(paymentGatewayService, never()).verifyAndConsumePayment(any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void expressCheckOut_whenStayUnpaidAndOrdersMixed_computesServerBalanceAndExcludesCancelledAndPaidOrders() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CHECKED_IN)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(new BigDecimal("900.00"))
+                .build();
+
+        RoomOrder unpaidOrder = RoomOrder.builder()
+                .id(301L).reservationId(1L).totalAmount(new BigDecimal("150.00")).status(OrderStatus.DELIVERED).paid(false).build();
+        RoomOrder alreadyPaidOrder = RoomOrder.builder()
+                .id(302L).reservationId(1L).totalAmount(new BigDecimal("40.00")).status(OrderStatus.DELIVERED).paid(true).build();
+        RoomOrder cancelledOrder = RoomOrder.builder()
+                .id(303L).reservationId(1L).totalAmount(new BigDecimal("60.00")).status(OrderStatus.CANCELLED).paid(false).build();
+
+        User user = User.builder().id(100L).username("carlos.m").role(Role.ROLE_CUSTOMER).guest(standardGuest).build();
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L))
+                .thenReturn(List.of(unpaidOrder, alreadyPaidOrder, cancelledOrder));
+        when(paymentGatewayService.verifyAndConsumePayment("pi_exp_1050", new BigDecimal("1050.00"), "carlos.m", false))
+                .thenReturn(true);
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                new BigDecimal("1050.00"), "4242", "pi_exp_1050", null
+        );
+
+        ReservationResponse response = reservationService.expressCheckOut(1L, request);
+
+        assertThat(response.settlementAmount()).isEqualByComparingTo(new BigDecimal("1050.00"));
+        assertThat(unpaidOrder.isPaid()).isTrue();
+        assertThat(cancelledOrder.isPaid()).isFalse();
+    }
+
+    @Test
+    void expressCheckOut_whenGatewayVerificationFails_rejectsWithException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CHECKED_IN)
+                .paymentStatus(PaymentStatus.PAID)
+                .totalPrice(new BigDecimal("900.00"))
+                .build();
+
+        RoomOrder unpaidOrder = RoomOrder.builder()
+                .id(301L).reservationId(1L).totalAmount(new BigDecimal("150.00")).status(OrderStatus.DELIVERED).paid(false).build();
+
+        User user = User.builder().id(100L).username("carlos.m").role(Role.ROLE_CUSTOMER).guest(standardGuest).build();
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(user));
+        when(roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(1L)).thenReturn(List.of(unpaidOrder));
+        when(paymentGatewayService.verifyAndConsumePayment("pi_bad", new BigDecimal("150.00"), "carlos.m", false))
+                .thenReturn(false);
+
+        ExpressCheckOutRequest request = new ExpressCheckOutRequest(
+                new BigDecimal("150.00"), "4242", "pi_bad", null
+        );
+
+        assertThatThrownBy(() -> reservationService.expressCheckOut(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("pasarela");
+        verify(reservationRepository, never()).save(any());
     }
 
     @Test
@@ -654,7 +825,9 @@ class ReservationServiceImplTest {
         assertThat(response.estimatedArrivalTime()).isEqualTo("15:30");
         assertThat(response.specialRequests()).isEqualTo("Piso alto con vista al mar");
 
-        verify(sseNotificationService, times(1)).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
         verify(auditLogService, times(1)).logAction(eq("PRE_CHECK_IN"), eq("Reservation"), eq("HOSP-1-2026"), any(), eq("SUCCESS"));
     }
 

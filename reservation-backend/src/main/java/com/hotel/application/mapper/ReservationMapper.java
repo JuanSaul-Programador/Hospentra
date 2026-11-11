@@ -8,6 +8,7 @@ import com.hotel.domain.model.ReservationStatus;
 import com.hotel.domain.model.Room;
 import com.hotel.web.dto.ReservationRequest;
 import com.hotel.web.dto.ReservationResponse;
+import com.hotel.web.dto.RoomResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,10 @@ public class ReservationMapper {
 
     private final GuestMapper guestMapper;
     private final RoomMapper roomMapper;
+
+    public RoomResponse toRoomResponse(Room room) {
+        return roomMapper.toResponse(room);
+    }
 
     public ReservationResponse toResponse(Reservation reservation) {
         return new ReservationResponse(
@@ -51,7 +56,6 @@ public class ReservationMapper {
 
     public Reservation toEntity(ReservationRequest request, Guest guest, Room room, BigDecimal totalPrice) {
         PaymentMethod method = request.paymentMethod() != null ? request.paymentMethod() : PaymentMethod.PAY_AT_CHECKIN;
-        PaymentStatus status = method == PaymentMethod.CREDIT_CARD ? PaymentStatus.PAID : PaymentStatus.PENDING;
 
         return Reservation.builder()
                 .guest(guest)
@@ -61,7 +65,7 @@ public class ReservationMapper {
                 .status(ReservationStatus.PENDING)
                 .totalPrice(totalPrice)
                 .paymentMethod(method)
-                .paymentStatus(status)
+                .paymentStatus(PaymentStatus.PENDING)
                 .cardLast4(request.cardLast4())
                 .paymentIntentId(request.paymentIntentId())
                 .authCode(request.authCode())

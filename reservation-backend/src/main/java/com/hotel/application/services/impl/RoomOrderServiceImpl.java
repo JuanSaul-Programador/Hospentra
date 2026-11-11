@@ -105,7 +105,12 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 "Suite " + savedOrder.getRoomNumber() + " solicitó " + categoryLabel,
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
+        if (hasKitchenItems) {
+            sseNotificationService.sendToRole("ROLE_KITCHEN", event);
+        }
+        notifyOrderGuest(reservation, event);
 
         return response;
     }
@@ -178,10 +183,13 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 "Nuevo estado: " + status + " en Suite " + updated.getRoomNumber(),
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
+        sseNotificationService.sendToRole("ROLE_KITCHEN", event);
 
         if (updated.getReservationId() != null) {
             reservationRepository.findById(updated.getReservationId()).ifPresent(res -> {
+                notifyOrderGuest(res, event);
                 if (res.getGuest() != null) {
                     userRepository.findAll().stream()
                             .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(res.getGuest().getId()))
@@ -247,9 +255,22 @@ public class RoomOrderServiceImpl implements RoomOrderService {
                 therapist.getName() + " asignado a comanda de Suite " + updated.getRoomNumber(),
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
+        if (updated.getReservationId() != null) {
+            reservationRepository.findById(updated.getReservationId())
+                    .ifPresent(res -> notifyOrderGuest(res, event));
+        }
 
         return response;
+    }
+
+    private void notifyOrderGuest(Reservation reservation, NotificationEvent event) {
+        if (reservation == null || reservation.getGuest() == null || reservation.getGuest().getId() == null) {
+            return;
+        }
+        userRepository.findByGuestId(reservation.getGuest().getId())
+                .ifPresent(user -> sseNotificationService.sendToUser(user.getUsername(), event));
     }
 
     @Override

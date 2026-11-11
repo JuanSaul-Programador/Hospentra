@@ -95,7 +95,8 @@ public class RoomServiceImpl implements RoomService {
                 "La habitación ahora está " + status,
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
 
         return response;
     }
@@ -136,7 +137,8 @@ public class RoomServiceImpl implements RoomService {
                 "Estado: " + room.getStatus() + (room.getHousekeeperName() != null ? " • Camarista: " + room.getHousekeeperName() : ""),
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
 
         return response;
     }

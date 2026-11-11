@@ -29,6 +29,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByGuestIdAndStatusIn(Long guestId, List<ReservationStatus> statuses);
 
+    boolean existsByPaymentIntentId(String paymentIntentId);
+
+    boolean existsByPaymentIntentIdAndIdNot(String paymentIntentId, Long id);
+
     @Query("SELECT COUNT(r) > 0 FROM Reservation r " +
            "WHERE r.room.id = :roomId " +
            "AND r.status IN :activeStatuses " +

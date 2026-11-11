@@ -101,7 +101,9 @@ class MaintenanceBlockServiceImplTest {
         assertThat(response.getDurationDays()).isEqualTo(4);
 
         verify(auditLogService).logAction(eq("CREATE_MAINTENANCE_BLOCK"), eq("Room"), eq("201"), anyString(), eq("SUCCESS"));
-        verify(sseNotificationService).broadcast(any(NotificationEvent.class));
+        verify(sseNotificationService).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
+        verify(sseNotificationService).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
+        verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
     }
 
     @Test

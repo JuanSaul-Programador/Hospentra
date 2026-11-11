@@ -58,8 +58,11 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     @Override
     public void sendToRole(String role, NotificationEvent event) {
+        if (role == null) {
+            return;
+        }
         for (ClientEmitter client : clients) {
-            if ("ROLE_ADMIN".equalsIgnoreCase(client.role()) || role.equalsIgnoreCase(client.role())) {
+            if (role.equalsIgnoreCase(client.role())) {
                 sendEventToClient(client, event);
             }
         }
@@ -67,8 +70,11 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     @Override
     public void sendToUser(String username, NotificationEvent event) {
+        if (username == null) {
+            return;
+        }
         for (ClientEmitter client : clients) {
-            if (client.username().equalsIgnoreCase(username)) {
+            if (username.equalsIgnoreCase(client.username())) {
                 sendEventToClient(client, event);
             }
         }

@@ -7,23 +7,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.*;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @Slf4j
 public class LocalMediaStorageServiceImpl implements MediaStorageService {
 
-    private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
+    public static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
+
+    public static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
             "image/png",
-            "image/webp",
-            "image/avif"
+            "image/webp"
     );
-
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     @Value("${app.storage.local-dir:uploads}")
     private String baseUploadDir;
@@ -35,36 +35,57 @@ public class LocalMediaStorageServiceImpl implements MediaStorageService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("La imagen excede el tamaño máximo permitido de 10 MB.");
+            throw new IllegalArgumentException("La imagen excede el tamaño máximo permitido de 5 MB.");
+        }
+
+        if (subDirectory == null || subDirectory.isBlank() || !subDirectory.matches("^[a-zA-Z0-9_-]+$")) {
+            throw new SecurityException("Ruta de archivo no permitida.");
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Formato no compatible. Solo se admiten imágenes JPG, PNG, WEBP o AVIF.");
+        if (contentType != null && !ALLOWED_CONTENT_TYPES.contains(contentType.trim().toLowerCase())) {
+            throw new IllegalArgumentException("Formato no compatible. Solo se admiten imágenes JPEG, PNG o WEBP.");
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Error al leer el archivo de imagen.", e);
         }
 
-        String safeFileName = UUID.randomUUID().toString().replace("-", "") + extension;
+        if (content.length == 0) {
+            throw new IllegalArgumentException("El archivo de imagen no puede estar vacío.");
+        }
+
+        if (content.length > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("La imagen excede el tamaño máximo permitido de 5 MB.");
+        }
+
+        String safeExtension = detectSafeExtensionFromMagicBytes(content);
+        if (safeExtension == null) {
+            throw new IllegalArgumentException("Formato de archivo no válido. Solo se permiten imágenes reales JPEG, PNG o WEBP.");
+        }
+
+        String safeFileName = UUID.randomUUID().toString().replace("-", "") + safeExtension;
 
         try {
-            Path targetFolder = Paths.get(baseUploadDir, subDirectory).toAbsolutePath().normalize();
+            Path baseFolder = Paths.get(baseUploadDir).toAbsolutePath().normalize();
+            Path targetFolder = baseFolder.resolve(subDirectory).normalize();
+            if (!targetFolder.startsWith(baseFolder)) {
+                throw new SecurityException("Ruta de archivo no permitida.");
+            }
+
             if (!Files.exists(targetFolder)) {
                 Files.createDirectories(targetFolder);
             }
 
             Path targetPath = targetFolder.resolve(safeFileName).normalize();
-            if (!targetPath.startsWith(targetFolder)) {
+            if (!targetPath.startsWith(targetFolder) || !targetPath.startsWith(baseFolder)) {
                 throw new SecurityException("Ruta de archivo no permitida.");
             }
 
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-            }
+            Files.write(targetPath, content);
 
             log.info("Media file successfully saved locally: {}", targetPath);
             return "/uploads/" + subDirectory + "/" + safeFileName;
@@ -82,15 +103,47 @@ public class LocalMediaStorageServiceImpl implements MediaStorageService {
 
         try {
             String relativePath = fileUrl.substring("/uploads/".length());
-            Path targetFile = Paths.get(baseUploadDir).resolve(relativePath).toAbsolutePath().normalize();
             Path baseFolder = Paths.get(baseUploadDir).toAbsolutePath().normalize();
+            Path targetFile = baseFolder.resolve(relativePath).normalize();
 
-            if (targetFile.startsWith(baseFolder) && Files.exists(targetFile)) {
+            if (targetFile.startsWith(baseFolder) && Files.isRegularFile(targetFile)) {
                 Files.delete(targetFile);
                 log.info("Media file successfully removed from disk: {}", targetFile);
             }
         } catch (Exception e) {
             log.warn("Could not delete physical media file: {}", fileUrl, e);
         }
+    }
+
+    private String detectSafeExtensionFromMagicBytes(byte[] bytes) {
+        if (bytes.length >= 3
+                && (bytes[0] & 0xFF) == 0xFF
+                && (bytes[1] & 0xFF) == 0xD8
+                && (bytes[2] & 0xFF) == 0xFF) {
+            return ".jpg";
+        }
+        if (bytes.length >= 8
+                && (bytes[0] & 0xFF) == 0x89
+                && bytes[1] == 0x50
+                && bytes[2] == 0x4E
+                && bytes[3] == 0x47
+                && bytes[4] == 0x0D
+                && bytes[5] == 0x0A
+                && bytes[6] == 0x1A
+                && bytes[7] == 0x0A) {
+            return ".png";
+        }
+        if (bytes.length >= 12
+                && bytes[0] == 'R'
+                && bytes[1] == 'I'
+                && bytes[2] == 'F'
+                && bytes[3] == 'F'
+                && bytes[8] == 'W'
+                && bytes[9] == 'E'
+                && bytes[10] == 'B'
+                && bytes[11] == 'P') {
+            return ".webp";
+        }
+        return null;
     }
 }

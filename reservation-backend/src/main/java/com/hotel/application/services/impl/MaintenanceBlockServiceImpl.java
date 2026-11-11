@@ -114,7 +114,8 @@ public class MaintenanceBlockServiceImpl implements MaintenanceBlockService {
                 "Suite " + room.getRoomNumber() + " inhabilitada (" + request.blockType() + ") del " + request.startDate() + " al " + request.endDate(),
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
 
         return response;
     }
@@ -156,7 +157,8 @@ public class MaintenanceBlockServiceImpl implements MaintenanceBlockService {
                 "El bloqueo de la suite " + room.getRoomNumber() + " fue levantado y la habitación vuelve a estar disponible",
                 response
         );
-        sseNotificationService.broadcast(event);
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
 
         return response;
     }

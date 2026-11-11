@@ -42,6 +42,8 @@ app:
     enabled: ${APP_MAIL_ENABLED:true}
   cors:
     allowed-origin: ${APP_CORS_ALLOWED_ORIGIN:http://localhost,http://localhost:4200,http://127.0.0.1}
+  payment:
+    simulation-enabled: ${PAYMENT_SIMULATION_ENABLED:true}
 
 security:
   jwt:

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record PaymentIntentRequest(
-        @NotNull @DecimalMin("1.00") BigDecimal amount,
+        @NotNull @DecimalMin("0.01") BigDecimal amount,
         String currency,
         String description,
         String guestEmail

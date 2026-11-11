@@ -108,6 +108,25 @@ class RoomImageServiceImplTest {
     }
 
     @Test
+    void uploadImage_ShouldThrowException_WhenFileExceeds5Mb() {
+        byte[] oversized = new byte[(5 * 1024 * 1024) + 1];
+        MockMultipartFile file = new MockMultipartFile("file", "big.jpg", "image/jpeg", oversized);
+
+        assertThrows(IllegalArgumentException.class, () -> roomImageService.uploadImage(1L, file, false));
+        verifyNoInteractions(mediaStorageService);
+    }
+
+    @Test
+    void uploadImage_ShouldThrowException_WhenSvgOrHtmlContentType() {
+        MockMultipartFile svgFile = new MockMultipartFile("file", "xss.svg", "image/svg+xml", "<svg></svg>".getBytes());
+        MockMultipartFile htmlFile = new MockMultipartFile("file", "xss.html", "text/html", "<html></html>".getBytes());
+
+        assertThrows(IllegalArgumentException.class, () -> roomImageService.uploadImage(1L, svgFile, false));
+        assertThrows(IllegalArgumentException.class, () -> roomImageService.uploadImage(1L, htmlFile, false));
+        verifyNoInteractions(mediaStorageService);
+    }
+
+    @Test
     void setCoverImage_ShouldUpdateCover_WhenImageExists() {
         RoomImage referentialImage = RoomImage.builder()
                 .id(11L)

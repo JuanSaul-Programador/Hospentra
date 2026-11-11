@@ -44,11 +44,11 @@ public class RoomImageServiceImpl implements RoomImageService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("El archivo de imagen no puede estar vacío");
         }
-        if (file.getSize() > 5 * 1024 * 1024) {
+        if (file.getSize() > LocalMediaStorageServiceImpl.MAX_FILE_SIZE) {
             throw new IllegalArgumentException("El tamaño máximo permitido para imágenes es de 5MB");
         }
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equalsIgnoreCase("image/jpeg") && !contentType.equalsIgnoreCase("image/png") && !contentType.equalsIgnoreCase("image/webp"))) {
+        if (contentType == null || !LocalMediaStorageServiceImpl.ALLOWED_CONTENT_TYPES.contains(contentType.trim().toLowerCase())) {
             throw new IllegalArgumentException("Solo se permiten formatos de imagen JPEG, PNG y WEBP");
         }
 

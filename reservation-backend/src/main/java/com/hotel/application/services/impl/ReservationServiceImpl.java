@@ -4,6 +4,7 @@ import com.hotel.application.dto.notification.NotificationEvent;
 import com.hotel.application.mapper.ReservationMapper;
 import com.hotel.application.services.AuditLogService;
 import com.hotel.application.services.EmailService;
+import com.hotel.application.services.PaymentGatewayService;
 import com.hotel.application.services.ReservationService;
 import com.hotel.application.services.SseNotificationService;
 import com.hotel.domain.exception.ResourceNotFoundException;
@@ -48,6 +49,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final AuditLogService auditLogService;
     private final com.hotel.application.services.InAppNotificationService inAppNotificationService;
     private final RoomOrderRepository roomOrderRepository;
+    private final PaymentGatewayService paymentGatewayService;
 
     @Override
     public List<ReservationResponse> findAll() {
@@ -145,8 +147,18 @@ public class ReservationServiceImpl implements ReservationService {
         BigDecimal totalPrice = room.getRoomType().getPricePerNight().multiply(BigDecimal.valueOf(nights));
 
         Reservation reservation = reservationMapper.toEntity(request, guest, room, totalPrice);
-        if (reservation.getPaymentMethod() == PaymentMethod.CREDIT_CARD && (reservation.getAuthCode() == null || reservation.getAuthCode().isBlank())) {
-            reservation.setAuthCode("AUTH-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        if (reservation.getPaymentMethod() == PaymentMethod.CREDIT_CARD) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String callerUsername = authentication != null ? authentication.getName() : null;
+            boolean isStaff = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            if (!paymentGatewayService.verifyAndConsumePayment(request.paymentIntentId(), totalPrice, callerUsername, isStaff)) {
+                throw new IllegalArgumentException("No se pudo verificar el pago con tarjeta en la pasarela.");
+            }
+            reservation.setPaymentStatus(PaymentStatus.PAID);
+            if (reservation.getAuthCode() == null || reservation.getAuthCode().isBlank()) {
+                reservation.setAuthCode("AUTH-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            }
         }
         Reservation saved = reservationRepository.save(reservation);
         ReservationResponse response = reservationMapper.toResponse(saved);
@@ -159,7 +171,8 @@ public class ReservationServiceImpl implements ReservationService {
                 guest.getFirstName() + " " + guest.getLastName() + " reservó Suite " + room.getRoomNumber(),
                 response
         );
-        sseNotificationService.broadcast(event);
+        notifyStaffRoles(event);
+        notifyGuestUser(guest, event);
 
         emailService.sendBookingConfirmation(
                 guest.getEmail(),
@@ -263,7 +276,8 @@ public class ReservationServiceImpl implements ReservationService {
                 "Reserva de Suite " + saved.getRoom().getRoomNumber() + " confirmada",
                 response
         );
-        sseNotificationService.broadcast(event);
+        notifyStaffRoles(event);
+        notifyGuestUser(saved.getGuest(), event);
 
         auditLogService.logAction(
                 "CONFIRM_RESERVATION",
@@ -306,7 +320,8 @@ public class ReservationServiceImpl implements ReservationService {
                 saved.getGuest().getFirstName() + " " + saved.getGuest().getLastName() + " ingresó a Suite " + room.getRoomNumber(),
                 response
         );
-        sseNotificationService.broadcast(resEvent);
+        notifyStaffRoles(resEvent);
+        notifyGuestUser(saved.getGuest(), resEvent);
 
         NotificationEvent roomEvent = NotificationEvent.of(
                 "ROOM_STATUS_CHANGED",
@@ -314,9 +329,9 @@ public class ReservationServiceImpl implements ReservationService {
                 room.getId(),
                 "Suite " + room.getRoomNumber() + " Ocupada",
                 "Huésped en casa",
-                room
+                reservationMapper.toRoomResponse(room)
         );
-        sseNotificationService.broadcast(roomEvent);
+        notifyStaffRoles(roomEvent);
 
         auditLogService.logAction(
                 "CHECK_IN",
@@ -396,7 +411,8 @@ public class ReservationServiceImpl implements ReservationService {
                 "Reserva de Suite " + saved.getRoom().getRoomNumber() + " cancelada",
                 response
         );
-        sseNotificationService.broadcast(event);
+        notifyStaffRoles(event);
+        notifyGuestUser(saved.getGuest(), event);
 
         auditLogService.logAction(
                 "CANCEL_RESERVATION",
@@ -463,7 +479,8 @@ public class ReservationServiceImpl implements ReservationService {
                 "Suite " + room.getRoomNumber() + " desocupada",
                 response
         );
-        sseNotificationService.broadcast(resEvent);
+        notifyStaffRoles(resEvent);
+        notifyGuestUser(saved.getGuest(), resEvent);
 
         NotificationEvent roomEvent = NotificationEvent.of(
                 "ROOM_STATUS_CHANGED",
@@ -471,9 +488,9 @@ public class ReservationServiceImpl implements ReservationService {
                 room.getId(),
                 "Suite " + room.getRoomNumber() + " en Limpieza",
                 "Enviada a housekeeping",
-                room
+                reservationMapper.toRoomResponse(room)
         );
-        sseNotificationService.broadcast(roomEvent);
+        notifyStaffRoles(roomEvent);
 
         auditLogService.logAction(
                 "CHECK_OUT",
@@ -524,20 +541,45 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         List<RoomOrder> orders = roomOrderRepository.findByReservationIdOrderByOrderedAtDesc(id);
-        if (!orders.isEmpty()) {
-            for (RoomOrder order : orders) {
+        BigDecimal stayPending = reservation.getPaymentStatus() == PaymentStatus.PAID
+                ? BigDecimal.ZERO
+                : (reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO);
+        BigDecimal ordersPending = orders.stream()
+                .filter(o -> !o.isPaid() && o.getStatus() != OrderStatus.CANCELLED)
+                .map(o -> o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal serverBalance = stayPending.add(ordersPending);
+
+        if (request.amount() == null || request.amount().compareTo(serverBalance) != 0) {
+            throw new IllegalArgumentException("El monto enviado no coincide con el saldo pendiente real de $" + serverBalance);
+        }
+
+        if (serverBalance.compareTo(BigDecimal.ZERO) > 0) {
+            boolean isStaff = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+            String callerUsername = authentication != null ? authentication.getName() : null;
+            if (!paymentGatewayService.verifyAndConsumePayment(request.paymentIntentId(), serverBalance, callerUsername, isStaff)) {
+                throw new IllegalArgumentException("No se pudo verificar el pago del Check-Out Express en la pasarela.");
+            }
+        }
+
+        List<RoomOrder> unpaidOrders = orders.stream()
+                .filter(o -> !o.isPaid() && o.getStatus() != OrderStatus.CANCELLED)
+                .toList();
+        if (!unpaidOrders.isEmpty()) {
+            for (RoomOrder order : unpaidOrders) {
                 order.setPaid(true);
             }
-            roomOrderRepository.saveAll(orders);
+            roomOrderRepository.saveAll(unpaidOrders);
         }
 
         reservation.setStatus(ReservationStatus.COMPLETED);
         reservation.setSettlementMethod("ONLINE_EXPRESS");
-        reservation.setSettlementAmount(request.amount() != null ? request.amount() : BigDecimal.ZERO);
+        reservation.setSettlementAmount(serverBalance);
         if (request.cardLast4() != null && !request.cardLast4().isBlank()) {
             reservation.setCardLast4(request.cardLast4());
         }
-        if (request.paymentIntentId() != null && !request.paymentIntentId().isBlank()) {
+        if (serverBalance.compareTo(BigDecimal.ZERO) > 0 && request.paymentIntentId() != null && !request.paymentIntentId().isBlank()) {
             reservation.setPaymentIntentId(request.paymentIntentId());
         }
         reservation.setSettlementNotes(request.notes() != null && !request.notes().isBlank()
@@ -561,7 +603,8 @@ public class ReservationServiceImpl implements ReservationService {
                 "Suite " + room.getRoomNumber() + " desocupada vía Express Check-Out",
                 response
         );
-        sseNotificationService.broadcast(resEvent);
+        notifyStaffRoles(resEvent);
+        notifyGuestUser(saved.getGuest(), resEvent);
 
         NotificationEvent roomEvent = NotificationEvent.of(
                 "ROOM_STATUS_CHANGED",
@@ -569,9 +612,9 @@ public class ReservationServiceImpl implements ReservationService {
                 room.getId(),
                 "Suite " + room.getRoomNumber() + " en Limpieza",
                 "Enviada a housekeeping tras Express Check-Out",
-                room
+                reservationMapper.toRoomResponse(room)
         );
-        sseNotificationService.broadcast(roomEvent);
+        notifyStaffRoles(roomEvent);
 
         auditLogService.logAction(
                 "EXPRESS_CHECK_OUT",
@@ -642,7 +685,7 @@ public class ReservationServiceImpl implements ReservationService {
                         " completó el Pre-Check-In para la Suite " + saved.getRoom().getRoomNumber() + " (ETA: " + saved.getEstimatedArrivalTime() + ")",
                 response
         );
-        sseNotificationService.broadcast(event);
+        notifyStaffRoles(event);
 
         auditLogService.logAction(
                 "PRE_CHECK_IN",
@@ -668,5 +711,18 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         return response;
+    }
+
+    private void notifyStaffRoles(NotificationEvent event) {
+        sseNotificationService.sendToRole("ROLE_ADMIN", event);
+        sseNotificationService.sendToRole("ROLE_RECEPTIONIST", event);
+    }
+
+    private void notifyGuestUser(Guest guest, NotificationEvent event) {
+        if (guest == null || guest.getId() == null) {
+            return;
+        }
+        userRepository.findByGuestId(guest.getId())
+                .ifPresent(user -> sseNotificationService.sendToUser(user.getUsername(), event));
     }
 }
