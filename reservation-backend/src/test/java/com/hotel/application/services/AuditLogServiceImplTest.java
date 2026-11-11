@@ -7,6 +7,7 @@ import com.hotel.domain.repository.ReservationRepository;
 import com.hotel.domain.repository.RoomOrderRepository;
 import com.hotel.web.dto.AuditLogResponse;
 import com.hotel.web.dto.AuditMetricsResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,9 +20,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +55,13 @@ class AuditLogServiceImplTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+        RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
@@ -219,5 +230,51 @@ class AuditLogServiceImplTest {
         assertThat(csvContent).contains("CMD-5");
         assertThat(csvContent).contains("Wellness & Spa Concierge");
         assertThat(csvContent).contains("120.00");
+    }
+
+    @Test
+    void exportReservationsCsv_shouldNeutralizeCsvFormulaInjectionPrefixes() {
+        Guest maliciousGuest = Guest.builder()
+                .firstName("=CMD|'/C calc'!A0")
+                .lastName("+SUM(1,1)")
+                .email("@evil.com")
+                .phone("-51999999999")
+                .build();
+        RoomType roomType = RoomType.builder().name("\tFormula").pricePerNight(new BigDecimal("100.00")).build();
+        Room room = Room.builder().roomNumber("101").roomType(roomType).build();
+        Reservation reservation = Reservation.builder()
+                .id(99L)
+                .guest(maliciousGuest)
+                .room(room)
+                .checkInDate(LocalDate.now())
+                .checkOutDate(LocalDate.now().plusDays(1))
+                .totalPrice(new BigDecimal("100.00"))
+                .status(ReservationStatus.CONFIRMED)
+                .paymentMethod(PaymentMethod.CREDIT_CARD)
+                .paymentStatus(PaymentStatus.PAID)
+                .build();
+
+        when(reservationRepository.findAll()).thenReturn(List.of(reservation));
+
+        String csvContent = new String(auditLogService.exportReservationsCsv(null, null), StandardCharsets.UTF_8);
+
+        assertThat(csvContent).contains("'=CMD|'/C calc'!A0 +SUM(1,1)");
+        assertThat(csvContent).contains("'@evil.com");
+        assertThat(csvContent).contains("'-51999999999");
+        assertThat(csvContent).contains("'\tFormula");
+    }
+
+    @Test
+    void logAction_shouldUseRemoteAddrAndIgnoreForgedForwardedForHeader() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("10.20.30.40");
+        request.addHeader("X-Forwarded-For", "198.51.100.99");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        auditLogService.logAction("LOGIN", "User", "user1", "User login", "SUCCESS");
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(captor.capture());
+        assertThat(captor.getValue().getIpAddress()).isEqualTo("10.20.30.40");
     }
 }

@@ -167,6 +167,7 @@ class RoomServiceImplTest {
         RoomRequest request = new RoomRequest("201-B", RoomStatus.AVAILABLE, 1L);
 
         when(roomRepository.findById(201L)).thenReturn(Optional.of(luxuryRoom));
+        when(roomRepository.existsByRoomNumberAndIdNot("201-B", 201L)).thenReturn(false);
         when(roomTypeRepository.findById(1L)).thenReturn(Optional.of(luxuryType));
         when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -176,6 +177,18 @@ class RoomServiceImplTest {
         assertThat(response.roomNumber()).isEqualTo("201-B");
         assertThat(response.status()).isEqualTo(RoomStatus.AVAILABLE);
         assertThat(response.roomType().id()).isEqualTo(1L);
+    }
+
+    @Test
+    void updateRoomFailsWhenDuplicateRoomNumber() {
+        RoomRequest request = new RoomRequest("202", RoomStatus.AVAILABLE, 1L);
+
+        when(roomRepository.findById(201L)).thenReturn(Optional.of(luxuryRoom));
+        when(roomRepository.existsByRoomNumberAndIdNot("202", 201L)).thenReturn(true);
+
+        assertThatThrownBy(() -> roomService.update(201L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already exists");
     }
 
     @Test

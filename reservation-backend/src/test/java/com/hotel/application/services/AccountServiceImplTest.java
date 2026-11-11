@@ -125,9 +125,9 @@ class AccountServiceImplTest {
                 .build();
         when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("lucia@hotel.com", "123456", "PASSWORD_RESET_OTP"))
                 .thenReturn(List.of(code));
-        when(passwordEncoder.encode("newSecretPass")).thenReturn("encodedNewSecret");
+        when(passwordEncoder.encode("NewSecret123")).thenReturn("encodedNewSecret");
 
-        ChangePasswordRequest request = new ChangePasswordRequest("123456", "newSecretPass");
+        ChangePasswordRequest request = new ChangePasswordRequest("123456", "NewSecret123");
         accountService.changePassword("lucia", request);
 
         assertThat(code.isUsed()).isTrue();
@@ -142,11 +142,30 @@ class AccountServiceImplTest {
         when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("lucia@hotel.com", "000000", "PASSWORD_RESET_OTP"))
                 .thenReturn(Collections.emptyList());
 
-        ChangePasswordRequest request = new ChangePasswordRequest("000000", "newSecretPass");
+        ChangePasswordRequest request = new ChangePasswordRequest("000000", "NewSecret123");
 
         assertThatThrownBy(() -> accountService.changePassword("lucia", request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Código de verificación incorrecto o inexistente");
+        verify(verificationCodeRepository).incrementFailedAttemptsAndInvalidateIfExceeded(10L, "PASSWORD_RESET_OTP");
+    }
+
+    @Test
+    void changePassword_WhenOtpAttemptsExceeded_ThrowsLockoutMessage() {
+        User user = User.builder().id(10L).username("lucia").email("lucia@hotel.com").build();
+        when(userRepository.findByUsername("lucia")).thenReturn(Optional.of(user));
+        when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("lucia@hotel.com", "000000", "PASSWORD_RESET_OTP"))
+                .thenReturn(Collections.emptyList());
+        when(verificationCodeRepository.incrementFailedAttemptsAndInvalidateIfExceeded(10L, "PASSWORD_RESET_OTP"))
+                .thenReturn(1);
+        when(verificationCodeRepository.findActiveCodesByEmailAndType("lucia@hotel.com", "PASSWORD_RESET_OTP"))
+                .thenReturn(Collections.emptyList());
+
+        ChangePasswordRequest request = new ChangePasswordRequest("000000", "NewSecret123");
+
+        assertThatThrownBy(() -> accountService.changePassword("lucia", request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Demasiados intentos fallidos");
     }
 
     @Test
@@ -163,7 +182,7 @@ class AccountServiceImplTest {
         when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("lucia@hotel.com", "123456", "PASSWORD_RESET_OTP"))
                 .thenReturn(List.of(expiredCode));
 
-        ChangePasswordRequest request = new ChangePasswordRequest("123456", "newSecretPass");
+        ChangePasswordRequest request = new ChangePasswordRequest("123456", "NewSecret123");
 
         assertThatThrownBy(() -> accountService.changePassword("lucia", request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -188,7 +207,8 @@ class AccountServiceImplTest {
 
         assertThatThrownBy(() -> accountService.changePassword("lucia", request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("al menos 6 caracteres");
+                .hasMessageContaining("al menos 8 caracteres");
+        assertThat(code.isUsed()).isFalse();
     }
 
     @Test

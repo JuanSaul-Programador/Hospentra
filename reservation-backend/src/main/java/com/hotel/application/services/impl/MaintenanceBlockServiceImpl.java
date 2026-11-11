@@ -43,7 +43,7 @@ public class MaintenanceBlockServiceImpl implements MaintenanceBlockService {
             throw new IllegalArgumentException("No se pueden programar bloqueos en fechas ya transcurridas");
         }
 
-        Room room = roomRepository.findById(request.roomId())
+        Room room = roomRepository.findByIdWithLock(request.roomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Habitación no encontrada con ID: " + request.roomId()));
 
         List<ReservationStatus> activeReservationStatuses = List.of(

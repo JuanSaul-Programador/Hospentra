@@ -52,7 +52,7 @@ public class RoomController {
 
     @PatchMapping("/{id}/housekeeping")
     public ResponseEntity<RoomResponse> updateHousekeeping(@PathVariable Long id,
-                                                           @RequestBody HousekeepingUpdateRequest request) {
+                                                           @Valid @RequestBody HousekeepingUpdateRequest request) {
         return ResponseEntity.ok(roomService.updateHousekeeping(id, request));
     }
 

@@ -62,10 +62,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         if (requestAttributes instanceof ServletRequestAttributes servletAttrs) {
             HttpServletRequest request = servletAttrs.getRequest();
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                ipAddress = forwarded.split(",")[0].trim();
-            } else {
+            if (request.getRemoteAddr() != null && !request.getRemoteAddr().isBlank()) {
                 ipAddress = request.getRemoteAddr();
             }
         }
@@ -292,10 +289,17 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     private String escapeCsv(String text) {
         if (text == null) return "";
-        if (text.contains(";") || text.contains("\"") || text.contains("\n") || text.contains("\r")) {
-            return "\"" + text.replace("\"", "\"\"") + "\"";
+        String safeText = text;
+        if (!safeText.isEmpty()) {
+            char first = safeText.charAt(0);
+            if (first == '=' || first == '+' || first == '-' || first == '@' || first == '\t' || first == '\r') {
+                safeText = "'" + safeText;
+            }
         }
-        return text;
+        if (safeText.contains(";") || safeText.contains("\"") || safeText.contains("\n") || safeText.contains("\r")) {
+            return "\"" + safeText.replace("\"", "\"\"") + "\"";
+        }
+        return safeText;
     }
 
     private AuditLogResponse mapToResponse(AuditLog log) {

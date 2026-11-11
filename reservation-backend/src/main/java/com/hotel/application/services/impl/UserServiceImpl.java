@@ -44,10 +44,12 @@ public class UserServiceImpl implements UserService {
                 ? request.shift()
                 : (request.role() == Role.ROLE_KITCHEN ? Shift.FLEXIBLE : Shift.MORNING);
 
+        String validatedPassword = validatePasswordStrength(request.password());
+
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
+                .password(passwordEncoder.encode(validatedPassword))
                 .role(request.role())
                 .enabled(true)
                 .shift(shift)
@@ -125,14 +127,20 @@ public class UserServiceImpl implements UserService {
         }
 
         if (request.password() != null && !request.password().trim().isEmpty()) {
-            if (request.password().trim().length() < 6) {
-                throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
-            }
-            user.setPassword(passwordEncoder.encode(request.password().trim()));
+            String validatedPassword = validatePasswordStrength(request.password());
+            user.setPassword(passwordEncoder.encode(validatedPassword));
         }
 
         User updated = userRepository.save(user);
         return mapToResponse(updated);
+    }
+
+    private String validatePasswordStrength(String rawPassword) {
+        String trimmed = rawPassword != null ? rawPassword.trim() : "";
+        if (trimmed.length() < 8 || !trimmed.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$")) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula y número");
+        }
+        return trimmed;
     }
 
     @Override

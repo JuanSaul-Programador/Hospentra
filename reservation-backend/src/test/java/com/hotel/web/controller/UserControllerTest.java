@@ -86,7 +86,7 @@ class UserControllerTest {
 
     @Test
     void createStaff_ValidAdminRequest_Returns201Created() throws Exception {
-        CreateStaffRequest request = new CreateStaffRequest("carlos.admin", "carlos@hospentra.com", "pass123", Role.ROLE_ADMIN, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("carlos.admin", "carlos@hospentra.com", "Pass1234", Role.ROLE_ADMIN, Shift.MORNING);
         UserResponse response = new UserResponse(10L, "carlos.admin", "carlos@hospentra.com", Role.ROLE_ADMIN, true, LocalDateTime.now(), Shift.MORNING, WorkStatus.OFF_DUTY, null);
 
         when(userService.createStaff(any(CreateStaffRequest.class))).thenReturn(response);
@@ -103,7 +103,7 @@ class UserControllerTest {
 
     @Test
     void createStaff_InvalidEmail_Returns400BadRequest() throws Exception {
-        CreateStaffRequest request = new CreateStaffRequest("test", "invalid-email", "pass123", Role.ROLE_RECEPTIONIST, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("test", "invalid-email", "Pass1234", Role.ROLE_RECEPTIONIST, Shift.MORNING);
 
         mockMvc.perform(post("/api/users")
                         .header("Authorization", "Bearer " + adminToken)
@@ -125,7 +125,7 @@ class UserControllerTest {
 
     @Test
     void updateStaff_ValidRequest_Returns200Ok() throws Exception {
-        UpdateStaffRequest request = new UpdateStaffRequest("newmail@hospentra.com", Role.ROLE_ADMIN, Shift.NIGHT, "newSecret123");
+        UpdateStaffRequest request = new UpdateStaffRequest("newmail@hospentra.com", Role.ROLE_ADMIN, Shift.NIGHT, "NewSecret123");
         UserResponse response = new UserResponse(5L, "sofia", "newmail@hospentra.com", Role.ROLE_ADMIN, true, LocalDateTime.now(), Shift.NIGHT, WorkStatus.OFF_DUTY, null);
 
         when(userService.updateStaff(eq(5L), any(UpdateStaffRequest.class), eq("superadmin"))).thenReturn(response);

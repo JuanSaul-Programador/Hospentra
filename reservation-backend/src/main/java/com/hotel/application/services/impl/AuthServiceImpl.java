@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +37,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final ConcurrentHashMap<String, Integer> failedOtpAttempts = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
@@ -86,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
     public AuthResponse verifyEmail(VerifyEmailRequest request) {
         String email = request.email().trim().toLowerCase();
         String code = request.code().trim();
@@ -105,17 +103,10 @@ public class AuthServiceImpl implements AuthService {
                 return new AuthResponse(token, refreshToken, "Bearer", existingUser.getUsername(), existingUser.getEmail(), existingUser.getRole(), false);
             }
 
-            int attempts = failedOtpAttempts.getOrDefault(email, 0) + 1;
-            if (attempts >= 5) {
-                List<VerificationCode> activeCodesForUser = verificationCodeRepository.findActiveCodesByEmailAndType(email, "REGISTRATION_OTP");
-                for (VerificationCode c : activeCodesForUser) {
-                    c.setUsed(true);
-                    verificationCodeRepository.save(c);
-                }
-                failedOtpAttempts.remove(email);
+            int updated = verificationCodeRepository.incrementFailedAttemptsAndInvalidateIfExceeded(
+                    existingUser.getId(), "REGISTRATION_OTP");
+            if (updated > 0 && verificationCodeRepository.findActiveCodesByEmailAndType(email, "REGISTRATION_OTP").isEmpty()) {
                 throw new IllegalArgumentException("Demasiados intentos fallidos. Su código ha sido invalidado por seguridad. Solicite uno nuevo.");
-            } else {
-                failedOtpAttempts.put(email, attempts);
             }
 
             throw new IllegalArgumentException("Código de verificación incorrecto o inexistente.");
@@ -128,7 +119,6 @@ public class AuthServiceImpl implements AuthService {
 
         validCode.setUsed(true);
         verificationCodeRepository.save(validCode);
-        failedOtpAttempts.remove(email);
 
         User user = validCode.getUser();
         user.setEnabled(true);
@@ -157,7 +147,6 @@ public class AuthServiceImpl implements AuthService {
             c.setUsed(true);
             verificationCodeRepository.save(c);
         }
-        failedOtpAttempts.remove(cleanEmail);
 
         String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
         VerificationCode vCode = VerificationCode.builder()

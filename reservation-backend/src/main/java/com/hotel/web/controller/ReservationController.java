@@ -74,7 +74,7 @@ public class ReservationController {
     @PatchMapping("/{id}/complete")
     public ResponseEntity<ReservationResponse> complete(
             @PathVariable Long id,
-            @RequestBody(required = false) com.hotel.web.dto.CheckOutSettlementRequest settlementRequest) {
+            @Valid @RequestBody(required = false) com.hotel.web.dto.CheckOutSettlementRequest settlementRequest) {
         return ResponseEntity.ok(reservationService.complete(id, settlementRequest));
     }
 

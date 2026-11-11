@@ -96,7 +96,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
     public void changePassword(String username, ChangePasswordRequest request) {
         User user = findUserByUsername(username);
 
@@ -104,6 +104,11 @@ public class AccountServiceImpl implements AccountService {
                 user.getEmail(), request.code().trim(), "PASSWORD_RESET_OTP");
 
         if (activeCodes.isEmpty()) {
+            int updated = verificationCodeRepository.incrementFailedAttemptsAndInvalidateIfExceeded(
+                    user.getId(), "PASSWORD_RESET_OTP");
+            if (updated > 0 && verificationCodeRepository.findActiveCodesByEmailAndType(user.getEmail(), "PASSWORD_RESET_OTP").isEmpty()) {
+                throw new IllegalArgumentException("Demasiados intentos fallidos. Su código ha sido invalidado por seguridad. Solicite uno nuevo.");
+            }
             throw new IllegalArgumentException("Código de verificación incorrecto o inexistente.");
         }
 
@@ -112,14 +117,15 @@ public class AccountServiceImpl implements AccountService {
             throw new IllegalArgumentException("El código de verificación ha expirado. Por favor solicite uno nuevo.");
         }
 
+        String trimmedPassword = request.newPassword() != null ? request.newPassword().trim() : "";
+        if (trimmedPassword.length() < 8 || !trimmedPassword.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$")) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula y número.");
+        }
+
         validCode.setUsed(true);
         verificationCodeRepository.save(validCode);
 
-        if (request.newPassword().trim().length() < 6) {
-            throw new IllegalArgumentException("La nueva contraseña debe contener al menos 6 caracteres.");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.newPassword().trim()));
+        user.setPassword(passwordEncoder.encode(trimmedPassword));
         userRepository.save(user);
     }
 

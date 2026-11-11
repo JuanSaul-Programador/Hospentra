@@ -44,10 +44,10 @@ class UserServiceImplTest {
 
     @Test
     void createStaff_WhenRoleIsAdmin_ShouldCreateSuccessfully() {
-        CreateStaffRequest request = new CreateStaffRequest("new.admin", "admin@hospentra.com", "pass123", Role.ROLE_ADMIN, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("new.admin", "admin@hospentra.com", "Pass1234", Role.ROLE_ADMIN, Shift.MORNING);
         when(userRepository.existsByUsername("new.admin")).thenReturn(false);
         when(userRepository.existsByEmail("admin@hospentra.com")).thenReturn(false);
-        when(passwordEncoder.encode("pass123")).thenReturn("encodedPass");
+        when(passwordEncoder.encode("Pass1234")).thenReturn("encodedPass");
 
         User savedUser = User.builder()
                 .id(10L)
@@ -68,8 +68,17 @@ class UserServiceImplTest {
     }
 
     @Test
+    void createStaff_WhenPasswordWeak_ThrowsIllegalArgumentException() {
+        CreateStaffRequest request = new CreateStaffRequest("new.admin", "admin@hospentra.com", "weakpass", Role.ROLE_ADMIN, Shift.MORNING);
+
+        assertThatThrownBy(() -> userService.createStaff(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("8 caracteres");
+    }
+
+    @Test
     void createStaff_WhenRoleCustomer_ThrowsIllegalArgumentException() {
-        CreateStaffRequest request = new CreateStaffRequest("cust", "cust@hotel.com", "pass123", Role.ROLE_CUSTOMER, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("cust", "cust@hotel.com", "Pass1234", Role.ROLE_CUSTOMER, Shift.MORNING);
 
         assertThatThrownBy(() -> userService.createStaff(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -78,7 +87,7 @@ class UserServiceImplTest {
 
     @Test
     void createStaff_WhenUsernameTaken_ThrowsIllegalArgumentException() {
-        CreateStaffRequest request = new CreateStaffRequest("existing", "new@hotel.com", "pass123", Role.ROLE_RECEPTIONIST, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("existing", "new@hotel.com", "Pass1234", Role.ROLE_RECEPTIONIST, Shift.MORNING);
         when(userRepository.existsByUsername("existing")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.createStaff(request))
@@ -88,7 +97,7 @@ class UserServiceImplTest {
 
     @Test
     void createStaff_WhenEmailInUse_ThrowsIllegalArgumentException() {
-        CreateStaffRequest request = new CreateStaffRequest("newuser", "existing@hotel.com", "pass123", Role.ROLE_RECEPTIONIST, Shift.MORNING);
+        CreateStaffRequest request = new CreateStaffRequest("newuser", "existing@hotel.com", "Pass1234", Role.ROLE_RECEPTIONIST, Shift.MORNING);
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("existing@hotel.com")).thenReturn(true);
 
@@ -131,10 +140,10 @@ class UserServiceImplTest {
                 .build();
         when(userRepository.findById(2L)).thenReturn(Optional.of(existingUser));
         when(userRepository.existsByEmailAndIdNot("maria@hotel.com", 2L)).thenReturn(false);
-        when(passwordEncoder.encode("newSecretPass")).thenReturn("newEncoded");
+        when(passwordEncoder.encode("NewSecret123")).thenReturn("newEncoded");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateStaffRequest request = new UpdateStaffRequest("maria@hotel.com", Role.ROLE_RECEPTIONIST, Shift.EVENING, "newSecretPass");
+        UpdateStaffRequest request = new UpdateStaffRequest("maria@hotel.com", Role.ROLE_RECEPTIONIST, Shift.EVENING, "NewSecret123");
         UserResponse response = userService.updateStaff(2L, request, "superadmin");
 
         assertThat(response).isNotNull();
@@ -142,7 +151,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updateStaff_WithPasswordShorterThan6_ThrowsIllegalArgumentException() {
+    void updateStaff_WithWeakPassword_ThrowsIllegalArgumentException() {
         User existingUser = User.builder().id(2L).username("test").build();
         when(userRepository.findById(2L)).thenReturn(Optional.of(existingUser));
         when(userRepository.existsByEmailAndIdNot("test@hotel.com", 2L)).thenReturn(false);
@@ -151,7 +160,7 @@ class UserServiceImplTest {
 
         assertThatThrownBy(() -> userService.updateStaff(2L, request, "superadmin"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("La contraseña debe tener al menos 6 caracteres");
+                .hasMessageContaining("8 caracteres");
     }
 
     @Test

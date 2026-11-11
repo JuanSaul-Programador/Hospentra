@@ -11,11 +11,16 @@ import com.hotel.domain.repository.UserRepository;
 import com.hotel.web.dto.CreateOrderItemRequest;
 import com.hotel.web.dto.CreateRoomOrderRequest;
 import com.hotel.web.dto.RoomOrderResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -110,8 +115,17 @@ class RoomOrderServiceImplTest {
                 .build();
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void createRoomOrderSuccessCalculatesSubtotalsAndBroadcasts() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("recep", null, List.of(new SimpleGrantedAuthority("ROLE_RECEPTIONIST")))
+        );
+
         CreateRoomOrderRequest request = new CreateRoomOrderRequest(
                 77L,
                 "Sin sal",
@@ -143,6 +157,21 @@ class RoomOrderServiceImplTest {
         verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
         verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_KITCHEN"), any(NotificationEvent.class));
         verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
+    }
+
+    @Test
+    void createRoomOrderWhenUnauthenticatedThrowsAccessDeniedException() {
+        CreateRoomOrderRequest request = new CreateRoomOrderRequest(
+                77L,
+                "Sin sal",
+                "IN_SUITE",
+                null,
+                List.of(new CreateOrderItemRequest(10L, 1))
+        );
+        when(reservationRepository.findById(77L)).thenReturn(Optional.of(standardReservation));
+
+        assertThatThrownBy(() -> roomOrderService.createOrder(request))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

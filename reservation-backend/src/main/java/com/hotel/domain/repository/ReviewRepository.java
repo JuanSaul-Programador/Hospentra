@@ -43,6 +43,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByManagementResponseIsNull();
 
+    long countByRatingGreaterThanEqual(Integer rating);
+
     @Query("SELECT AVG(r.rating) FROM Review r")
     Double calculateOverallAverageRating();
 }

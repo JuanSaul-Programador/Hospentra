@@ -203,9 +203,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         double satisfactionRate = 0.0;
         if (total > 0) {
-            long positive = reviewRepository.findAll().stream()
-                    .filter(r -> r.getRating() != null && r.getRating() >= 4)
-                    .count();
+            long positive = reviewRepository.countByRatingGreaterThanEqual(4);
             satisfactionRate = Math.round((positive * 100.0 / total) * 10.0) / 10.0;
         }
 

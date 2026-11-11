@@ -206,4 +206,49 @@ class AuthServiceImplTest {
                 .isInstanceOf(DisabledException.class)
                 .hasMessageContaining("disabled");
     }
+
+    @Test
+    void verifyEmail_WhenInvalidCodeDoesNotExhaustAttempts_IncrementsDbCounter() {
+        User pendingUser = User.builder()
+                .id(7L)
+                .username("pending_user")
+                .email("pending@example.com")
+                .enabled(false)
+                .emailVerified(false)
+                .build();
+        VerifyEmailRequest request = new VerifyEmailRequest("pending@example.com", "000000");
+
+        when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("pending@example.com", "000000", "REGISTRATION_OTP"))
+                .thenReturn(List.of());
+        when(userRepository.findByEmail("pending@example.com")).thenReturn(Optional.of(pendingUser));
+        when(verificationCodeRepository.incrementFailedAttemptsAndInvalidateIfExceeded(7L, "REGISTRATION_OTP")).thenReturn(0);
+
+        assertThatThrownBy(() -> authService.verifyEmail(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("incorrecto o inexistente");
+        verify(verificationCodeRepository).incrementFailedAttemptsAndInvalidateIfExceeded(7L, "REGISTRATION_OTP");
+    }
+
+    @Test
+    void verifyEmail_WhenMaxAttemptsExceeded_ThrowsLockoutMessage() {
+        User pendingUser = User.builder()
+                .id(7L)
+                .username("pending_user")
+                .email("pending@example.com")
+                .enabled(false)
+                .emailVerified(false)
+                .build();
+        VerifyEmailRequest request = new VerifyEmailRequest("pending@example.com", "000000");
+
+        when(verificationCodeRepository.findActiveCodesByEmailAndCodeAndType("pending@example.com", "000000", "REGISTRATION_OTP"))
+                .thenReturn(List.of());
+        when(userRepository.findByEmail("pending@example.com")).thenReturn(Optional.of(pendingUser));
+        when(verificationCodeRepository.incrementFailedAttemptsAndInvalidateIfExceeded(7L, "REGISTRATION_OTP")).thenReturn(1);
+        when(verificationCodeRepository.findActiveCodesByEmailAndType("pending@example.com", "REGISTRATION_OTP"))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> authService.verifyEmail(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Demasiados intentos fallidos");
+    }
 }

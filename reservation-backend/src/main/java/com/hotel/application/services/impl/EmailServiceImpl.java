@@ -9,6 +9,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -26,9 +27,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendVerificationOtp(String toEmail, String guestName, String otpCode) {
-        log.info("==================================================");
-        log.info("HOSPENTRA OTP DISPATCH -> Target: [{}], Code: [{}]", toEmail, otpCode);
-        log.info("==================================================");
+        log.info("Verification OTP dispatch triggered for target: [{}]", toEmail);
 
         if (!mailEnabled) {
             log.info("Mail dispatch disabled by configuration for {}", toEmail);
@@ -49,7 +48,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Verification OTP email successfully sent to {}", toEmail);
         } catch (Exception e) {
-            log.warn("Failed to dispatch verification email to {}: {}. OTP is still valid via console log.", toEmail, e.getMessage());
+            log.warn("Failed to dispatch verification email to {}: {}", toEmail, e.getMessage());
         }
     }
 
@@ -83,7 +82,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendPasswordResetOtp(String toEmail, String guestName, String otpCode) {
-        log.info("PASSWORD RESET OTP -> Target: [{}], Code: [{}]", toEmail, otpCode);
+        log.info("Password reset OTP dispatch triggered for target: [{}]", toEmail);
 
         if (!mailEnabled) {
             log.info("Mail dispatch disabled by configuration for {}", toEmail);
@@ -104,7 +103,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Password reset OTP email successfully sent to {}", toEmail);
         } catch (Exception e) {
-            log.warn("Failed to dispatch password reset email to {}: {}. OTP is still valid via console log.", toEmail, e.getMessage());
+            log.warn("Failed to dispatch password reset email to {}: {}", toEmail, e.getMessage());
         }
     }
 
@@ -164,8 +163,14 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    private String escapeHtml(String value, String fallback) {
+        String raw = (value != null && !value.isBlank()) ? value : fallback;
+        return HtmlUtils.htmlEscape(raw != null ? raw : "");
+    }
+
     private String buildPasswordResetOtpHtml(String guestName, String otpCode) {
-        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Colaborador/a";
+        String name = escapeHtml(guestName, "Estimado/a Colaborador/a");
+        String safeOtp = escapeHtml(otpCode, "");
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head><meta charset='UTF-8'></head>"
@@ -182,7 +187,7 @@ public class EmailServiceImpl implements EmailService {
                 + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 24px;'>Hola, <strong>" + name + "</strong>. Hemos recibido una solicitud para actualizar la contraseña de su cuenta en Hospentra.</p>"
                 + "<p style='font-size:14px;color:#64748b;margin:0 0 16px;'>Utilice el siguiente código de seguridad temporal para autorizar el cambio:</p>"
                 + "<div style='display:inline-block;background:#0f172a;color:#c59b27;font-size:32px;font-weight:700;letter-spacing:8px;padding:16px 36px;border-radius:8px;font-family:monospace;margin-bottom:24px;border:1px solid #c59b27;'>"
-                + otpCode
+                + safeOtp
                 + "</div>"
                 + "<p style='font-size:13px;color:#94a3b8;margin:0 0 8px;'>Este código de un solo uso expira en <strong>15 minutos</strong>.</p>"
                 + "<p style='font-size:13px;color:#ef4444;margin:0;'>Si usted no solicitó este cambio, por favor ignore este mensaje o comuníquese con administración.</p>"
@@ -198,7 +203,8 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildAccountDeletionNoticeHtml(String guestName, String scheduledDate) {
-        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Usuario/a";
+        String name = escapeHtml(guestName, "Estimado/a Usuario/a");
+        String safeScheduledDate = escapeHtml(scheduledDate, "");
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head><meta charset='UTF-8'></head>"
@@ -215,7 +221,7 @@ public class EmailServiceImpl implements EmailService {
                 + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 16px;'>Estimado/a <strong>" + name + "</strong>,</p>"
                 + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 20px;'>Se ha iniciado el proceso de eliminación de su cuenta en Hospentra Sanctuary. Su cuenta ha entrado en un periodo de gracia y está programada para su purga definitiva el:</p>"
                 + "<div style='background:#fef2f2;border:1px solid #fecaca;padding:16px;border-radius:8px;text-align:center;margin-bottom:20px;'>"
-                + "<strong style='color:#dc2626;font-size:18px;'>" + scheduledDate + "</strong>"
+                + "<strong style='color:#dc2626;font-size:18px;'>" + safeScheduledDate + "</strong>"
                 + "</div>"
                 + "<p style='font-size:14px;line-height:1.6;color:#475569;margin:0 0 16px;'><strong>¿Cambió de opinión?</strong> Si desea conservar su cuenta y mantener su historial de estancias, puede cancelar esta solicitud en cualquier momento antes de la fecha límite simplemente iniciando sesión en la plataforma y haciendo clic en <em>'Cancelar Eliminación'</em>.</p>"
                 + "<p style='font-size:13px;color:#94a3b8;margin:0;'>Transcurridos los 30 días, su perfil y datos personales serán permanentemente anonimizados conforme a las normativas de protección de datos.</p>"
@@ -231,7 +237,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildAccountDeletionCancelledHtml(String guestName) {
-        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Estimado/a Usuario/a";
+        String name = escapeHtml(guestName, "Estimado/a Usuario/a");
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head><meta charset='UTF-8'></head>"
@@ -260,7 +266,8 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildOtpHtml(String guestName, String otpCode) {
-        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Huésped Distinguido";
+        String name = escapeHtml(guestName, "Huésped Distinguido");
+        String safeOtp = escapeHtml(otpCode, "");
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head><meta charset='UTF-8'></head>"
@@ -278,7 +285,7 @@ public class EmailServiceImpl implements EmailService {
                 + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 24px;'>Gracias por iniciar su registro en Hospentra. Para garantizar la privacidad de sus itinerarios, confirmar su correo y proteger su cuenta, ingrese el siguiente código confidencial en la aplicación:</p>"
                 + "<div style='text-align:center;margin:28px 0;'>"
                 + "<div style='display:inline-block;background:#f1f5f9;border:2px dashed #c59b27;border-radius:10px;padding:16px 32px;'>"
-                + "<span style='font-size:32px;font-weight:700;letter-spacing:10px;color:#0f172a;font-family:Courier,monospace;'>" + otpCode + "</span>"
+                + "<span style='font-size:32px;font-weight:700;letter-spacing:10px;color:#0f172a;font-family:Courier,monospace;'>" + safeOtp + "</span>"
                 + "</div>"
                 + "</div>"
                 + "<p style='font-size:13px;color:#94a3b8;text-align:center;margin:0 0 28px;'>Este código de seguridad es intransferible y expirará en <strong>15 minutos</strong>.</p>"
@@ -296,7 +303,11 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildBookingHtml(String guestName, String roomName, String checkIn, String checkOut, Double totalPrice, String voucherAuth) {
-        String name = (guestName != null && !guestName.isBlank()) ? guestName : "Huésped Distinguido";
+        String name = escapeHtml(guestName, "Huésped Distinguido");
+        String safeRoomName = escapeHtml(roomName, "");
+        String safeCheckIn = escapeHtml(checkIn, "");
+        String safeCheckOut = escapeHtml(checkOut, "");
+        String safeVoucherAuth = escapeHtml(voucherAuth, "");
         String price = totalPrice != null ? String.format("%.2f", totalPrice) : "0.00";
         return "<!DOCTYPE html>"
                 + "<html>"
@@ -315,11 +326,11 @@ public class EmailServiceImpl implements EmailService {
                 + "<p style='font-size:15px;line-height:1.6;color:#475569;margin:0 0 24px;'>Nos complace confirmar su reservación en Hospentra Sanctuary. Sus preparativos de autor y amenidades exclusivas ya se encuentran programados para su llegada:</p>"
                 + "<div style='background:#f8fafc;border-radius:8px;padding:20px;border:1px solid #e2e8f0;margin-bottom:24px;'>"
                 + "<table width='100%' cellpadding='6' cellspacing='0' style='font-size:14px;color:#334155;'>"
-                + "<tr><td><strong>Suite:</strong></td><td align='right'>" + roomName + "</td></tr>"
-                + "<tr><td><strong>Check-In:</strong></td><td align='right'>" + checkIn + " (15:00 hrs)</td></tr>"
-                + "<tr><td><strong>Check-Out:</strong></td><td align='right'>" + checkOut + " (12:00 hrs)</td></tr>"
+                + "<tr><td><strong>Suite:</strong></td><td align='right'>" + safeRoomName + "</td></tr>"
+                + "<tr><td><strong>Check-In:</strong></td><td align='right'>" + safeCheckIn + " (15:00 hrs)</td></tr>"
+                + "<tr><td><strong>Check-Out:</strong></td><td align='right'>" + safeCheckOut + " (12:00 hrs)</td></tr>"
                 + "<tr><td><strong>Monto Total:</strong></td><td align='right' style='color:#0f172a;font-weight:700;'>$" + price + " USD</td></tr>"
-                + "<tr><td><strong>Código de Autorización:</strong></td><td align='right' style='color:#c59b27;font-weight:700;font-family:monospace;'>" + voucherAuth + "</td></tr>"
+                + "<tr><td><strong>Código de Autorización:</strong></td><td align='right' style='color:#c59b27;font-weight:700;font-family:monospace;'>" + safeVoucherAuth + "</td></tr>"
                 + "</table>"
                 + "</div>"
                 + "<p style='font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px;'>Puede consultar y descargar su <strong>Folio Digital Oficial</strong> en cualquier momento desde su panel de reservas en nuestra plataforma.</p>"

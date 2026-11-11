@@ -402,7 +402,22 @@ class ReservationServiceImplTest {
     }
 
     @Test
+    void findById_whenUnauthenticated_throwsAccessDeniedException() {
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> reservationService.findById(1L))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
     void cancelReservationFullRefundWhenMoreThan48Hours() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         Reservation reservation = Reservation.builder()
                 .id(1L)
                 .guest(standardGuest)
@@ -429,6 +444,7 @@ class ReservationServiceImplTest {
 
     @Test
     void cancelReservationPartialRefundWhenLessThan48Hours() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         Reservation reservation = Reservation.builder()
                 .id(1L)
                 .guest(standardGuest)
@@ -452,6 +468,7 @@ class ReservationServiceImplTest {
 
     @Test
     void cancelReservationFreesRoomWhenAlreadyCheckedIn() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         standardRoom.setStatus(RoomStatus.OCCUPIED);
         Reservation reservation = Reservation.builder()
                 .id(1L)
@@ -472,6 +489,27 @@ class ReservationServiceImplTest {
         assertThat(response.status()).isEqualTo(ReservationStatus.CANCELLED);
         assertThat(standardRoom.getStatus()).isEqualTo(RoomStatus.AVAILABLE);
         verify(roomRepository, times(1)).save(standardRoom);
+    }
+
+    @Test
+    void cancelReservation_WhenCustomerAttemptsCancelOnCheckedIn_ThrowsIllegalStateException() {
+        authenticateAs("carlos.m", "ROLE_CUSTOMER");
+        User owner = User.builder().id(100L).username("carlos.m").guest(standardGuest).build();
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .guest(standardGuest)
+                .room(standardRoom)
+                .status(ReservationStatus.CHECKED_IN)
+                .build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(userRepository.findByUsername("carlos.m")).thenReturn(Optional.of(owner));
+
+        assertThatThrownBy(() -> reservationService.cancel(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CHECKED_IN");
+
+        verify(reservationRepository, never()).save(any());
     }
 
     @Test
@@ -794,6 +832,7 @@ class ReservationServiceImplTest {
 
     @Test
     void submitPreCheckIn_whenValid_shouldCompletePreCheckInAndEmitEvents() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         Reservation reservation = Reservation.builder()
                 .id(1L)
                 .guest(standardGuest)
@@ -828,11 +867,14 @@ class ReservationServiceImplTest {
         verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_ADMIN"), any(NotificationEvent.class));
         verify(sseNotificationService, times(1)).sendToRole(eq("ROLE_RECEPTIONIST"), any(NotificationEvent.class));
         verify(sseNotificationService, never()).broadcast(any(NotificationEvent.class));
-        verify(auditLogService, times(1)).logAction(eq("PRE_CHECK_IN"), eq("Reservation"), eq("HOSP-1-2026"), any(), eq("SUCCESS"));
+        ArgumentCaptor<String> auditDetailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).logAction(eq("PRE_CHECK_IN"), eq("Reservation"), eq("HOSP-1-2026"), auditDetailsCaptor.capture(), eq("SUCCESS"));
+        assertThat(auditDetailsCaptor.getValue()).contains("****4567").doesNotContain("AB1234567");
     }
 
     @Test
     void submitPreCheckIn_whenCancelledReservation_shouldThrowIllegalArgumentException() {
+        authenticateAs("recep", "ROLE_RECEPTIONIST");
         Reservation reservation = Reservation.builder()
                 .id(1L)
                 .guest(standardGuest)

@@ -15,6 +15,7 @@ import com.hotel.web.dto.RoomOrderItemResponse;
 import com.hotel.web.dto.RoomOrderResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -128,15 +129,18 @@ public class RoomOrderServiceImpl implements RoomOrderService {
 
     private void validateReservationAccess(Reservation reservation, String action) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            boolean isStaff = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST") || a.getAuthority().equals("ROLE_KITCHEN"));
-            if (!isStaff) {
-                String username = authentication.getName();
-                User user = userRepository.findByUsername(username).orElse(null);
-                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
-                    throw new AccessDeniedException("No tiene permisos para " + action + " en esta reservación");
-                }
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AccessDeniedException("No tiene permisos para " + action + " en esta reservación");
+        }
+        boolean isStaff = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST") || a.getAuthority().equals("ROLE_KITCHEN"));
+        if (!isStaff) {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
+                throw new AccessDeniedException("No tiene permisos para " + action + " en esta reservación");
             }
         }
     }
@@ -190,10 +194,8 @@ public class RoomOrderServiceImpl implements RoomOrderService {
         if (updated.getReservationId() != null) {
             reservationRepository.findById(updated.getReservationId()).ifPresent(res -> {
                 notifyOrderGuest(res, event);
-                if (res.getGuest() != null) {
-                    userRepository.findAll().stream()
-                            .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(res.getGuest().getId()))
-                            .findFirst()
+                if (res.getGuest() != null && res.getGuest().getId() != null) {
+                    userRepository.findByGuestId(res.getGuest().getId())
                             .ifPresent(u -> {
                                 String humanStatus = switch (status) {
                                     case PREPARING -> "se encuentra en preparación en cocina";

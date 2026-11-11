@@ -68,6 +68,9 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse update(Long id, RoomRequest request) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        if (roomRepository.existsByRoomNumberAndIdNot(request.roomNumber(), id)) {
+            throw new IllegalArgumentException("A room with number '" + request.roomNumber() + "' already exists");
+        }
         RoomType roomType = roomTypeRepository.findById(request.roomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + request.roomTypeId()));
         room.setRoomNumber(request.roomNumber());

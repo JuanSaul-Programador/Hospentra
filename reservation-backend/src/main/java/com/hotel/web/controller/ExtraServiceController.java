@@ -2,7 +2,7 @@ package com.hotel.web.controller;
 
 import com.hotel.application.services.ExtraServiceService;
 import com.hotel.domain.model.ExtraCategory;
-import com.hotel.domain.model.ExtraService;
+import com.hotel.web.dto.ExtraServiceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +17,17 @@ public class ExtraServiceController {
     private final ExtraServiceService extraServiceService;
 
     @GetMapping
-    public ResponseEntity<List<ExtraService>> findAllAvailable() {
+    public ResponseEntity<List<ExtraServiceResponse>> findAllAvailable() {
         return ResponseEntity.ok(extraServiceService.findAllAvailable());
     }
 
     @GetMapping("/category/{category}")
-    public ResponseEntity<List<ExtraService>> findByCategory(@PathVariable ExtraCategory category) {
+    public ResponseEntity<List<ExtraServiceResponse>> findByCategory(@PathVariable ExtraCategory category) {
         return ResponseEntity.ok(extraServiceService.findByCategory(category));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExtraService> findById(@PathVariable Long id) {
+    public ResponseEntity<ExtraServiceResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(extraServiceService.findById(id));
     }
 }

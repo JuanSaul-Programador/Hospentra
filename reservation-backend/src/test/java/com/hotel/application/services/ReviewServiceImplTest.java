@@ -565,10 +565,7 @@ class ReviewServiceImplTest {
         when(reviewRepository.countByManagementResponseIsNull()).thenReturn(3L);
         when(reviewRepository.calculateOverallAverageRating()).thenReturn(4.6);
 
-        Review r1 = Review.builder().id(1L).rating(5).build();
-        Review r2 = Review.builder().id(2L).rating(4).build();
-        Review r3 = Review.builder().id(3L).rating(3).build();
-        when(reviewRepository.findAll()).thenReturn(List.of(r1, r2, r3));
+        when(reviewRepository.countByRatingGreaterThanEqual(4)).thenReturn(7L);
 
         ReviewAdminMetricsResponse metrics = reviewService.getAdminMetrics();
 

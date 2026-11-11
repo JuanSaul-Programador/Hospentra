@@ -61,7 +61,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public List<ReservationResponse> findMyReservations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (isUnauthenticated(authentication)) {
             return List.of();
         }
         String username = authentication.getName();
@@ -96,18 +96,7 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            boolean isStaff = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
-            if (!isStaff) {
-                String username = authentication.getName();
-                User user = userRepository.findByUsername(username).orElse(null);
-                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
-                    throw new AccessDeniedException("No tiene permisos para acceder a esta reservación");
-                }
-            }
-        }
+        requireStaffOrOwner(reservation.getGuest(), "No tiene permisos para acceder a esta reservación");
 
         return reservationMapper.toResponse(reservation);
     }
@@ -192,10 +181,7 @@ public class ReservationServiceImpl implements ReservationService {
                 "SUCCESS"
         );
 
-        User guestUser = userRepository.findAll().stream()
-                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(guest.getId()))
-                .findFirst()
-                .orElse(null);
+        User guestUser = findGuestUser(guest);
         if (guestUser != null) {
             inAppNotificationService.createNotification(
                     guestUser,
@@ -211,14 +197,11 @@ public class ReservationServiceImpl implements ReservationService {
 
     private Guest resolveGuest(Long requestedGuestId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken
-                || "anonymousUser".equals(authentication.getPrincipal())) {
+        if (isUnauthenticated(authentication)) {
             throw new AccessDeniedException("Authentication is required to resolve guest");
         }
 
-        boolean isStaff = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
+        boolean isStaff = isStaffUser(authentication);
 
         if (isStaff) {
             if (requestedGuestId != null) {
@@ -341,10 +324,7 @@ public class ReservationServiceImpl implements ReservationService {
                 "SUCCESS"
         );
 
-        User guestUser = userRepository.findAll().stream()
-                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
-                .findFirst()
-                .orElse(null);
+        User guestUser = findGuestUser(saved.getGuest());
         if (guestUser != null) {
             inAppNotificationService.createNotification(
                     guestUser,
@@ -364,18 +344,7 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            boolean isStaff = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
-            if (!isStaff) {
-                String username = authentication.getName();
-                User user = userRepository.findByUsername(username).orElse(null);
-                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
-                    throw new AccessDeniedException("No tiene permisos para cancelar esta reservación");
-                }
-            }
-        }
+        Authentication authentication = requireStaffOrOwner(reservation.getGuest(), "No tiene permisos para cancelar esta reservación");
 
         if (reservation.getStatus() == ReservationStatus.COMPLETED) {
             throw new IllegalArgumentException("A completed reservation cannot be cancelled");
@@ -386,6 +355,9 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         if (reservation.getStatus() == ReservationStatus.CHECKED_IN) {
+            if (!isStaffUser(authentication)) {
+                throw new IllegalStateException("No es posible cancelar una estancia ya iniciada (CHECKED_IN). Contacte a recepción.");
+            }
             Room room = reservation.getRoom();
             room.setStatus(RoomStatus.AVAILABLE);
             roomRepository.save(room);
@@ -500,10 +472,7 @@ public class ReservationServiceImpl implements ReservationService {
                 "SUCCESS"
         );
 
-        User guestUser = userRepository.findAll().stream()
-                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
-                .findFirst()
-                .orElse(null);
+        User guestUser = findGuestUser(saved.getGuest());
         if (guestUser != null) {
             inAppNotificationService.createNotification(
                     guestUser,
@@ -523,18 +492,7 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            boolean isStaff = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
-            if (!isStaff) {
-                String username = authentication.getName();
-                User user = userRepository.findByUsername(username).orElse(null);
-                if (user == null || user.getGuest() == null || !reservation.getGuest().getId().equals(user.getGuest().getId())) {
-                    throw new AccessDeniedException("No tiene permisos para realizar check-out express en esta reservación");
-                }
-            }
-        }
+        Authentication authentication = requireStaffOrOwner(reservation.getGuest(), "No tiene permisos para realizar check-out express en esta reservación");
 
         if (reservation.getStatus() != ReservationStatus.CHECKED_IN) {
             throw new IllegalArgumentException("Solo es posible realizar Check-Out Express en reservaciones activas (CHECKED_IN)");
@@ -555,9 +513,8 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         if (serverBalance.compareTo(BigDecimal.ZERO) > 0) {
-            boolean isStaff = authentication != null && authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
-            String callerUsername = authentication != null ? authentication.getName() : null;
+            boolean isStaff = isStaffUser(authentication);
+            String callerUsername = authentication.getName();
             if (!paymentGatewayService.verifyAndConsumePayment(request.paymentIntentId(), serverBalance, callerUsername, isStaff)) {
                 throw new IllegalArgumentException("No se pudo verificar el pago del Check-Out Express en la pasarela.");
             }
@@ -624,10 +581,7 @@ public class ReservationServiceImpl implements ReservationService {
                 "SUCCESS"
         );
 
-        User guestUser = userRepository.findAll().stream()
-                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
-                .findFirst()
-                .orElse(null);
+        User guestUser = findGuestUser(saved.getGuest());
         if (guestUser != null) {
             inAppNotificationService.createNotification(
                     guestUser,
@@ -647,22 +601,10 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
 
+        requireStaffOrOwner(reservation.getGuest(), "No tiene permiso para realizar el pre-check-in de esta reservación");
+
         if (reservation.getStatus() == ReservationStatus.CANCELLED || reservation.getStatus() == ReservationStatus.COMPLETED) {
             throw new IllegalArgumentException("No es posible realizar pre-check-in en una reservación cancelada o completada");
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            boolean isStaff = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_RECEPTIONIST"));
-            if (!isStaff) {
-                String currentUsername = authentication.getName();
-                User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
-                if (currentUser == null || currentUser.getGuest() == null ||
-                        !currentUser.getGuest().getId().equals(reservation.getGuest().getId())) {
-                    throw new AccessDeniedException("No tiene permiso para realizar el pre-check-in de esta reservación");
-                }
-            }
         }
 
         reservation.setPreCheckInCompleted(true);
@@ -691,14 +633,11 @@ public class ReservationServiceImpl implements ReservationService {
                 "PRE_CHECK_IN",
                 "Reservation",
                 "HOSP-" + saved.getId() + "-2026",
-                "Pre-check-in digital registrado. Documento: " + saved.getDocumentType() + " " + saved.getDocumentNumber() + ", ETA: " + saved.getEstimatedArrivalTime(),
+                "Pre-check-in digital registrado. Documento: " + saved.getDocumentType() + " " + maskDocumentNumber(saved.getDocumentNumber()) + ", ETA: " + saved.getEstimatedArrivalTime(),
                 "SUCCESS"
         );
 
-        User guestUser = userRepository.findAll().stream()
-                .filter(u -> u.getGuest() != null && u.getGuest().getId().equals(saved.getGuest().getId()))
-                .findFirst()
-                .orElse(null);
+        User guestUser = findGuestUser(saved.getGuest());
 
         if (guestUser != null) {
             inAppNotificationService.createNotification(
@@ -711,6 +650,50 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         return response;
+    }
+
+    private boolean isUnauthenticated(Authentication authentication) {
+        return authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken
+                || "anonymousUser".equals(authentication.getPrincipal());
+    }
+
+    private boolean isStaffUser(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_RECEPTIONIST".equals(a.getAuthority()));
+    }
+
+    private Authentication requireStaffOrOwner(Guest guest, String deniedMessage) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (isUnauthenticated(authentication)) {
+            throw new AccessDeniedException(deniedMessage);
+        }
+        if (!isStaffUser(authentication)) {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null || user.getGuest() == null || guest == null || !guest.getId().equals(user.getGuest().getId())) {
+                throw new AccessDeniedException(deniedMessage);
+            }
+        }
+        return authentication;
+    }
+
+    private User findGuestUser(Guest guest) {
+        if (guest == null || guest.getId() == null) {
+            return null;
+        }
+        return userRepository.findByGuestId(guest.getId()).orElse(null);
+    }
+
+    private String maskDocumentNumber(String documentNumber) {
+        if (documentNumber == null || documentNumber.isBlank()) {
+            return "****";
+        }
+        String trimmed = documentNumber.trim();
+        if (trimmed.length() <= 4) {
+            return "****";
+        }
+        return "****" + trimmed.substring(trimmed.length() - 4);
     }
 
     private void notifyStaffRoles(NotificationEvent event) {

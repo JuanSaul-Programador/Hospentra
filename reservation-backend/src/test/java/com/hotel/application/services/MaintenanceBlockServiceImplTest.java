@@ -74,7 +74,7 @@ class MaintenanceBlockServiceImplTest {
                 10L, BlockType.OUT_OF_ORDER, start, end, "Fuga en jacuzzi", "Plomería Express"
         );
 
-        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdWithLock(10L)).thenReturn(Optional.of(room));
         when(reservationRepository.existsOverlappingReservation(eq(10L), eq(start), eq(end), anyList())).thenReturn(false);
         when(maintenanceBlockRepository.existsOverlappingActiveBlock(eq(10L), eq(start), eq(end))).thenReturn(false);
 
@@ -114,7 +114,7 @@ class MaintenanceBlockServiceImplTest {
                 10L, BlockType.OUT_OF_ORDER, today, end, "Aire acondicionado averiado", null
         );
 
-        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdWithLock(10L)).thenReturn(Optional.of(room));
         when(reservationRepository.existsOverlappingReservation(eq(10L), eq(today), eq(end), anyList())).thenReturn(false);
         when(maintenanceBlockRepository.existsOverlappingActiveBlock(eq(10L), eq(today), eq(end))).thenReturn(false);
 
@@ -172,7 +172,7 @@ class MaintenanceBlockServiceImplTest {
                 10L, BlockType.OUT_OF_ORDER, start, end, "Test", null
         );
 
-        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdWithLock(10L)).thenReturn(Optional.of(room));
         when(reservationRepository.existsOverlappingReservation(eq(10L), eq(start), eq(end), anyList())).thenReturn(true);
 
         assertThatThrownBy(() -> maintenanceBlockService.createBlock(request))
@@ -188,7 +188,7 @@ class MaintenanceBlockServiceImplTest {
                 10L, BlockType.OUT_OF_ORDER, start, end, "Test", null
         );
 
-        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdWithLock(10L)).thenReturn(Optional.of(room));
         when(reservationRepository.existsOverlappingReservation(eq(10L), eq(start), eq(end), anyList())).thenReturn(false);
         when(maintenanceBlockRepository.existsOverlappingActiveBlock(eq(10L), eq(start), eq(end))).thenReturn(true);
 
