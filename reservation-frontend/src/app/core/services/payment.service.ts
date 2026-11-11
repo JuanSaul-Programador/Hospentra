@@ -206,6 +206,19 @@ export class PaymentService {
     return this.generateSandboxToken();
   }
 
+  async confirmCardPayment(clientSecret: string, paymentMethodId: string): Promise<void> {
+    const stripe = await this.getStripe();
+    if (!stripe || this.fallbackMode || !clientSecret || clientSecret.startsWith('pi_sim_') || paymentMethodId.startsWith('pm_vault_')) {
+      return;
+    }
+    const { error } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: paymentMethodId
+    });
+    if (error) {
+      throw new Error(error.message || 'No se pudo confirmar el pago con la tarjeta en Stripe.');
+    }
+  }
+
   private generateSandboxToken(): TokenizeResult {
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     return {

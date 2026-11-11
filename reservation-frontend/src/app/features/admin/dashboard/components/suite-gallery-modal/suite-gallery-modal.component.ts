@@ -53,35 +53,32 @@ export class SuiteGalleryModalComponent implements OnChanges {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      if (!file.type.startsWith('image/')) {
-        this.feedback.set({ type: 'error', text: 'Solo se permiten archivos de imagen (JPG, PNG, WebP).' });
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        this.feedback.set({ type: 'error', text: 'La imagen excede el límite de 10 MB.' });
-        return;
-      }
-      this.selectedFile.set(file);
-      const reader = new FileReader();
-      reader.onload = () => this.previewUrl.set(reader.result as string);
-      reader.readAsDataURL(file);
+      this.processSelectedFile(input.files[0]);
     }
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
     if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-      const file = event.dataTransfer.files[0];
-      if (!file.type.startsWith('image/')) {
-        this.feedback.set({ type: 'error', text: 'Solo se admiten archivos de imagen.' });
-        return;
-      }
-      this.selectedFile.set(file);
-      const reader = new FileReader();
-      reader.onload = () => this.previewUrl.set(reader.result as string);
-      reader.readAsDataURL(file);
+      this.processSelectedFile(event.dataTransfer.files[0]);
     }
+  }
+
+  private processSelectedFile(file: File): void {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      this.feedback.set({ type: 'error', text: 'Solo se permiten archivos de imagen (JPG, PNG, WebP).' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.feedback.set({ type: 'error', text: 'La imagen excede el límite de 5 MB.' });
+      return;
+    }
+    this.feedback.set(null);
+    this.selectedFile.set(file);
+    const reader = new FileReader();
+    reader.onload = () => this.previewUrl.set(reader.result as string);
+    reader.readAsDataURL(file);
   }
 
   onDragOver(event: DragEvent): void {

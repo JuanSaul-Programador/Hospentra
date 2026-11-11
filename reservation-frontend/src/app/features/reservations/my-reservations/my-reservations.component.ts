@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { ReviewService } from '../../../core/services/review.service';
 import { ConciergeChatService } from '../../../core/services/concierge-chat.service';
@@ -10,6 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { RoomOrderService } from '../../../core/services/room-order.service';
 import { SseService } from '../../../core/services/sse.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { PaymentService } from '../../../core/services/payment.service';
 import { Reservation } from '../../../core/models/reservation.model';
 import { ExtraService, RoomOrder } from '../../../core/models/room-order.model';
 import { GuestVoucherModalComponent } from './components/guest-voucher-modal/guest-voucher-modal.component';
@@ -42,6 +43,7 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly reviewService = inject(ReviewService);
+  private readonly paymentService = inject(PaymentService);
   readonly conciergeChatService = inject(ConciergeChatService);
 
   readonly reviewedReservationIds = signal<Set<number>>(new Set());
@@ -117,14 +119,16 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly expressReceipt = signal<{ authCode: string; amountPaid: number; settledAt: string; roomNumber: string; guestName: string } | null>(null);
 
   readonly expressOrdersTotal = computed(() => {
-    return this.expressCheckoutOrders().reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    return this.expressCheckoutOrders()
+      .filter(o => !o.paid && o.status !== 'CANCELLED')
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
   });
 
   readonly expressPendingBalance = computed(() => {
     const res = this.selectedExpressCheckoutReservation();
     if (!res) return 0;
     const extras = this.expressOrdersTotal();
-    if (res.paymentMethod === 'CREDIT_CARD') {
+    if (res.paymentStatus === 'PAID') {
       return extras;
     }
     return (Number(res.totalPrice) || 0) + extras;
@@ -698,7 +702,7 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     }
   }
 
-  confirmExpressCheckout(): void {
+  async confirmExpressCheckout(): Promise<void> {
     const res = this.selectedExpressCheckoutReservation();
     if (!res) return;
 
@@ -726,10 +730,29 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     this.isSubmittingExpressCheckout.set(true);
     this.expressCheckoutError.set(null);
 
+    let paymentIntentId: string | undefined;
+    if (pending > 0) {
+      try {
+        const intent = await firstValueFrom(
+          this.paymentService.createPaymentIntent({
+            amount: pending,
+            currency: 'usd',
+            description: `Express Check-Out #HOSP-${res.id}`
+          })
+        );
+        paymentIntentId = intent.paymentIntentId;
+      } catch (err: any) {
+        this.isSubmittingExpressCheckout.set(false);
+        const msg = err?.error?.message || err?.error?.detail || 'No fue posible iniciar el pago en la pasarela.';
+        this.expressCheckoutError.set(msg);
+        return;
+      }
+    }
+
     const payload = {
       amount: pending,
       cardLast4: cardLast4,
-      paymentIntentId: `pi_exp_${Date.now().toString().slice(-8)}`,
+      paymentIntentId: paymentIntentId,
       notes: this.expressNotes().trim() || 'Check-Out Express Digital completado por el huésped'
     };
 

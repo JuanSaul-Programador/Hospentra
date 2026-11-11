@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, computed, inject, signal }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { RoomService } from '../../../core/services/room.service';
 import { ReservationService } from '../../../core/services/reservation.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -320,6 +321,15 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
 
       try {
         const result = await this.paymentService.tokenizeCard(this.cardHolder(), this.guestEmail());
+        const intent = await firstValueFrom(
+          this.paymentService.createPaymentIntent({
+            amount: this.baseRateTotal(),
+            currency: 'usd',
+            description: `Suite ${currentRoom.roomNumber}`,
+            guestEmail: this.guestEmail()
+          })
+        );
+        await this.paymentService.confirmCardPayment(intent.clientSecret, result.token);
         this.cardBrand.set(result.brand);
         this.cardLast4.set(result.last4);
         this.authCode.set(result.authCode);
@@ -329,11 +339,13 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
             : `Autorización bancaria aprobada (${result.authCode})`
         );
 
-        this.executeReservationCall(currentRoom, result.last4, result.authCode, result.token, result.brand);
+        this.executeReservationCall(currentRoom, result.last4, result.authCode, intent.paymentIntentId, result.brand);
       } catch (err: any) {
         this.isAuthorizing.set(false);
         this.isSubmitting.set(false);
-        this.errorMessage.set(err.message || 'Error al autorizar el pago con la pasarela bancaria.');
+        this.errorMessage.set(
+          err?.error?.detail || err?.error?.message || err?.message || 'Error al autorizar el pago con la pasarela bancaria.'
+        );
       }
     } else {
       this.isSubmitting.set(true);

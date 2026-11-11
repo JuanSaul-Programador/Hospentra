@@ -141,14 +141,14 @@ export class SuiteInventoryComponent {
   }
 
   processCoverFile(file: File): void {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowed.includes(file.type)) {
-      this.formError.set('Formato no compatible. Utilice imágenes JPG, PNG, WEBP o AVIF.');
+      this.formError.set('Formato no compatible. Utilice imágenes JPG, PNG o WEBP.');
       return;
     }
-    const maxBytes = 10 * 1024 * 1024;
+    const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
-      this.formError.set('La imagen excede el límite permitido de 10 MB.');
+      this.formError.set('La imagen excede el límite permitido de 5 MB.');
       return;
     }
     this.formError.set(null);
