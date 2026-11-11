@@ -151,8 +151,9 @@ export class AccountSettingsComponent implements OnInit {
       return;
     }
 
-    if (!newPass || newPass.length < 6) {
-      this.showToast('La nueva contraseña debe tener al menos 6 caracteres.', 'ERROR');
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!newPass || !strongPasswordRegex.test(newPass)) {
+      this.showToast('La nueva contraseña debe tener al menos 8 caracteres, incluyendo mayúscula, minúscula y número.', 'ERROR');
       return;
     }
 

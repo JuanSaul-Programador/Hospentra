@@ -895,8 +895,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!password || password.length < 6) {
-      this.staffFormError.set('La contraseña de seguridad debe contener al menos 6 caracteres.');
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!password || !strongPasswordRegex.test(password)) {
+      this.staffFormError.set('La contraseña debe tener al menos 8 caracteres, incluyendo mayúscula, minúscula y número.');
       return;
     }
 
@@ -988,8 +989,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (password && password.length < 6) {
-      this.editStaffFormError.set('La nueva contraseña debe contener al menos 6 caracteres.');
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (password && !strongPasswordRegex.test(password)) {
+      this.editStaffFormError.set('La nueva contraseña debe tener al menos 8 caracteres, incluyendo mayúscula, minúscula y número.');
       return;
     }
 

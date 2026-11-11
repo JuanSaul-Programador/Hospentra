@@ -151,13 +151,13 @@
                 id="reg-password"
                 type="password"
                 formControlName="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 class="form-input"
                 [class.invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
               />
             </div>
             @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
-              <span class="field-error">La contraseña debe tener al menos 6 caracteres.</span>
+              <span class="field-error">La contraseña debe tener al menos 8 caracteres, incluyendo mayúscula, minúscula y número.</span>
             }
           </div>
 
