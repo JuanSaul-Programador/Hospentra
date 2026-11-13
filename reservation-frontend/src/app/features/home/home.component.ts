@@ -34,6 +34,16 @@ export class HomeComponent implements OnInit {
   readonly searchCheckOut = signal<string>(this.formatDate(new Date(Date.now() + 5 * 86400000)));
   readonly searchGuests = signal<number>(2);
 
+  readonly nightsCount = computed(() => {
+    const ci = this.searchCheckIn();
+    const co = this.searchCheckOut();
+    if (!ci || !co) return 0;
+    const d1 = new Date(ci);
+    const d2 = new Date(co);
+    const diff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  });
+
   private formatDate(d: Date): string {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');

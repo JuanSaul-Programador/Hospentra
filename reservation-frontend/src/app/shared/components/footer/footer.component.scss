@@ -5,10 +5,10 @@
 }
 
 .footer-root {
-  background-color: #0b1120;
-  color: #f8fafc;
+  background-color: #141815;
+  color: #faf8f5;
   padding: 5rem 0 2.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(197, 160, 89, 0.2);
 }
 
 .footer-container {
@@ -53,7 +53,7 @@
 
 .brand-desc {
   font-size: 0.9375rem;
-  color: #94a3b8;
+  color: rgba(250, 248, 245, 0.7);
   line-height: 1.7;
   max-width: 24rem;
 }
@@ -95,18 +95,18 @@
 
   a {
     font-size: 0.9375rem;
-    color: #94a3b8;
+    color: rgba(250, 248, 245, 0.65);
     transition: color var(--transition-fast);
 
     &:hover {
-      color: #ffffff;
+      color: var(--color-secondary);
     }
   }
 }
 
 .newsletter-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(197, 160, 89, 0.25);
   border-radius: var(--radius-xl);
   padding: 2.25rem;
   display: flex;
@@ -129,7 +129,7 @@
 
 .newsletter-desc {
   font-size: 0.9375rem;
-  color: #94a3b8;
+  color: rgba(250, 248, 245, 0.7);
   max-width: 32rem;
 }
 
@@ -144,7 +144,7 @@
 .newsletter-input {
   flex: 1;
   background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(197, 160, 89, 0.3);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   color: #ffffff;
@@ -152,7 +152,7 @@
   transition: border-color var(--transition-fast);
 
   &::placeholder {
-    color: #64748b;
+    color: rgba(250, 248, 245, 0.45);
   }
 
   &:focus {
@@ -168,7 +168,7 @@
   justify-content: space-between;
   gap: 1rem;
   font-size: 0.875rem;
-  color: #64748b;
+  color: rgba(250, 248, 245, 0.5);
   flex-wrap: wrap;
 }
 
@@ -176,28 +176,6 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
-}
-
-.staff-portal-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  color: #64748b;
-  text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  border: 1px dashed rgba(148, 163, 184, 0.2);
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: var(--color-secondary);
-    border-color: var(--color-secondary);
-  }
-
-  .icon-tiny {
-    font-size: 0.875rem;
-  }
 }
 
 @media (max-width: 1024px) {

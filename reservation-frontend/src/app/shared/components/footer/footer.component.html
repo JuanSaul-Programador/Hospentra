@@ -53,7 +53,7 @@
       </div>
       <div class="newsletter-form">
         <input type="email" [placeholder]="i18n.t('footer.emailPlaceholder')" class="newsletter-input" />
-        <button type="button" class="btn btn-primary">{{ i18n.t('footer.subscribeBtn') }}</button>
+        <button type="button" class="btn btn-gold">{{ i18n.t('footer.subscribeBtn') }}</button>
       </div>
     </div>
 
@@ -62,10 +62,6 @@
         {{ i18n.t('footer.copyright', { year: currentYear }) }}
       </p>
       <div class="footer-bottom-actions">
-        <a routerLink="/admin/login" class="staff-portal-link">
-          <span class="material-symbols-outlined icon-tiny">lock</span>
-          <span>{{ i18n.t('footer.staffPortal') }}</span>
-        </a>
         <span class="rights-text">{{ i18n.t('footer.rights') }}</span>
       </div>
     </div>

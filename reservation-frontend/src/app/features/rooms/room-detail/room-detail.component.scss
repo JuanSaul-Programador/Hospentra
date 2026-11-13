@@ -1,6 +1,6 @@
 .room-detail-page {
   min-height: 100vh;
-  background-color: var(--color-background, #fdfbf7);
+  background-color: var(--color-bg);
   padding: 1.5rem 0 4rem;
 }
 
@@ -252,9 +252,10 @@
   margin-bottom: 2rem;
 
   .suite-title {
-    font-size: 2rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
     font-weight: 700;
-    color: var(--color-primary, #0f172a);
+    color: var(--color-primary, #141815);
     margin: 0 0 0.5rem;
     letter-spacing: -0.02em;
     line-height: 1.2;
@@ -803,9 +804,9 @@
   position: sticky;
   top: 90px;
   background: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-luxury);
   padding: 1.75rem;
 
   .widget-header {
@@ -940,18 +941,20 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.875rem;
+      padding: 0.95rem;
       font-size: 0.9375rem;
       font-weight: 700;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       cursor: pointer;
-      background: var(--color-primary, #0f172a);
-      color: #ffffff;
+      background: var(--gold-gradient);
+      color: #141815;
       border: none;
-      transition: background-color 0.15s ease;
+      box-shadow: var(--shadow-gold);
+      transition: all var(--transition-normal);
 
       &:hover {
-        background: #1e293b;
+        background: var(--gold-gradient-hover);
+        transform: translateY(-2px);
       }
     }
 
@@ -1013,7 +1016,7 @@
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: rgba(11, 17, 32, 0.96);
+  background: rgba(20, 24, 21, 0.96);
   backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
@@ -1038,11 +1041,11 @@
   max-height: 840px;
   display: flex;
   flex-direction: column;
-  background: #0f172a;
-  border: 1px solid rgba(197, 155, 39, 0.35);
-  border-radius: 20px;
+  background: #141815;
+  border: 1px solid rgba(197, 160, 89, 0.35);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.85);
+  box-shadow: var(--shadow-luxury);
 }
 
 .lightbox-header {

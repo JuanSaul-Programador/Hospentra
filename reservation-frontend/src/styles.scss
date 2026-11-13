@@ -1,29 +1,35 @@
 :root {
-  --color-primary: #0f172a;
-  --color-primary-light: #1e293b;
-  --color-secondary: #c59b27;
-  --color-secondary-hover: #b0871d;
-  --color-secondary-soft: rgba(197, 155, 39, 0.12);
-  --color-secondary-bg: #fdfaf0;
-  --color-bg: #f8fafc;
+  --color-primary: #141815;
+  --color-primary-light: #1f2621;
+  --color-primary-dark: #0d100e;
+  --color-secondary: #c5a059;
+  --color-secondary-hover: #b38e46;
+  --color-secondary-soft: rgba(197, 160, 89, 0.12);
+  --color-secondary-bg: #fbf8f2;
+  --color-bg: #faf8f5;
   --color-surface: #ffffff;
   --color-surface-card: #ffffff;
-  --color-surface-subtle: #f1f5f9;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-dim: #94a3b8;
-  --color-border: rgba(15, 23, 42, 0.08);
-  --color-border-hover: rgba(15, 23, 42, 0.16);
-  --color-border-focus: #0f172a;
-  --color-success: #10b981;
-  --color-error: #ef4444;
+  --color-surface-subtle: #f3efe9;
+  --color-surface-elevated: #ffffff;
+  --color-text: #141815;
+  --color-text-muted: #6e6a64;
+  --color-text-dim: #99948e;
+  --color-border: rgba(20, 24, 21, 0.08);
+  --color-border-hover: rgba(20, 24, 21, 0.16);
+  --color-border-focus: #c5a059;
+  --color-success: #15803d;
+  --color-error: #dc2626;
   --color-error-bg: #fef2f2;
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 10px 25px -3px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
-  --shadow-xl: 0 20px 40px -8px rgba(15, 23, 42, 0.14);
-  --shadow-gold: 0 8px 24px -4px rgba(197, 155, 39, 0.28);
+  --gold-gradient: linear-gradient(135deg, #dfc287 0%, #c5a059 50%, #9b7836 100%);
+  --gold-gradient-hover: linear-gradient(135deg, #ead19d 0%, #d4af67 50%, #ab8640 100%);
+  --shadow-xs: 0 1px 2px rgba(20, 24, 21, 0.04);
+  --shadow-sm: 0 2px 4px rgba(20, 24, 21, 0.04), 0 1px 2px rgba(20, 24, 21, 0.03);
+  --shadow-md: 0 6px 18px -2px rgba(20, 24, 21, 0.07), 0 2px 6px -1px rgba(20, 24, 21, 0.03);
+  --shadow-lg: 0 12px 30px -4px rgba(20, 24, 21, 0.09), 0 4px 12px -2px rgba(20, 24, 21, 0.03);
+  --shadow-xl: 0 24px 48px -12px rgba(20, 24, 21, 0.14);
+  --shadow-gold: 0 8px 24px -4px rgba(197, 160, 89, 0.35);
+  --shadow-glow: 0 0 28px rgba(197, 160, 89, 0.28);
+  --shadow-luxury: 0 12px 36px -6px rgba(20, 24, 21, 0.08), 0 4px 12px -2px rgba(20, 24, 21, 0.03);
   --radius-xs: 0.25rem;
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
@@ -133,13 +139,25 @@ input, select, textarea {
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
+  background: var(--gold-gradient);
   color: #ffffff;
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-secondary-hover);
+  background: var(--gold-gradient-hover);
   box-shadow: var(--shadow-gold);
+}
+
+.btn-gold {
+  background: var(--gold-gradient);
+  color: #ffffff;
+  border: none;
+}
+
+.btn-gold:hover {
+  background: var(--gold-gradient-hover);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -148,7 +166,7 @@ input, select, textarea {
 }
 
 .btn-ghost:hover {
-  background-color: rgba(15, 23, 42, 0.05);
+  background-color: rgba(20, 24, 21, 0.05);
 }
 
 .btn-outline {
@@ -160,6 +178,17 @@ input, select, textarea {
 .btn-outline:hover {
   background-color: var(--color-surface-subtle);
   border-color: var(--color-border-hover);
+}
+
+.btn-outline-gold {
+  background-color: transparent;
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.btn-outline-gold:hover {
+  background-color: var(--color-secondary-soft);
+  box-shadow: 0 0 16px rgba(197, 160, 89, 0.2);
 }
 
 .w-full {

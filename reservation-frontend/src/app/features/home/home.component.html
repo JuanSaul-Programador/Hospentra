@@ -60,6 +60,14 @@
 
         <div class="field-divider"></div>
 
+        @if (nightsCount() > 0) {
+          <div class="search-nights-pill">
+            <span class="material-symbols-outlined pill-icon">nights_stay</span>
+            <span class="pill-count">{{ nightsCount() }} {{ nightsCount() === 1 ? 'noche' : 'noches' }}</span>
+          </div>
+          <div class="field-divider"></div>
+        }
+
         <div class="search-field">
           <div class="field-icon-wrapper">
             <span class="material-symbols-outlined">group</span>
@@ -184,6 +192,12 @@
 
   <section id="catalogo" class="catalog-section">
     <div class="catalog-container">
+      <div class="catalog-intro">
+        <span class="section-badge">COLECCIÓN EXCLUSIVA • HOSPENTRA SANCTUARY</span>
+        <h2 class="section-heading">{{ i18n.t('catalog.title') }}</h2>
+        <p class="section-subheading">{{ i18n.t('catalog.subtitle') }}</p>
+      </div>
+
       <div class="catalog-header">
         <div class="filters-scroll">
           <button
@@ -271,6 +285,7 @@
                     class="room-card-image"
                     loading="lazy"
                   />
+                  <div class="media-overlay-gradient"></div>
                   <span class="room-badge">
                     {{ getCategoryBadge(room.roomType.name) }}
                   </span>
@@ -286,6 +301,7 @@
 
               <div class="room-card-body">
                 <div class="room-specs">
+                  <span class="material-symbols-outlined spec-icon">group</span>
                   <span>{{ i18n.t('catalog.capacityUpTo', { n: room.roomType.capacity }) }}</span>
                   <span class="spec-dot">•</span>
                   <span>{{ i18n.t('catalog.roomLabel', { n: room.roomNumber }) }}</span>
@@ -324,17 +340,19 @@
                   <div class="pricing-block">
                     <span class="pricing-label">{{ i18n.t('catalog.ratePerNight') }}</span>
                     <div class="pricing-val">
-                      <span class="amount">${{ room.roomType.pricePerNight | number:'1.2-2' }}</span>
-                      <span class="night-label">{{ i18n.t('catalog.perNight') }}</span>
+                      <span class="currency-symbol">$</span>
+                      <span class="amount">{{ room.roomType.pricePerNight | number:'1.2-2' }}</span>
+                      <span class="night-label">USD {{ i18n.t('catalog.perNight') }}</span>
                     </div>
                   </div>
 
                   <a
                     [routerLink]="['/rooms', room.id]"
                     [queryParams]="{ checkIn: searchCheckIn(), checkOut: searchCheckOut() }"
-                    class="btn btn-primary book-btn"
+                    class="btn btn-gold book-btn"
                   >
-                    {{ i18n.t('catalog.bookNow') }}
+                    <span>{{ i18n.t('catalog.bookNow') }}</span>
+                    <span class="material-symbols-outlined btn-arrow">arrow_forward</span>
                   </a>
                 </div>
               </div>

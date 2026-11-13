@@ -9,7 +9,7 @@
   left: 0;
   right: 0;
   height: 5rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(250, 248, 245, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--color-border);
@@ -116,9 +116,9 @@
     }
 
     &.active {
-      background: var(--color-secondary);
-      color: #ffffff;
-      box-shadow: 0 2px 4px rgba(197, 155, 39, 0.25);
+      background: var(--gold-gradient);
+      color: #141815;
+      box-shadow: var(--shadow-gold);
     }
   }
 
@@ -352,8 +352,8 @@
 }
 
 .btn-bell {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   width: 2.35rem;
   height: 2.35rem;
@@ -362,13 +362,14 @@
   justify-content: center;
   cursor: pointer;
   position: relative;
-  color: #0f172a;
-  transition: all 0.2s ease;
+  color: var(--color-primary);
+  transition: all var(--transition-fast);
 
   &:hover, &.active {
-    background: #e2e8f0;
-    color: #c59b27;
-    border-color: #cbd5e1;
+    background: #ffffff;
+    color: var(--color-secondary);
+    border-color: rgba(197, 160, 89, 0.4);
+    box-shadow: 0 4px 12px rgba(197, 160, 89, 0.15);
   }
 
   .bell-icon {
@@ -402,9 +403,9 @@
   width: 22rem;
   max-width: 90vw;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-luxury);
   overflow: hidden;
   z-index: 1000;
   animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -414,7 +415,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.85rem 1rem;
-    background: #0f172a;
+    background: #141815;
     color: #ffffff;
 
     .header-title-box {
@@ -429,7 +430,7 @@
       }
 
       .material-symbols-outlined {
-        color: #c59b27;
+        color: var(--color-secondary);
         font-size: 1.15rem;
       }
     }
@@ -437,7 +438,7 @@
     .btn-mark-all {
       background: transparent;
       border: none;
-      color: #c59b27;
+      color: var(--color-secondary);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
@@ -581,16 +582,16 @@
   top: 5.75rem;
   right: 1.5rem;
   z-index: 10001;
-  background: #0f172a;
+  background: #141815;
   color: #ffffff;
-  border: 1px solid #c59b27;
-  border-radius: 12px;
+  border: 1px solid rgba(197, 160, 89, 0.45);
+  border-radius: var(--radius-lg);
   padding: 0.85rem 1.15rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   max-width: 25rem;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--shadow-luxury);
   cursor: pointer;
   animation: toastSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -598,8 +599,8 @@
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background: rgba(197, 155, 39, 0.15);
-    color: #c59b27;
+    background: rgba(197, 160, 89, 0.15);
+    color: var(--color-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
